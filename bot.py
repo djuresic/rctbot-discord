@@ -24,7 +24,6 @@ import phpserialize
 
 # TO DO:
 # oh yeah it's f strings time!
-# remove redundant LIST_OF_LISTS checks inside functions, should be done outside now that there's @is_tester  
 # remove unnecessary "global"s, port: on_member_join, announce_testing, keep_alive, games, distribute, trivia, mvp, joined, mute, table, ttt, hangman, whois, pr
 # detailed platform data
 # remove utf-8 from encode/decode, it's the default in py 3
@@ -57,7 +56,7 @@ if os.path.exists(CONFIG_FILE):
         except:
             raise Exception('Invalid configuration file or missing keys.')
 else:
-    raise Exception('Missing configuration file {} in directory.'.format(CONFIG_FILE))
+    raise Exception(f'Missing configuration file {CONFIG_FILE} in directory.')
 
 #Discord
 DISCORD_TOKEN = CONFIG_DISCORD['TOKEN']
@@ -1286,18 +1285,17 @@ async def notes(ctx):
     author = ctx.message.author
     log_channel = bot.get_channel(DISCORD_NOTES_CHANNEL_ID)
 
-    token_generator = 'https://{}/site/create-access-token'.format(HON_ALT_DOMAIN)
+    token_generator = f'https://{HON_ALT_DOMAIN}/site/create-access-token'
     cat_query = {'discordId' : author.id, 'password' : HON_CAT_PASSWORD}
     
     async with aiohttp.ClientSession() as session:
 
         async with session.get(token_generator, params=cat_query) as resp:
             token = await resp.text()
-            token = str(token.decode("utf-8"))
 
-    notes_url = "https://{0}/{1}".format(HON_ALT_DOMAIN, token)
-    await author.send("Current Testing Notes: " + notes_url)
-    await log_channel.send("({0}) {1} received Testing Notes with the URL: `{2}`".format(strftime("%a, %d %b %Y, %H:%M:%S %Z", gmtime()) ,author.mention, notes_url))
+    notes_url = f'https://{HON_ALT_DOMAIN}/{token}'
+    await author.send(f'Current Testing Notes: {notes_url}')
+    await log_channel.send(f'({strftime("%a, %d %b %Y, %H:%M:%S %Z", gmtime())}) {author.mention} received Testing Notes with the URL: `{notes_url}`')
 
 
 #-------------------- Moderation --------------------
