@@ -23,6 +23,7 @@ import phpserialize
 # note to myself: ctx.author: shorthand for Message.author, also applies to: guild, channel
 
 # TO DO:
+# oh yeah it's f strings time!
 # remove redundant LIST_OF_LISTS checks inside functions, should be done outside now that there's @is_tester  
 # remove unnecessary "global"s, port: on_member_join, announce_testing, keep_alive, games, distribute, trivia, mvp, joined, mute, table, ttt, hangman, whois, pr
 # detailed platform data
@@ -94,6 +95,7 @@ GOOGLE_CLIENT_SECRET_FILE = CONFIG_GOOGLE['CLIENT_SECRET_FILE']
 GOOGLE_SCOPES = CONFIG_GOOGLE['SCOPES']
 
 #dynamic
+DATABASE_READY = False
 LIST_OF_LISTS = None
 LIST_OF_LISTS_TRIVIA = None
 PLAYER_SLASH_HERO = None #TO DO: this horror to dict
@@ -119,6 +121,9 @@ bot = commands.Bot(command_prefix=['!', '.'], description=winter_solstice)
 
 
 #-------------------- Decorators --------------------
+class DatabaseNotReady(commands.CheckFailure):
+    pass
+
 class NotInWhiteList(commands.CheckFailure):
     pass
 
@@ -127,6 +132,15 @@ class NotATester(commands.CheckFailure): #TO DO: special case in handler
 
 class GuildOnlyCommand(commands.CheckFailure):
     pass
+
+def database_ready():
+    #ctx mandatory positional argument
+    async def database_ready_check(ctx):
+        if not DATABASE_READY:
+            raise DatabaseNotReady("Database is not ready!")   
+        return True
+        #return DATABASE_READY
+    return commands.check(database_ready_check)
 
 def in_whitelist(whitelist):
     async def in_whitelist_check(ctx):
@@ -137,6 +151,9 @@ def in_whitelist(whitelist):
 
 def is_tester():
     async def is_tester_check(ctx):
+        if not DATABASE_READY:
+            raise DatabaseNotReady("Database is not ready!")
+
         found_id = False
         is_enabled = False
 
@@ -167,27 +184,29 @@ async def version(ctx):
     """Check all RC client versions."""
     global HON_NAEU_RC_MASTERSERVER
 
-    rc_patcher = 'http://' + HON_NAEU_RC_MASTERSERVER + '/patcher/patcher.php'
+    async with ctx.message.channel.typing():
 
-    wrc_query = {'version' : '0.0.0.0', 'os' : 'wrc-{}'.format(HON_NAEU_RC_OS_PART), 'arch' : 'i686'}
-    lrc_query = {'version' : '0.0.0.0', 'os' : 'lrc-{}'.format(HON_NAEU_RC_OS_PART), 'arch' : 'x86-biarch'}
-    mrc_query = {'version' : '0.0.0.0', 'os' : 'mrc-{}'.format(HON_NAEU_RC_OS_PART), 'arch' : 'universal'}
-    
-    async with aiohttp.ClientSession() as session:
+        rc_patcher = f'http://{HON_NAEU_RC_MASTERSERVER}/patcher/patcher.php'
 
-        async def get_latest_version(url, query):
-            async with session.get(url, params=query) as resp:
-                serialized = await resp.text()
-                unserialized = phpserialize.loads(serialized.encode())[0] #deserialize
-                decoded = {k.decode() : v.decode()  for k, v in unserialized.items()}
-                version = decoded['version']
-            return version
+        wrc_query = {'version' : '0.0.0.0', 'os' : f'wrc-{HON_NAEU_RC_OS_PART}', 'arch' : 'i686'}
+        lrc_query = {'version' : '0.0.0.0', 'os' : f'lrc-{HON_NAEU_RC_OS_PART}', 'arch' : 'x86-biarch'}
+        mrc_query = {'version' : '0.0.0.0', 'os' : f'mrc-{HON_NAEU_RC_OS_PART}', 'arch' : 'universal'}
+        
+        async with aiohttp.ClientSession() as session:
 
-        wrc = await get_latest_version(rc_patcher, wrc_query)
-        lrc = await get_latest_version(rc_patcher, lrc_query)
-        mrc = await get_latest_version(rc_patcher, mrc_query)
+            async def get_latest_version(url, query):
+                async with session.get(url, params=query) as resp:
+                    serialized = await resp.text()
+                    unserialized = phpserialize.loads(serialized.encode())[0] #deserialize
+                    decoded = {k.decode() : v.decode()  for k, v in unserialized.items()}
+                    version = decoded['version']
+                return version
 
-    await ctx.send("**Windows:** {0}\n**Mac:** {1}\n**Linux:** {2}".format(wrc, mrc, lrc))
+            wrc = await get_latest_version(rc_patcher, wrc_query)
+            lrc = await get_latest_version(rc_patcher, lrc_query)
+            mrc = await get_latest_version(rc_patcher, mrc_query)
+
+        await ctx.send(f"**Windows:** {wrc}\n**Mac:** {mrc}\n**Linux:** {lrc}")
 
 
 @bot.command(name="honstats")
@@ -253,16 +272,13 @@ async def srp(ctx):
 #-------------------- RCT Stats --------------------
 #TO DO: clean up branching, async functions
 @bot.command(aliases=['info', 'sheet', 'rank'])
+@database_ready()
 async def stats(ctx, member:discord.Member=None):
     """Gets user's RCT game info from the sheet"""
     start = timeit.default_timer()
     global LIST_OF_LISTS
     global LIST_OF_LISTS_TRIVIA
     check_failed = False
-    if LIST_OF_LISTS is None:
-        async with ctx.message.channel.typing():
-            await ctx.send("{.mention} Slow down speedy, I just woke up. Try *me* again in a few seconds.".format(ctx.message.author))
-        return
 
     if member is None:
         member = ctx.message.author
@@ -379,6 +395,10 @@ async def stats(ctx, member:discord.Member=None):
                 #playerName=players[i]
         #games_played = collections.Counter(heroes_played)
         games_played = str(len(heroes_played))
+    
+    def is_current_member():
+        return row_values[0].lower() in ('true', '1')
+    #TO DO: this to function
 
     current_member = row_values[0]
     if current_member == 'TRUE':
@@ -719,12 +739,7 @@ async def report(ctx):
     source_channel = ctx.message.channel
     bug_reports_channel = bot.get_channel(DISCORD_BUGS_CHANNEL_ID)
 
-    if report_author not in bug_reports_channel.members or report_author.id not in DISCORD_WHITELIST_IDS:
-        return
-
-    if LIST_OF_LISTS is None:
-        async with source_channel.typing():
-            await ctx.send("{.mention} Slow down speedy, I just woke up. Try *me* again in a few seconds.".format(report_author))
+    if report_author not in bug_reports_channel.members or report_author.id not in DISCORD_WHITELIST_IDS: #TO DO: this has to go
         return
 
     if report_author in OPEN_REPORTS:
@@ -1350,6 +1365,9 @@ async def on_command_error(ctx, error):
     if isinstance(error, NotInWhiteList):
         await ctx.author.send(error)
 
+    if isinstance(error, DatabaseNotReady):
+        await ctx.send("{.mention} Slow down speedy, I just woke up. Try *me* again in a few seconds.".format(ctx.author))
+
     print(error)
     return
 
@@ -1446,6 +1464,8 @@ async def fetch_sheet():
     global PLAYER_SLASH_HERO
     global FETCH_SHEET_PASS
 
+    global DATABASE_READY
+
     def get_creds():
         return ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_CLIENT_SECRET_FILE, GOOGLE_SCOPES)
     
@@ -1468,6 +1488,8 @@ async def fetch_sheet():
         LIST_OF_LISTS_TRIVIA = await trivia_worksheet.get_all_values()
         SETTINGS = await settings_worksheet.col_values(2)
         PLAYER_SLASH_HERO = await games_worksheet.col_values(13)
+
+        DATABASE_READY = True
         
         count_pass += 1
         FETCH_SHEET_PASS = count_pass
