@@ -29,69 +29,7 @@ import phpserialize
 # remove utf-8 from encode/decode, it's the default in py 3
 # option for remote config and empty config file creation
 
-
-#Heroku
-if 'DYNO' in os.environ:
-    HEROKU_DEPLOYED = True
-else:
-    HEROKU_DEPLOYED = False
-
-#load local config, platform for dev purposes
-if 'Windows' in platform.system():
-    CONFIG_FILE = 'dev_config.json'
-else:
-    CONFIG_FILE = 'config.json'
-
-if os.path.exists(CONFIG_FILE):
-    with open(CONFIG_FILE) as CONFIG:
-        CONFIG = json.load(CONFIG)
-        try:
-            CONFIG_DISCORD = CONFIG['DISCORD']
-            CONFIG_HON = CONFIG['HON']
-            CONFIG_GOOGLE = CONFIG['GOOGLE']
-            
-            if HEROKU_DEPLOYED:
-                CONFIG_HEROKU = CONFIG['HEROKU']
-                HEROKU_APP_NAME = CONFIG_HEROKU['APP_NAME']
-        except:
-            raise Exception('Invalid configuration file or missing keys.')
-else:
-    raise Exception(f'Missing configuration file {CONFIG_FILE} in directory.')
-
-#Discord
-DISCORD_TOKEN = CONFIG_DISCORD['TOKEN']
-DISCORD_NOTES_CHANNEL_ID = CONFIG_DISCORD['NOTES_CHANNEL_ID']
-DISCORD_ANNOUNCEMENTS_CHANNEL_ID = CONFIG_DISCORD['ANNOUNCEMENTS_CHANNEL_ID']
-DISCORD_FORUMS_ROLE_ID = CONFIG_DISCORD['FORUMS_ROLE_ID']
-DISCORD_BUGS_CHANNEL_ID = CONFIG_DISCORD['BUGS_CHANNEL_ID']
-DISCORD_BOT_LOG_CHANNEL_ID = CONFIG_DISCORD['BOT_LOG_CHANNEL_ID']
-DISCORD_WHITELIST_IDS = CONFIG_DISCORD['WHITELIST_IDS']
-
-DISCORD_DM_COMMANDS = ['report', 'notes'] #TO DO: replace with a decorator (guild_only and dm_allowed)
-
-#Heroes of Newerth
-HON_USER_AGENT = CONFIG_HON['USER_AGENT']
-HON_NAEU_MASTERSERVER = CONFIG_HON['NAEU_MASTERSERVER']
-HON_NAEU_RC_MASTERSERVER = CONFIG_HON['NAEU_RC_MASTERSERVER']
-HON_NAEU_TC_MASTERSERVER = CONFIG_HON['NAEU_TC_MASTERSERVER']
-HON_NAEU_RC_OS_PART = CONFIG_HON['NAEU_RC_OS_PART']
-HON_NAEU_TC_OS_PART = CONFIG_HON['NAEU_TC_OS_PART']
-HON_REGION = CONFIG_HON['REGION']
-HON_s2_n = CONFIG_HON['s2_n']
-HON_s2_g = CONFIG_HON['s2_g']
-HON_ALT_DOMAIN = CONFIG_HON['ALT_DOMAIN']
-HON_CAT_PASSWORD = CONFIG_HON['CAT_PASSWORD']
-HON_FORUM_USER = CONFIG_HON['FORUM_USER']
-HON_FORUM_USER_MD5_PASSWORD = CONFIG_HON['FORUM_USER_MD5_PASSWORD']
-HON_FORUM_USER_ACCOUNT_ID = CONFIG_HON['FORUM_USER_ACCOUNT_ID']
-HON_FORUM_ANNOUNCEMENTS_THREAD_ID = CONFIG_HON['FORUM_ANNOUNCEMENTS_THREAD_ID']
-HON_FORUM_RCT_BUGS_SUBFORUM_ID = CONFIG_HON['FORUM_RCT_BUGS_SUBFORUM_ID']
-HON_FORUM_CREATE_ALL_THREADS = CONFIG_HON['FORUM_CREATE_ALL_THREADS']
-HON_FORUM_SCREENSHOT_LIMIT = CONFIG_HON['FORUM_SCREENSHOT_LIMIT']
-
-#Google
-GOOGLE_CLIENT_SECRET_FILE = CONFIG_GOOGLE['CLIENT_SECRET_FILE']
-GOOGLE_SCOPES = CONFIG_GOOGLE['SCOPES']
+import config # What have I done...
 
 #dynamic
 DATABASE_READY = False
@@ -116,8 +54,26 @@ And would suffice.
 
 - Robert Frost'''
 
+BOT_STARTUP_EXTENSIONS = []
+BOT_DISABLED_EXTENSIONS = []
+
+with os.scandir('extensions') as it:
+    for entry in it:
+        if entry.name.endswith('.py') and entry.is_file():
+            extension_name = entry.name.strip('.py')
+            if extension_name not in BOT_DISABLED_EXTENSIONS:
+                BOT_STARTUP_EXTENSIONS.append(f'extensions.{extension_name}')
+
+
 bot = commands.Bot(command_prefix=['!', '.'], description=winter_solstice)
 
+if __name__ == "__main__":
+    for extension in BOT_STARTUP_EXTENSIONS:
+        try:
+            bot.load_extension(extension)
+        except Exception as e:
+            exc = '{}: {}'.format(type(e).__name__, e)
+            print('Failed to load extension {}\n{}'.format(extension, exc))
 
 #-------------------- Decorators --------------------
 class DatabaseNotReady(commands.CheckFailure):
@@ -181,15 +137,14 @@ def guild_only(): #TO DO: this annoyance
 @is_tester()
 async def version(ctx):
     """Check all RC client versions."""
-    global HON_NAEU_RC_MASTERSERVER
 
     async with ctx.message.channel.typing():
 
-        rc_patcher = f'http://{HON_NAEU_RC_MASTERSERVER}/patcher/patcher.php'
+        rc_patcher = f'http://{config.HON_NAEU_RC_MASTERSERVER}/patcher/patcher.php'
 
-        wrc_query = {'version' : '0.0.0.0', 'os' : f'wrc-{HON_NAEU_RC_OS_PART}', 'arch' : 'i686'}
-        lrc_query = {'version' : '0.0.0.0', 'os' : f'lrc-{HON_NAEU_RC_OS_PART}', 'arch' : 'x86-biarch'}
-        mrc_query = {'version' : '0.0.0.0', 'os' : f'mrc-{HON_NAEU_RC_OS_PART}', 'arch' : 'universal'}
+        wrc_query = {'version' : '0.0.0.0', 'os' : f'wrc-{config.HON_NAEU_RC_OS_PART}', 'arch' : 'i686'}
+        lrc_query = {'version' : '0.0.0.0', 'os' : f'lrc-{config.HON_NAEU_RC_OS_PART}', 'arch' : 'x86-biarch'}
+        mrc_query = {'version' : '0.0.0.0', 'os' : f'mrc-{config.HON_NAEU_RC_OS_PART}', 'arch' : 'universal'}
         
         async with aiohttp.ClientSession() as session:
 
@@ -209,12 +164,11 @@ async def version(ctx):
 
 
 @bot.command(name="honstats")
-@in_whitelist(DISCORD_WHITELIST_IDS)
+@in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def show_simple_stats(ctx, nickname=None):
     """show_simple_stats ac"""
-    global HON_NAEU_MASTERSERVER
 
-    ac_client_requester = 'http://' + HON_NAEU_MASTERSERVER + '/client_requester.php'
+    ac_client_requester = 'http://' + config.HON_NAEU_MASTERSERVER + '/client_requester.php'
 
     if nickname is None:
         nickname = ctx.author.display_name
@@ -232,12 +186,11 @@ async def show_simple_stats(ctx, nickname=None):
             await ctx.send(result)
 
 @bot.command(name="rchonstats")
-@in_whitelist(DISCORD_WHITELIST_IDS)
+@in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def show_simple_stats_rc(ctx, nickname=None):
     """show_simple_stats rc"""
-    global HON_NAEU_RC_MASTERSERVER
 
-    rc_client_requester = 'http://' + HON_NAEU_RC_MASTERSERVER + '/client_requester.php'
+    rc_client_requester = 'http://' + config.HON_NAEU_RC_MASTERSERVER + '/client_requester.php'
 
     if nickname is None:
         nickname = ctx.author.display_name
@@ -255,7 +208,7 @@ async def show_simple_stats_rc(ctx, nickname=None):
             await ctx.send(result)
 
 @bot.command()
-@in_whitelist(DISCORD_WHITELIST_IDS)
+@in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def srp(ctx):
     """secure remote password authentication""" #TO DO: remove py 2.7 syntax, fix srp, secrets to conf, f in async, aiohttp, global for cookie
     try:
@@ -495,12 +448,6 @@ async def create(ctx, patch:str=None, link:str=None):
         await ctx.send('The correct format is `.create <version> <patch notes link or Discord>`')
         return
     await ctx.send('Please wait.')
-    global HON_FORUM_USER
-    global HON_FORUM_USER_MD5_PASSWORD
-    global HON_FORUM_USER_ACCOUNT_ID
-    global HON_FORUM_ANNOUNCEMENTS_THREAD_ID
-    global HON_FORUM_RCT_BUGS_SUBFORUM_ID
-    global HON_FORUM_CREATE_ALL_THREADS
 
     index = 'https://forums.heroesofnewerth.com/index.php'
     login_url = 'https://forums.heroesofnewerth.com/login.php'
@@ -509,11 +456,11 @@ async def create(ctx, patch:str=None, link:str=None):
                 'do':'login',
                 's':'',
                 'securitytoken':'guest',
-                'vb_login_md5password':HON_FORUM_USER_MD5_PASSWORD,
-                'vb_login_md5password_utf':HON_FORUM_USER_MD5_PASSWORD,
+                'vb_login_md5password':config.HON_FORUM_USER_MD5_PASSWORD,
+                'vb_login_md5password_utf':config.HON_FORUM_USER_MD5_PASSWORD,
                 'vb_login_password':'',
                 'vb_login_password_hint':'Password',
-                'vb_login_username':HON_FORUM_USER}
+                'vb_login_username':config.HON_FORUM_USER}
 
     async with aiohttp.ClientSession() as session:
 
@@ -542,9 +489,9 @@ async def create(ctx, patch:str=None, link:str=None):
         thread_tooltips_search = "{0}-Bugs-Tooltips\" id=\"thread_title_".format(patch_search)
 
         newthread_mechanics_general = {'do':'postthread',
-                'f':HON_FORUM_RCT_BUGS_SUBFORUM_ID,
+                'f':config.HON_FORUM_RCT_BUGS_SUBFORUM_ID,
                 'iconid':'0',
-                'loggedinuser':HON_FORUM_USER_ACCOUNT_ID,
+                'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
                 'message':message_mechanics_general,
                 'message_backup':message_mechanics_general,
                 'parseurl':'1',
@@ -560,9 +507,9 @@ async def create(ctx, patch:str=None, link:str=None):
                 'wysiwyg':'0'}
 
         newthread_tooltips = {'do':'postthread',
-                'f':HON_FORUM_RCT_BUGS_SUBFORUM_ID,
+                'f':config.HON_FORUM_RCT_BUGS_SUBFORUM_ID,
                 'iconid':'0',
-                'loggedinuser':HON_FORUM_USER_ACCOUNT_ID,
+                'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
                 'message':message_tooltips,
                 'message_backup':message_tooltips,
                 'parseurl':'1',
@@ -577,7 +524,7 @@ async def create(ctx, patch:str=None, link:str=None):
                 'until':'0',
                 'wysiwyg':'0'}
 
-        if HON_FORUM_CREATE_ALL_THREADS:
+        if config.HON_FORUM_CREATE_ALL_THREADS:
             message_ui = "[CENTER][FONT=verdana][SIZE=3][B][COLOR=#ff6600]{0} - Bugs (UI)[/COLOR][/B][/SIZE]\n[COLOR=#a9a9a9]Interface bugs only (and other bugs that could possibly fit in this thread).[/COLOR][/FONT][/CENTER]\n\n\nPatch notes can be found here: [URL=\"{1}\"]{1}[/URL]\n\n\n[COLOR=#ff6600][B]General Rules[/B][/COLOR]\n- Always include version number and build date in your report in the format specified below. To check the build date and version number, simply open your console  (Ctrl+F8) and then type \"version\" without the quotation marks and press  Enter.\n- Remember to include which alt avatar a bug occurs on if you are testing a hero.\n- Only use Imgur ([URL]https://imgur.com/[/URL]) to host and link images in your reports. It's a standard for us & the URLs are short enough so Staff can handle mass reports easier. Guide on how to step up your screenshots to the next level can be found [URL=\"https://forums.heroesofnewerth.com/showthread.php?589119-Guide-How-to-screenshots\"]here[/URL].\n- Only report RCT-specific bugs that occur on this client. Do not report retail bugs in the RCT Bugs subforum. Why this is so can be seen [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16498264&viewfull=1#post16498264\"]here[/URL].\n- If you're posting crash logs, you have to include a brief description  of why you think you crashed or what you were doing at the time you crashed.\n- The only language used in your reports should be English.\n- Do not report HoN Store related sound bugs with regards to new avatars.\n\n\n[COLOR=#ff6600][B]Format[/B][/COLOR]\nYou are expected to make your reports in the format below. Reports made by RCTBot naturally follow this format.\n[QUOTE][FONT=Tahoma][I]Version: 0.xx.xxx\nBuild date: Day Month Year\n\n<Description of bug>[/I][/FONT][/QUOTE]\n[COLOR=#0099FF]Example:[/COLOR]\n[QUOTE][FONT=Tahoma][I]Version: 0.27.231.1\nBuild date: 2 April 2018\n\n[/I][/FONT]This avatar's skill does not play a sound, does not work at all (results in nothing after being cast) and has no visuals.[/QUOTE]\n\n\nIf you are reporting a bug directly, paste only the plain text image URL  when linking images in your posts. Only use quotes, not spoilers.  Reasons for this are listed [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16511525&viewfull=1#post16511525\"]here[/URL]. To report a bug via Discord, use the [COLOR=#00cc99].report[/COLOR]  command and follow the instructions while having all the above rules in mind.".format(patch, link)
             message_sound = "[CENTER][FONT=verdana][SIZE=3][B][COLOR=#ff6600]{0} - Bugs (Sound)[/COLOR][/B][/SIZE]\n[COLOR=#a9a9a9]Sound bugs only (and other bugs that could possibly fit in this thread).[/COLOR][/FONT][/CENTER]\n\n\nPatch notes can be found here: [URL=\"{1}\"]https://forums.heroesofnewerth.com/forumdisplay.php?209-Retail-Candidate-Testers[/URL]\n\n\n[COLOR=#ff6600][B]General Rules[/B][/COLOR]\n- Always include version number and build date in your report in the format specified below. To check the build date and version number, simply open your console  (Ctrl+F8) and then type \"version\" without the quotation marks and press  Enter.\n- Remember to include which alt avatar a bug occurs on if you are testing a hero.\n- Only use Imgur ([URL]https://imgur.com/[/URL]) to host and link images in your reports. It's a standard for us & the URLs are short enough so Staff can handle mass reports easier. Guide on how to step up your screenshots to the next level can be found [URL=\"https://forums.heroesofnewerth.com/showthread.php?589119-Guide-How-to-screenshots\"]here[/URL].\n- Only report RCT-specific bugs that occur on this client. Do not report retail bugs in the RCT Bugs subforum. Why this is so can be seen [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16498264&viewfull=1#post16498264\"]here[/URL].\n- If you're posting crash logs, you have to include a brief description  of why you think you crashed or what you were doing at the time you crashed.\n- The only language used in your reports should be English.\n- Do not report HoN Store related sound bugs with regards to new avatars.\n\n\n[COLOR=#ff6600][B]Format[/B][/COLOR]\nYou are expected to make your reports in the format below. Reports made by RCTBot naturally follow this format.\n[QUOTE][FONT=Tahoma][I]Version: 0.xx.xxx\nBuild date: Day Month Year\n\n<Description of bug>[/I][/FONT][/QUOTE]\n[COLOR=#0099FF]Example:[/COLOR]\n[QUOTE][FONT=Tahoma][I]Version: 0.27.231.1\nBuild date: 2 April 2018\n\n[/I][/FONT]This avatar's skill does not play a sound, does not work at all (results in nothing after being cast) and has no visuals.[/QUOTE]\n\n\nIf you are reporting a bug directly, paste only the plain text image URL  when linking images in your posts. Only use quotes, not spoilers.  Reasons for this are listed [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16511525&viewfull=1#post16511525\"]here[/URL]. To report a bug via Discord, use the [COLOR=#00cc99].report[/COLOR]  command and follow the instructions while having all the above rules in mind.".format(patch, link)
             message_art = "[CENTER][FONT=verdana][SIZE=3][B][COLOR=#ff6600]{0} - Bugs (Art)[/COLOR][/B][/SIZE]\n[COLOR=#a9a9a9]Art bugs only (and other bugs that could possibly fit in this thread).[/COLOR][/FONT][/CENTER]\n\n\nPatch notes can be found here: [URL=\"{1}\"]{1}[/URL]\n\n\n[COLOR=#ff6600][B]General Rules[/B][/COLOR]\n- Always include version number and build date in your report in the format specified below. To check the build date and version number, simply open your console  (Ctrl+F8) and then type \"version\" without the quotation marks and press  Enter.\n- Remember to include which alt avatar a bug occurs on if you are testing a hero.\n- Only use Imgur ([URL]https://imgur.com/[/URL]) to host and link images in your reports. It's a standard for us & the URLs are short enough so Staff can handle mass reports easier. Guide on how to step up your screenshots to the next level can be found [URL=\"https://forums.heroesofnewerth.com/showthread.php?589119-Guide-How-to-screenshots\"]here[/URL].\n- Only report RCT-specific bugs that occur on this client. Do not report retail bugs in the RCT Bugs subforum. Why this is so can be seen [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16498264&viewfull=1#post16498264\"]here[/URL].\n- If you're posting crash logs, you have to include a brief description  of why you think you crashed or what you were doing at the time you crashed.\n- The only language used in your reports should be English.\n- Do not report HoN Store related sound bugs with regards to new avatars.\n\n\n[COLOR=#ff6600][B]Format[/B][/COLOR]\nYou are expected to make your reports in the format below. Reports made by RCTBot naturally follow this format.\n[QUOTE][FONT=Tahoma][I]Version: 0.xx.xxx\nBuild date: Day Month Year\n\n<Description of bug>[/I][/FONT][/QUOTE]\n[COLOR=#0099FF]Example:[/COLOR]\n[QUOTE][FONT=Tahoma][I]Version: 0.27.231.1\nBuild date: 2 April 2018\n\n[/I][/FONT]This avatar's skill does not play a sound, does not work at all (results in nothing after being cast) and has no visuals.[/QUOTE]\n\n\nIf you are reporting a bug directly, paste only the plain text image URL  when linking images in your posts. Only use quotes, not spoilers.  Reasons for this are listed [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16511525&viewfull=1#post16511525\"]here[/URL]. To report a bug via Discord, use the [COLOR=#00cc99].report[/COLOR]  command and follow the instructions while having all the above rules in mind.".format(patch, link)
@@ -597,9 +544,9 @@ async def create(ctx, patch:str=None, link:str=None):
 
 
             newthread_ui = {'do':'postthread',
-                    'f':HON_FORUM_RCT_BUGS_SUBFORUM_ID,
+                    'f':config.HON_FORUM_RCT_BUGS_SUBFORUM_ID,
                     'iconid':'0',
-                    'loggedinuser':HON_FORUM_USER_ACCOUNT_ID,
+                    'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
                     'message':message_ui,
                     'message_backup':message_ui,
                     'parseurl':'1',
@@ -615,9 +562,9 @@ async def create(ctx, patch:str=None, link:str=None):
                     'wysiwyg':'0'}
 
             newthread_sound = {'do':'postthread',
-                    'f':HON_FORUM_RCT_BUGS_SUBFORUM_ID,
+                    'f':config.HON_FORUM_RCT_BUGS_SUBFORUM_ID,
                     'iconid':'0',
-                    'loggedinuser':HON_FORUM_USER_ACCOUNT_ID,
+                    'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
                     'message':message_sound,
                     'message_backup':message_sound,
                     'parseurl':'1',
@@ -633,9 +580,9 @@ async def create(ctx, patch:str=None, link:str=None):
                     'wysiwyg':'0'}
 
             newthread_art = {'do':'postthread',
-                    'f':HON_FORUM_RCT_BUGS_SUBFORUM_ID,
+                    'f':config.HON_FORUM_RCT_BUGS_SUBFORUM_ID,
                     'iconid':'0',
-                    'loggedinuser':HON_FORUM_USER_ACCOUNT_ID,
+                    'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
                     'message':message_art,
                     'message_backup':message_art,
                     'parseurl':'1',
@@ -652,7 +599,7 @@ async def create(ctx, patch:str=None, link:str=None):
 
         async def post_thread(newthread_data):
             newthread_url = 'https://forums.heroesofnewerth.com/newthread.php'
-            newthread_params = {'do' : 'postthread', 'f' : HON_FORUM_RCT_BUGS_SUBFORUM_ID}
+            newthread_params = {'do' : 'postthread', 'f' : config.HON_FORUM_RCT_BUGS_SUBFORUM_ID}
             async with session.post(newthread_url, params=newthread_params, data=newthread_data) as resp:
                 await resp.text()
             return
@@ -660,12 +607,12 @@ async def create(ctx, patch:str=None, link:str=None):
         await post_thread(newthread_mechanics_general)
         await post_thread(newthread_tooltips)
  
-        if HON_FORUM_CREATE_ALL_THREADS:
+        if config.HON_FORUM_CREATE_ALL_THREADS:
             await post_thread(newthread_ui)
             await post_thread(newthread_art)
             await post_thread(newthread_sound)
 
-        subforum_url = 'https://forums.heroesofnewerth.com/forumdisplay.php?{0}'.format(HON_FORUM_RCT_BUGS_SUBFORUM_ID)
+        subforum_url = 'https://forums.heroesofnewerth.com/forumdisplay.php?{0}'.format(config.HON_FORUM_RCT_BUGS_SUBFORUM_ID)
         
         await ctx.send('Threads have been created and can be viewed here: {0}'.format(subforum_url))
         await asyncio.sleep(1)
@@ -677,17 +624,14 @@ async def create(ctx, patch:str=None, link:str=None):
             thread_mechanics_general_id = content.split(thread_mechanics_general_search)[1][:6]
             thread_tooltips_id = content.split(thread_tooltips_search)[1][:6]
 
-            if HON_FORUM_CREATE_ALL_THREADS:
+            if config.HON_FORUM_CREATE_ALL_THREADS:
                 thread_ui_id = content.split(thread_ui_search)[1][:6]
                 thread_sound_id = content.split(thread_sound_search)[1][:6]
                 thread_art_id = content.split(thread_art_search)[1][:6]
 
         try:
-            global GOOGLE_CLIENT_SECRET_FILE
-            global GOOGLE_SCOPES
-
             def get_creds():
-                return ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_CLIENT_SECRET_FILE, GOOGLE_SCOPES)
+                return ServiceAccountCredentials.from_json_keyfile_name(config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES)
 
             gspread_client_manager = gspread_asyncio.AsyncioGspreadClientManager(get_creds)
             gspread_client = await gspread_client_manager.authorize()
@@ -705,7 +649,7 @@ async def create(ctx, patch:str=None, link:str=None):
             await asyncio.sleep(0.5)
             await settings_worksheet.update_acell('B12', thread_tooltips_id)
 
-            if HON_FORUM_CREATE_ALL_THREADS:
+            if config.HON_FORUM_CREATE_ALL_THREADS:
                 #await save_thread_id(11, thread_ui_id)
                 #await save_thread_id(9, thread_art_id)
                 #await save_thread_id(10, thread_sound_id)
@@ -728,17 +672,12 @@ async def report(ctx):
     global SETTINGS
     global OPEN_REPORTS
     global LIST_OF_LISTS
-    global DISCORD_BUGS_CHANNEL_ID
-    global DISCORD_BOT_LOG_CHANNEL_ID
-    global HON_FORUM_CREATE_ALL_THREADS
-    global HON_FORUM_SCREENSHOT_LIMIT
-    global DISCORD_WHITELIST_IDS
 
     report_author = ctx.message.author
     source_channel = ctx.message.channel
-    bug_reports_channel = bot.get_channel(DISCORD_BUGS_CHANNEL_ID)
+    bug_reports_channel = bot.get_channel(config.DISCORD_BUGS_CHANNEL_ID)
 
-    if report_author not in bug_reports_channel.members or report_author.id not in DISCORD_WHITELIST_IDS: #TO DO: this has to go
+    if report_author not in bug_reports_channel.members or report_author.id not in config.DISCORD_WHITELIST_IDS: #TO DO: this has to go
         return
 
     if report_author in OPEN_REPORTS:
@@ -764,7 +703,7 @@ async def report(ctx):
 
     await bc_message.add_reaction('⚙')
     await bc_message.add_reaction('📋')
-    if HON_FORUM_CREATE_ALL_THREADS:
+    if config.HON_FORUM_CREATE_ALL_THREADS:
         await bc_message.add_reaction(bc_message, '🎨')
         await asyncio.sleep(0.1)
         await bc_message.add_reaction(bc_message, '🔊')
@@ -775,7 +714,7 @@ async def report(ctx):
 
     bc_embed.add_field(name="Mechanic/General", value='⚙')
     bc_embed.add_field(name="Tooltips", value='📋')
-    if HON_FORUM_CREATE_ALL_THREADS:
+    if config.HON_FORUM_CREATE_ALL_THREADS:
         bc_embed.add_field(name="Art", value='🎨')
         bc_embed.add_field(name="Sound", value='🔊')
         bc_embed.add_field(name="User Interface", value='💻')
@@ -791,7 +730,7 @@ async def report(ctx):
                 }
 
     #reaction_symbols = [reaction.emoji for reaction in bc_message.reactions if reaction.emoji in emojis_dict.keys()] #no clue why bc_message.reactions returns an empty list every time
-    if HON_FORUM_CREATE_ALL_THREADS:
+    if config.HON_FORUM_CREATE_ALL_THREADS:
         reaction_symbols = ['📋','⚙','🎨','🔊','💻','❌']
     else:
         reaction_symbols = ['📋','⚙','❌']
@@ -845,8 +784,8 @@ async def report(ctx):
     screenshots_list = []
     try:
         number_of_screenshots = int(number_of_screenshots_message.content)
-        if number_of_screenshots > HON_FORUM_SCREENSHOT_LIMIT:
-            number_of_screenshots = HON_FORUM_SCREENSHOT_LIMIT
+        if number_of_screenshots > config.HON_FORUM_SCREENSHOT_LIMIT:
+            number_of_screenshots = config.HON_FORUM_SCREENSHOT_LIMIT
             too_many_screenshots_content = "That might be too many screenshots. Your entry has been changed to `{}`. If the screenshots excluded were necessary, please add them to the description.".format(number_of_screenshots)
             too_many_screenshots_message = await report_author.send("{.mention} ".format(report_author) + too_many_screenshots_content)
             await asyncio.sleep(8)
@@ -900,10 +839,6 @@ async def report(ctx):
         await final_report_discarded_message.edit(content=final_report_discarded_content)
         return
 
-    global HON_FORUM_USER
-    global HON_FORUM_USER_MD5_PASSWORD
-    global HON_FORUM_USER_ACCOUNT_ID
-
     index = 'https://forums.heroesofnewerth.com/index.php'
     login_url = 'https://forums.heroesofnewerth.com/login.php'
     login_params = {'do' : 'login'}
@@ -911,11 +846,11 @@ async def report(ctx):
                 'do':'login',
                 's':'',
                 'securitytoken':'guest',
-                'vb_login_md5password':HON_FORUM_USER_MD5_PASSWORD,
-                'vb_login_md5password_utf':HON_FORUM_USER_MD5_PASSWORD,
+                'vb_login_md5password':config.HON_FORUM_USER_MD5_PASSWORD,
+                'vb_login_md5password_utf':config.HON_FORUM_USER_MD5_PASSWORD,
                 'vb_login_password':'',
                 'vb_login_password_hint':'Password',
-                'vb_login_username':HON_FORUM_USER}
+                'vb_login_username':config.HON_FORUM_USER}
     
     async with aiohttp.ClientSession() as session:
 
@@ -959,7 +894,7 @@ async def report(ctx):
     is_this_valid  = await bug_reports_channel.send("{0}, your report has been posted in the **{1}** thread and can be viewed here: https://forums.heroesofnewerth.com/showthread.php?{2}&goto=newpost\n```Version: {3}\nBuild date: {4}\n\n{5}{6}\n\n\nReported by: {7} ({8.name}#{8.discriminator})```<@&248187345776410625> Awaiting decision.".format(report_author.mention, bug_category, threadid, rc_version_message.content, build_date_message.content, screenshots_list_message_discord, bug_description_discord, report_author_verified_name, report_author))
 
     def get_creds():
-        return ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_CLIENT_SECRET_FILE, GOOGLE_SCOPES)
+        return ServiceAccountCredentials.from_json_keyfile_name(config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES)
 
     gspread_client_manager = gspread_asyncio.AsyncioGspreadClientManager(get_creds)
     gspread_client = await gspread_client_manager.authorize()
@@ -1278,22 +1213,18 @@ async def hero(ctx):
 @is_tester()
 async def notes(ctx):
     """Returns current testing notes"""
-    global HON_ALT_DOMAIN
-    global HON_CAT_PASSWORD
-    global DISCORD_NOTES_CHANNEL_ID
-
     author = ctx.message.author
-    log_channel = bot.get_channel(DISCORD_NOTES_CHANNEL_ID)
+    log_channel = bot.get_channel(config.DISCORD_NOTES_CHANNEL_ID)
 
-    token_generator = f'https://{HON_ALT_DOMAIN}/site/create-access-token'
-    cat_query = {'discordId' : author.id, 'password' : HON_CAT_PASSWORD}
+    token_generator = f'https://{config.HON_ALT_DOMAIN}/site/create-access-token'
+    cat_query = {'discordId' : author.id, 'password' : config.HON_CAT_PASSWORD}
     
     async with aiohttp.ClientSession() as session:
 
         async with session.get(token_generator, params=cat_query) as resp:
             token = await resp.text()
 
-    notes_url = f'https://{HON_ALT_DOMAIN}/{token}'
+    notes_url = f'https://{config.HON_ALT_DOMAIN}/{token}'
     await author.send(f'Current Testing Notes: {notes_url}')
     await log_channel.send(f'({strftime("%a, %d %b %Y, %H:%M:%S %Z", gmtime())}) {author.mention} received Testing Notes with the URL: `{notes_url}`')
 
@@ -1344,54 +1275,18 @@ async def roll(ctx, low : int, high : int):
 
 
 #-------------------- Misc --------------------
-@bot.command()
-async def cat(ctx):
-    """Get a random cat image from The Cat API."""
-    search_url = 'https://api.thecatapi.com/v1/images/search'
-    try:
-        search_headers = {'x-api-key' : CONFIG['CAT']['x-api-key']}
-    except:
-        search_headers = None
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(search_url, headers=search_headers) as resp:
-            json_resp = await resp.json()
-    
-    cat_dict = json_resp[0]
-    cat_img_url = cat_dict['url']
-
-    await ctx.send(f'{cat_img_url}')
-
-
-@bot.command()
-async def dog(ctx):
-    """Get a random dog image from The Dog API."""
-    search_url = 'https://api.thedogapi.com/v1/images/search'
-    try:
-        search_headers = {'x-api-key' : CONFIG['DOG']['x-api-key']}
-    except:
-        search_headers = None
-
-    async with aiohttp.ClientSession() as session:
-        async with session.get(search_url, headers=search_headers) as resp:
-            json_resp = await resp.json()
-    
-    dog_dict = json_resp[0]
-    dog_img_url = dog_dict['url']
-
-    await ctx.send(f'{dog_img_url}')
 
 
 #-------------------- Events, Error Handling & Debugging --------------------
 @bot.command()
-@in_whitelist(DISCORD_WHITELIST_IDS)
+@in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def dev_permission_test(ctx):
     await ctx.send("{.mention} You do have permission.".format(ctx.message.author))
 
 
 @bot.event
 async def on_ready():
-    print('{0} ({0.id}) reporting for duty from {1}! All shall respect the law that is my {2}!'.format(bot.user, platform.platform(), CONFIG_FILE))
+    print('{0} ({0.id}) reporting for duty from {1}! All shall respect the law that is my {2}!'.format(bot.user, platform.platform(), config.CONFIG_FILE))
     watching = discord.Activity(name="Heroes of Newerth", type=discord.ActivityType.watching)
     #streaming = discord.Streaming(platform="Twitch", name="Heroes of Newerth", game="Heroes of Newerth", url="https://www.twitch.tv/", twitch_name="")
     await bot.change_presence(activity=watching, status=discord.Status.dnd, afk=False)
@@ -1414,25 +1309,20 @@ async def on_message(message):
 
     if message.guild is None and ctx.valid: #TO DO: with guild_only and dm_allowed
         #print([f.__name__ for f in ctx.command.checks])
-        if ctx.command.name not in DISCORD_DM_COMMANDS:
+        if ctx.command.name not in config.DISCORD_DM_COMMANDS:
             print("{0.name}#{0.discriminator} ({0.id}) tried to invoke {1} in Direct Message: {2}".format(message.author, ctx.command, message.content))
             return
 
     # if ctx.valid:
-    #     if ctx.command in DISCORD_DM_COMMANDS and message.author.id not in DISCORD_WHITELIST_IDS:
+    #     if ctx.command in config.DISCORD_DM_COMMANDS and message.author.id not in config.DISCORD_WHITELIST_IDS:
     #         await message.author.send("You do not have permission.")
     #     else:
     #         await bot.process_commands(message)
     # else:
     #     pass
 
-    if message.channel.id == DISCORD_ANNOUNCEMENTS_CHANNEL_ID:
-        global DISCORD_FORUMS_ROLE_ID
-        if DISCORD_FORUMS_ROLE_ID in message.raw_role_mentions:
-            global HON_FORUM_USER
-            global HON_FORUM_USER_MD5_PASSWORD
-            global HON_FORUM_USER_ACCOUNT_ID
-            global HON_FORUM_ANNOUNCEMENTS_THREAD_ID
+    if message.channel.id == config.DISCORD_ANNOUNCEMENTS_CHANNEL_ID:
+        if config.DISCORD_FORUMS_ROLE_ID in message.raw_role_mentions:
 
             index = 'https://forums.heroesofnewerth.com/index.php'
             login_url = 'https://forums.heroesofnewerth.com/login.php'
@@ -1441,11 +1331,11 @@ async def on_message(message):
                         'do':'login',
                         's':'',
                         'securitytoken':'guest',
-                        'vb_login_md5password':HON_FORUM_USER_MD5_PASSWORD,
-                        'vb_login_md5password_utf':HON_FORUM_USER_MD5_PASSWORD,
+                        'vb_login_md5password':config.HON_FORUM_USER_MD5_PASSWORD,
+                        'vb_login_md5password_utf':config.HON_FORUM_USER_MD5_PASSWORD,
                         'vb_login_password':'',
                         'vb_login_password_hint':'Password',
-                        'vb_login_username':HON_FORUM_USER}
+                        'vb_login_username':config.HON_FORUM_USER}
 
             async with aiohttp.ClientSession() as session:
 
@@ -1456,31 +1346,31 @@ async def on_message(message):
                     index_get = await resp.text()
                     securitytoken = index_get.split('SECURITYTOKEN = "')[1][:51]
                 
-                content = message.content.split(DISCORD_FORUMS_ROLE_ID)[1].strip(' ')
+                content = message.content.split(config.DISCORD_FORUMS_ROLE_ID)[1].strip(' ')
                 announcement = "{0}\n\n\nMade by: [COLOR=#00cc99]{1.display_name}[/COLOR] ({1.name}#{1.discriminator})".format(content, message.author)
                 poststarttime = str(int(time()))
                 posthash = md5(announcement.encode('utf-8')).hexdigest() #"This is fine."
 
                 new_reply_url = 'https://forums.heroesofnewerth.com/newreply.php'
-                post_params = {'do' : 'postreply', 't' : HON_FORUM_ANNOUNCEMENTS_THREAD_ID}
+                post_params = {'do' : 'postreply', 't' : config.HON_FORUM_ANNOUNCEMENTS_THREAD_ID}
                 post_data = {'ajax':'1',
                             'ajax_lastpost':'',
                             'do':'postreply',
                             'fromquickreply':'1',
-                            'loggedinuser':HON_FORUM_USER_ACCOUNT_ID,
+                            'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
                             'securitytoken':securitytoken,
                             'message':announcement,
                             'message_backup':announcement,
                             'p':'who cares',
                             'parseurl':'1',
-                            'post_as':HON_FORUM_USER_ACCOUNT_ID,
+                            'post_as':config.HON_FORUM_USER_ACCOUNT_ID,
                             'posthash':posthash,
                             'poststarttime':poststarttime,
                             's':'',
                             'securitytoken':securitytoken,
                             'signature':'1',
                             'specifiedpost':'0',
-                            't':HON_FORUM_ANNOUNCEMENTS_THREAD_ID,
+                            't':config.HON_FORUM_ANNOUNCEMENTS_THREAD_ID,
                             'wysiwyg':'0'}
                 
                 async with session.post(new_reply_url, params=post_params, data=post_data) as resp:
@@ -1492,8 +1382,6 @@ async def on_message(message):
 #-------------------- Background Tasks --------------------
 async def fetch_sheet():
     await bot.wait_until_ready()
-    global GOOGLE_CLIENT_SECRET_FILE
-    global GOOGLE_SCOPES
 
     global LIST_OF_LISTS
     global LIST_OF_LISTS_TRIVIA
@@ -1504,7 +1392,7 @@ async def fetch_sheet():
     global DATABASE_READY
 
     def get_creds():
-        return ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_CLIENT_SECRET_FILE, GOOGLE_SCOPES)
+        return ServiceAccountCredentials.from_json_keyfile_name(config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES)
     
     gspread_client_manager = gspread_asyncio.AsyncioGspreadClientManager(get_creds)
 
@@ -1540,4 +1428,4 @@ bot.remove_command('help')
 
 bot.loop.create_task(fetch_sheet())
 
-bot.run(DISCORD_TOKEN)
+bot.run(config.DISCORD_TOKEN)
