@@ -20,6 +20,230 @@ class BugReports(commands.Cog):
         self.bot = bot
         self.OPEN_REPORTS = []
         self.senior_tester_name = ''
+    
+    #TO DO: universal login function
+    @commands.command()
+    @commands.has_any_role('Manage Roles', 'Overlord', 'Frostburn Staff', 'Senior Tester', 'Senior Tester Candidate') # TO DO: alternative
+    async def create(self, ctx, patch:str=None, link:str=None):
+        if patch is None or link is None:
+            await ctx.send('The correct format is `.create <version> <patch notes link or Discord>`')
+            return
+        await ctx.send('Please wait.')
+
+        index = 'https://forums.heroesofnewerth.com/index.php'
+        login_url = 'https://forums.heroesofnewerth.com/login.php'
+        login_params = {'do' : 'login'}
+        login_data = {'cookieuser':'1',
+                    'do':'login',
+                    's':'',
+                    'securitytoken':'guest',
+                    'vb_login_md5password':config.HON_FORUM_USER_MD5_PASSWORD,
+                    'vb_login_md5password_utf':config.HON_FORUM_USER_MD5_PASSWORD,
+                    'vb_login_password':'',
+                    'vb_login_password_hint':'Password',
+                    'vb_login_username':config.HON_FORUM_USER}
+
+        async with aiohttp.ClientSession() as session:
+
+            async with session.post(login_url, params=login_params, data=login_data) as resp:
+                await resp.text()
+            
+            async with session.get(index) as resp:
+                index_get = await resp.text()
+                securitytoken = index_get.split('SECURITYTOKEN = "')[1][:51]
+
+            poststarttime = str(int(time()))
+
+            patch_search = "-" + patch.replace(".", "-")
+
+            message_mechanics_general = f"[CENTER][FONT=verdana][SIZE=3][B][COLOR=#ff6600]{patch} Bugs - Mechanics[/COLOR][/B][/SIZE]\n[COLOR=#a9a9a9]Mechanics bugs only (and general bugs that don't belong in the other bug threads but aren't art or sound).[/COLOR][/FONT][/CENTER]\n\n\nPatch notes can be found here: [URL=\"{link}\"]{link}[/URL]\n\n\n[COLOR=#ff6600][B]General Rules[/B][/COLOR]\n- Always include version number and build date in your report in the format specified below. To check the build date and version number, simply open your console  (Ctrl+F8) and then type \"version\" without the quotation marks and press  Enter.\n- Remember to include which alt avatar a bug occurs on if you are testing a hero.\n- Only use Imgur ([URL]https://imgur.com/[/URL]) to host and link images in your reports. It's a standard for us & the URLs are short enough so Staff can handle mass reports easier. Guide on how to step up your screenshots to the next level can be found [URL=\"https://forums.heroesofnewerth.com/showthread.php?589119-Guide-How-to-screenshots\"]here[/URL].\n- Only report RCT-specific bugs that occur on this client. Do not report retail bugs in the RCT Bugs subforum. Why this is so can be seen [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16498264&viewfull=1#post16498264\"]here[/URL].\n- If you're posting crash logs, you have to include a brief description  of why you think you crashed or what you were doing at the time you crashed.\n- The only language used in your reports should be English.\n- Do not report HoN Store related sound bugs with regards to new avatars.\n\n\n[COLOR=#ff6600][B]Format[/B][/COLOR]\nYou are expected to make your reports in the format below. Reports made by RCTBot naturally follow this format.\n[QUOTE][FONT=Tahoma][I]Version: 0.xx.xxx\nBuild date: Day Month Year\n\n<Description of bug>[/I][/FONT][/QUOTE]\n[COLOR=#0099FF]Example:[/COLOR]\n[QUOTE][FONT=Tahoma][I]Version: 0.27.231.1\nBuild date: 2 April 2018\n\n[/I][/FONT]This avatar's skill does not play a sound, does not work at all (results in nothing after being cast) and has no visuals.[/QUOTE]\n\n\nIf you are reporting a bug directly, paste only the plain text image URL  when linking images in your posts. Only use quotes, not spoilers.  Reasons for this are listed [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16511525&viewfull=1#post16511525\"]here[/URL]. To report a bug via Discord, use the [COLOR=#00cc99].report[/COLOR]  command and follow the instructions while having all the above rules in mind."
+            message_tooltips = f"[CENTER][FONT=verdana][SIZE=3][B][COLOR=#ff6600]{patch} Bugs - Tooltips[/COLOR][/B][/SIZE]\n[COLOR=#a9a9a9]Tooltip bugs only (and other bugs that could possibly fit in this thread).[/COLOR][/FONT][/CENTER]\n\n\nPatch notes can be found here: [URL=\"{link}\"]{link}[/URL]\n\n\n[COLOR=#ff6600][B]General Rules[/B][/COLOR]\n- Always include version number and build date in your report in the format specified below. To check the build date and version number, simply open your console  (Ctrl+F8) and then type \"version\" without the quotation marks and press  Enter.\n- Remember to include which alt avatar a bug occurs on if you are testing a hero.\n- Only use Imgur ([URL]https://imgur.com/[/URL]) to host and link images in your reports. It's a standard for us & the URLs are short enough so Staff can handle mass reports easier. Guide on how to step up your screenshots to the next level can be found [URL=\"https://forums.heroesofnewerth.com/showthread.php?589119-Guide-How-to-screenshots\"]here[/URL].\n- Only report RCT-specific bugs that occur on this client. Do not report retail bugs in the RCT Bugs subforum. Why this is so can be seen [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16498264&viewfull=1#post16498264\"]here[/URL].\n- If you're posting crash logs, you have to include a brief description  of why you think you crashed or what you were doing at the time you crashed.\n- The only language used in your reports should be English.\n- Do not report HoN Store related sound bugs with regards to new avatars.\n\n\n[COLOR=#ff6600][B]Format[/B][/COLOR]\nYou are expected to make your reports in the format below. Reports made by RCTBot naturally follow this format.\n[QUOTE][FONT=Tahoma][I]Version: 0.xx.xxx\nBuild date: Day Month Year\n\n<Description of bug>[/I][/FONT][/QUOTE]\n[COLOR=#0099FF]Example:[/COLOR]\n[QUOTE][FONT=Tahoma][I]Version: 0.27.231.1\nBuild date: 2 April 2018\n\n[/I][/FONT]This avatar's skill does not play a sound, does not work at all (results in nothing after being cast) and has no visuals.[/QUOTE]\n\n\nIf you are reporting a bug directly, paste only the plain text image URL  when linking images in your posts. Only use quotes, not spoilers.  Reasons for this are listed [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16511525&viewfull=1#post16511525\"]here[/URL]. To report a bug via Discord, use the [COLOR=#00cc99].report[/COLOR]  command and follow the instructions while having all the above rules in mind."
+            
+            #to correct
+            posthash_mechanics_general = md5(message_mechanics_general.encode('utf-8')).hexdigest()
+            posthash_tooltips = md5(message_tooltips.encode('utf-8')).hexdigest()
+
+            thread_mechanics_general = f"{patch} Bugs - Mechanics"
+            thread_tooltips = f"{patch} Bugs - Tooltips"
+
+            thread_mechanics_general_search = f"{patch_search}-Bugs-Mechanics\" id=\"thread_title_"
+            thread_tooltips_search = f"{patch_search}-Bugs-Tooltips\" id=\"thread_title_"
+
+            newthread_mechanics_general = {'do':'postthread',
+                    'f':config.HON_FORUM_RCT_BUGS_SUBFORUM_ID,
+                    'iconid':'0',
+                    'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
+                    'message':message_mechanics_general,
+                    'message_backup':message_mechanics_general,
+                    'parseurl':'1',
+                    'posthash':posthash_mechanics_general,
+                    'poststarttime':poststarttime,
+                    'prefixid':'',
+                    's':'',
+                    'sbutton':'Submit+New+Thread',
+                    'securitytoken':securitytoken,
+                    'signature':'1',
+                    'subject':thread_mechanics_general,
+                    'until':'0',
+                    'wysiwyg':'0'}
+
+            newthread_tooltips = {'do':'postthread',
+                    'f':config.HON_FORUM_RCT_BUGS_SUBFORUM_ID,
+                    'iconid':'0',
+                    'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
+                    'message':message_tooltips,
+                    'message_backup':message_tooltips,
+                    'parseurl':'1',
+                    'posthash':posthash_tooltips,
+                    'poststarttime':poststarttime,
+                    'prefixid':'',
+                    's':'',
+                    'sbutton':'Submit+New+Thread',
+                    'securitytoken':securitytoken,
+                    'signature':'1',
+                    'subject':thread_tooltips,
+                    'until':'0',
+                    'wysiwyg':'0'}
+
+            if config.HON_FORUM_CREATE_ALL_THREADS:
+                message_ui = f"[CENTER][FONT=verdana][SIZE=3][B][COLOR=#ff6600]{patch} - Bugs (UI)[/COLOR][/B][/SIZE]\n[COLOR=#a9a9a9]Interface bugs only (and other bugs that could possibly fit in this thread).[/COLOR][/FONT][/CENTER]\n\n\nPatch notes can be found here: [URL=\"{link}\"]{link}[/URL]\n\n\n[COLOR=#ff6600][B]General Rules[/B][/COLOR]\n- Always include version number and build date in your report in the format specified below. To check the build date and version number, simply open your console  (Ctrl+F8) and then type \"version\" without the quotation marks and press  Enter.\n- Remember to include which alt avatar a bug occurs on if you are testing a hero.\n- Only use Imgur ([URL]https://imgur.com/[/URL]) to host and link images in your reports. It's a standard for us & the URLs are short enough so Staff can handle mass reports easier. Guide on how to step up your screenshots to the next level can be found [URL=\"https://forums.heroesofnewerth.com/showthread.php?589119-Guide-How-to-screenshots\"]here[/URL].\n- Only report RCT-specific bugs that occur on this client. Do not report retail bugs in the RCT Bugs subforum. Why this is so can be seen [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16498264&viewfull=1#post16498264\"]here[/URL].\n- If you're posting crash logs, you have to include a brief description  of why you think you crashed or what you were doing at the time you crashed.\n- The only language used in your reports should be English.\n- Do not report HoN Store related sound bugs with regards to new avatars.\n\n\n[COLOR=#ff6600][B]Format[/B][/COLOR]\nYou are expected to make your reports in the format below. Reports made by RCTBot naturally follow this format.\n[QUOTE][FONT=Tahoma][I]Version: 0.xx.xxx\nBuild date: Day Month Year\n\n<Description of bug>[/I][/FONT][/QUOTE]\n[COLOR=#0099FF]Example:[/COLOR]\n[QUOTE][FONT=Tahoma][I]Version: 0.27.231.1\nBuild date: 2 April 2018\n\n[/I][/FONT]This avatar's skill does not play a sound, does not work at all (results in nothing after being cast) and has no visuals.[/QUOTE]\n\n\nIf you are reporting a bug directly, paste only the plain text image URL  when linking images in your posts. Only use quotes, not spoilers.  Reasons for this are listed [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16511525&viewfull=1#post16511525\"]here[/URL]. To report a bug via Discord, use the [COLOR=#00cc99].report[/COLOR]  command and follow the instructions while having all the above rules in mind."
+                message_sound = f"[CENTER][FONT=verdana][SIZE=3][B][COLOR=#ff6600]{patch} - Bugs (Sound)[/COLOR][/B][/SIZE]\n[COLOR=#a9a9a9]Sound bugs only (and other bugs that could possibly fit in this thread).[/COLOR][/FONT][/CENTER]\n\n\nPatch notes can be found here: [URL=\"{link}\"]{link}[/URL]\n\n\n[COLOR=#ff6600][B]General Rules[/B][/COLOR]\n- Always include version number and build date in your report in the format specified below. To check the build date and version number, simply open your console  (Ctrl+F8) and then type \"version\" without the quotation marks and press  Enter.\n- Remember to include which alt avatar a bug occurs on if you are testing a hero.\n- Only use Imgur ([URL]https://imgur.com/[/URL]) to host and link images in your reports. It's a standard for us & the URLs are short enough so Staff can handle mass reports easier. Guide on how to step up your screenshots to the next level can be found [URL=\"https://forums.heroesofnewerth.com/showthread.php?589119-Guide-How-to-screenshots\"]here[/URL].\n- Only report RCT-specific bugs that occur on this client. Do not report retail bugs in the RCT Bugs subforum. Why this is so can be seen [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16498264&viewfull=1#post16498264\"]here[/URL].\n- If you're posting crash logs, you have to include a brief description  of why you think you crashed or what you were doing at the time you crashed.\n- The only language used in your reports should be English.\n- Do not report HoN Store related sound bugs with regards to new avatars.\n\n\n[COLOR=#ff6600][B]Format[/B][/COLOR]\nYou are expected to make your reports in the format below. Reports made by RCTBot naturally follow this format.\n[QUOTE][FONT=Tahoma][I]Version: 0.xx.xxx\nBuild date: Day Month Year\n\n<Description of bug>[/I][/FONT][/QUOTE]\n[COLOR=#0099FF]Example:[/COLOR]\n[QUOTE][FONT=Tahoma][I]Version: 0.27.231.1\nBuild date: 2 April 2018\n\n[/I][/FONT]This avatar's skill does not play a sound, does not work at all (results in nothing after being cast) and has no visuals.[/QUOTE]\n\n\nIf you are reporting a bug directly, paste only the plain text image URL  when linking images in your posts. Only use quotes, not spoilers.  Reasons for this are listed [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16511525&viewfull=1#post16511525\"]here[/URL]. To report a bug via Discord, use the [COLOR=#00cc99].report[/COLOR]  command and follow the instructions while having all the above rules in mind."
+                message_art = f"[CENTER][FONT=verdana][SIZE=3][B][COLOR=#ff6600]{patch} - Bugs (Art)[/COLOR][/B][/SIZE]\n[COLOR=#a9a9a9]Art bugs only (and other bugs that could possibly fit in this thread).[/COLOR][/FONT][/CENTER]\n\n\nPatch notes can be found here: [URL=\"{link}\"]{link}[/URL]\n\n\n[COLOR=#ff6600][B]General Rules[/B][/COLOR]\n- Always include version number and build date in your report in the format specified below. To check the build date and version number, simply open your console  (Ctrl+F8) and then type \"version\" without the quotation marks and press  Enter.\n- Remember to include which alt avatar a bug occurs on if you are testing a hero.\n- Only use Imgur ([URL]https://imgur.com/[/URL]) to host and link images in your reports. It's a standard for us & the URLs are short enough so Staff can handle mass reports easier. Guide on how to step up your screenshots to the next level can be found [URL=\"https://forums.heroesofnewerth.com/showthread.php?589119-Guide-How-to-screenshots\"]here[/URL].\n- Only report RCT-specific bugs that occur on this client. Do not report retail bugs in the RCT Bugs subforum. Why this is so can be seen [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16498264&viewfull=1#post16498264\"]here[/URL].\n- If you're posting crash logs, you have to include a brief description  of why you think you crashed or what you were doing at the time you crashed.\n- The only language used in your reports should be English.\n- Do not report HoN Store related sound bugs with regards to new avatars.\n\n\n[COLOR=#ff6600][B]Format[/B][/COLOR]\nYou are expected to make your reports in the format below. Reports made by RCTBot naturally follow this format.\n[QUOTE][FONT=Tahoma][I]Version: 0.xx.xxx\nBuild date: Day Month Year\n\n<Description of bug>[/I][/FONT][/QUOTE]\n[COLOR=#0099FF]Example:[/COLOR]\n[QUOTE][FONT=Tahoma][I]Version: 0.27.231.1\nBuild date: 2 April 2018\n\n[/I][/FONT]This avatar's skill does not play a sound, does not work at all (results in nothing after being cast) and has no visuals.[/QUOTE]\n\n\nIf you are reporting a bug directly, paste only the plain text image URL  when linking images in your posts. Only use quotes, not spoilers.  Reasons for this are listed [URL=\"https://forums.heroesofnewerth.com/showthread.php?585781-RCT-Bugs-Posting-Rules&p=16511525&viewfull=1#post16511525\"]here[/URL]. To report a bug via Discord, use the [COLOR=#00cc99].report[/COLOR]  command and follow the instructions while having all the above rules in mind."
+
+                #to correct
+                posthash_ui = md5(message_ui.encode('utf-8')).hexdigest()
+                posthash_sound = md5(message_sound.encode('utf-8')).hexdigest()
+                posthash_art = md5(message_art.encode('utf-8')).hexdigest()
+
+                thread_ui = f"{patch} Bugs - UI"
+                thread_sound = f"{patch} Bugs - Sound"
+                thread_art = f"{patch} Bugs - Art"
+
+                thread_ui_search = f"{patch_search}-Bugs-UI\" id=\"thread_title_"
+                thread_sound_search = f"{patch_search}-Bugs-Sound\" id=\"thread_title_"
+                thread_art_search = f"{patch_search}-Bugs-Art\" id=\"thread_title_"
+
+
+                newthread_ui = {'do':'postthread',
+                        'f':config.HON_FORUM_RCT_BUGS_SUBFORUM_ID,
+                        'iconid':'0',
+                        'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
+                        'message':message_ui,
+                        'message_backup':message_ui,
+                        'parseurl':'1',
+                        'posthash':posthash_ui,
+                        'poststarttime':poststarttime,
+                        'prefixid':'',
+                        's':'',
+                        'sbutton':'Submit+New+Thread',
+                        'securitytoken':securitytoken,
+                        'signature':'1',
+                        'subject':thread_ui,
+                        'until':'0',
+                        'wysiwyg':'0'}
+
+                newthread_sound = {'do':'postthread',
+                        'f':config.HON_FORUM_RCT_BUGS_SUBFORUM_ID,
+                        'iconid':'0',
+                        'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
+                        'message':message_sound,
+                        'message_backup':message_sound,
+                        'parseurl':'1',
+                        'posthash':posthash_sound,
+                        'poststarttime':poststarttime,
+                        'prefixid':'',
+                        's':'',
+                        'sbutton':'Submit+New+Thread',
+                        'securitytoken':securitytoken,
+                        'signature':'1',
+                        'subject':thread_sound,
+                        'until':'0',
+                        'wysiwyg':'0'}
+
+                newthread_art = {'do':'postthread',
+                        'f':config.HON_FORUM_RCT_BUGS_SUBFORUM_ID,
+                        'iconid':'0',
+                        'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
+                        'message':message_art,
+                        'message_backup':message_art,
+                        'parseurl':'1',
+                        'posthash':posthash_art,
+                        'poststarttime':poststarttime,
+                        'prefixid':'',
+                        's':'',
+                        'sbutton':'Submit+New+Thread',
+                        'securitytoken':securitytoken,
+                        'signature':'1',
+                        'subject':thread_art,
+                        'until':'0',
+                        'wysiwyg':'0'}
+
+            async def post_thread(newthread_data):
+                newthread_url = 'https://forums.heroesofnewerth.com/newthread.php'
+                newthread_params = {'do' : 'postthread', 'f' : config.HON_FORUM_RCT_BUGS_SUBFORUM_ID}
+                async with session.post(newthread_url, params=newthread_params, data=newthread_data) as resp:
+                    await resp.text()
+                return
+
+            await post_thread(newthread_mechanics_general)
+            await post_thread(newthread_tooltips)
+    
+            if config.HON_FORUM_CREATE_ALL_THREADS:
+                await post_thread(newthread_ui)
+                await post_thread(newthread_art)
+                await post_thread(newthread_sound)
+
+            subforum_url = f'https://forums.heroesofnewerth.com/forumdisplay.php?{config.HON_FORUM_RCT_BUGS_SUBFORUM_ID}'
+            
+            await ctx.send(f'Threads have been created and can be viewed here: {subforum_url}')
+            await asyncio.sleep(1)
+
+            await ctx.send('Updating settings...')
+
+            async with session.get(subforum_url) as resp:
+                content = await resp.text()
+                thread_mechanics_general_id = content.split(thread_mechanics_general_search)[1][:6]
+                thread_tooltips_id = content.split(thread_tooltips_search)[1][:6]
+
+                if config.HON_FORUM_CREATE_ALL_THREADS:
+                    thread_ui_id = content.split(thread_ui_search)[1][:6]
+                    thread_sound_id = content.split(thread_sound_search)[1][:6]
+                    thread_art_id = content.split(thread_art_search)[1][:6]
+
+            try:
+                def get_creds():
+                    return ServiceAccountCredentials.from_json_keyfile_name(config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES)
+
+                gspread_client_manager = gspread_asyncio.AsyncioGspreadClientManager(get_creds)
+                gspread_client = await gspread_client_manager.authorize()
+
+                rct_spreadsheet = await gspread_client.open('RCT Spreadsheet')
+                settings_worksheet = await rct_spreadsheet.worksheet('Settings')
+
+                #async def save_thread_id(row, thread):
+                    #return await settings_worksheet.update_acell(row, 2, thread)
+                
+                #await save_thread_id(8, thread_mechanics_general_id)
+                #await save_thread_id(12, thread_tooltips_id)
+
+                await settings_worksheet.update_acell('B8', thread_mechanics_general_id)
+                await asyncio.sleep(0.5)
+                await settings_worksheet.update_acell('B12', thread_tooltips_id)
+
+                if config.HON_FORUM_CREATE_ALL_THREADS:
+                    #await save_thread_id(11, thread_ui_id)
+                    #await save_thread_id(9, thread_art_id)
+                    #await save_thread_id(10, thread_sound_id)
+                    await asyncio.sleep(0.5)
+                    await settings_worksheet.update_acell('B11', thread_ui_id)
+                    await asyncio.sleep(0.5)
+                    await settings_worksheet.update_acell('B9', thread_art_id)
+                    await asyncio.sleep(0.5)
+                    await settings_worksheet.update_acell('B10', thread_sound_id)
+                
+                await ctx.send('Saved succesfully.')
+            except:
+                await ctx.send('Uh oh, something went wrong. 😦')
 
     #TO DO: could be shorter, too many sleeps, 
     @commands.command()
