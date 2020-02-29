@@ -1,5 +1,3 @@
-import asyncio
-
 import discord
 from discord.ext import commands
 
@@ -52,7 +50,7 @@ class Animals(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Animals(bot))
-    print('animals is being loaded.')
+    print('Extension animals is being loaded.')
 
 # def teardown(bot):
-#     print('animals being unloaded!')
+#     print('animals unloaded!')
