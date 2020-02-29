@@ -138,18 +138,6 @@ async def purge(ctx, number:int, offender:discord.Member=None):
         await message.delete()
 
 
-#-------------------- Games --------------------
-@bot.command()
-async def roll(ctx, low : int, high : int):
-    """Let's roll the dice!"""
-    result = random.randint(low, high)
-    await ctx.send('{0} rolled {1} {2} and got **{3}**.'.format(ctx.message.author.mention, low, high, result))
-
-
-#-------------------- Misc --------------------
-
-
-#-------------------- Events, Error Handling & Debugging --------------------
 @bot.command()
 @in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def dev_permission_test(ctx):
