@@ -11,12 +11,7 @@ Licensed under the MIT License.
 import os
 import asyncio
 import platform #sys
-import random
-import json
-import timeit
-import collections
 from time import time, gmtime, strftime
-from datetime import datetime
 from hashlib import md5
 
 import discord
@@ -28,15 +23,12 @@ from oauth2client.service_account import ServiceAccountCredentials
 import aiohttp
 # import youtube_dl TO DO: music port
 
-import phpserialize
-
-from extensions.checks import * # well, let's leave this here for now till I figure out which ones are actually needed
+from extensions.checks import in_whitelist
 
 # note to myself: ctx.author: shorthand for Message.author, also applies to: guild, channel
 
 # TO DO:
-# oh yeah it's f strings time!
-# remove unnecessary "global"s, port: on_member_join, announce_testing, keep_alive, games, distribute, trivia, mvp, joined, mute, table, ttt, hangman, whois, pr
+# port: on_member_join, announce_testing, keep_alive, games, distribute, trivia, mvp, joined, mute, table, ttt, hangman, whois, pr
 # detailed platform data
 # remove utf-8 from encode/decode, it's the default in py 3
 # option for remote config and empty config file creation
@@ -78,27 +70,6 @@ if __name__ == "__main__":
         except Exception as e:
             exc = '{}: {}'.format(type(e).__name__, e)
             print('Failed to load extension {}\n{}'.format(extension, exc))
-
-
-#-------------------- Patch Notes --------------------
-@bot.command()
-@is_tester()
-async def notes(ctx):
-    """Returns current testing notes"""
-    author = ctx.message.author
-    log_channel = bot.get_channel(config.DISCORD_NOTES_CHANNEL_ID)
-
-    token_generator = f'https://{config.HON_ALT_DOMAIN}/site/create-access-token'
-    cat_query = {'discordId' : author.id, 'password' : config.HON_CAT_PASSWORD}
-    
-    async with aiohttp.ClientSession() as session:
-
-        async with session.get(token_generator, params=cat_query) as resp:
-            token = await resp.text()
-
-    notes_url = f'https://{config.HON_ALT_DOMAIN}/{token}'
-    await author.send(f'Current Testing Notes: {notes_url}')
-    await log_channel.send(f'({strftime("%a, %d %b %Y, %H:%M:%S %Z", gmtime())}) {author.mention} received Testing Notes with the URL: `{notes_url}`')
 
 
 @bot.command()
