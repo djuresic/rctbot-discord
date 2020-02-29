@@ -6,7 +6,6 @@ import discord
 from discord.ext import commands
 
 import config
-
 from extensions.checks import database_ready
 
 # TO DO: timeout wait_for reaction

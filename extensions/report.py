@@ -11,7 +11,6 @@ from oauth2client.service_account import ServiceAccountCredentials
 import aiohttp
 
 import config
-
 from extensions.checks import is_tester
 
 

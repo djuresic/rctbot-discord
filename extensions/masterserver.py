@@ -8,7 +8,6 @@ import aiohttp
 import phpserialize
 
 import config
-
 from extensions.checks import is_tester, in_whitelist
 
 
