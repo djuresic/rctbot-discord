@@ -20,6 +20,8 @@ import aiohttp
 
 import phpserialize
 
+from extensions.checks import * # well, let's leave this here for now till I figure out which ones are actually needed
+
 # note to myself: ctx.author: shorthand for Message.author, also applies to: guild, channel
 
 # TO DO:
@@ -32,11 +34,6 @@ import phpserialize
 import config # What have I done...
 
 #dynamic
-DATABASE_READY = False
-LIST_OF_LISTS = None
-LIST_OF_LISTS_TRIVIA = None
-PLAYER_SLASH_HERO = None #TO DO: this horror to dict
-SETTINGS = None #TO DO: dict please
 FETCH_SHEET_PASS = 0
 OPEN_REPORTS = []
 hangmanRunning = False
@@ -74,369 +71,6 @@ if __name__ == "__main__":
         except Exception as e:
             exc = '{}: {}'.format(type(e).__name__, e)
             print('Failed to load extension {}\n{}'.format(extension, exc))
-
-#-------------------- Decorators --------------------
-class DatabaseNotReady(commands.CheckFailure):
-    pass
-
-class NotInWhiteList(commands.CheckFailure):
-    pass
-
-class NotATester(commands.CheckFailure): #TO DO: special case in handler
-    pass
-
-class GuildOnlyCommand(commands.CheckFailure):
-    pass
-
-def database_ready():
-    #ctx mandatory positional argument
-    async def database_ready_check(ctx):
-        if not DATABASE_READY:
-            raise DatabaseNotReady("Database is not ready!")   
-        return True
-        #return DATABASE_READY
-    return commands.check(database_ready_check)
-
-def in_whitelist(whitelist):
-    async def in_whitelist_check(ctx):
-        if ctx.author.id not in whitelist:
-            raise NotInWhiteList("You're not on the whitelist!")
-        return True
-    return commands.check(in_whitelist_check)
-
-def is_tester():
-    async def is_tester_check(ctx):
-        if not DATABASE_READY:
-            raise DatabaseNotReady("Database is not ready!")
-
-        found_id = False
-        is_enabled = False
-
-        def checkbox_to_bool(checkbox):
-            return checkbox.lower() in ('true', '1')
-
-        for x in LIST_OF_LISTS:
-            if x[32] == str(ctx.author.id):
-                found_id = True
-                is_enabled = checkbox_to_bool(x[0])
-                break
-
-        return found_id and is_enabled
-    return commands.check(is_tester_check)
-
-def guild_only(): #TO DO: this annoyance
-    async def guild_only_check(ctx):
-        if ctx.message.guild is None:
-            raise GuildOnlyCommand("Not allowed in Direct Message!")
-        return True
-    return commands.check(guild_only_check)
-
-
-#-------------------- Masterserver Queries --------------------
-@bot.command()
-@is_tester()
-async def version(ctx):
-    """Check all RC client versions."""
-
-    async with ctx.message.channel.typing():
-
-        rc_patcher = f'http://{config.HON_NAEU_RC_MASTERSERVER}/patcher/patcher.php'
-
-        wrc_query = {'version' : '0.0.0.0', 'os' : f'wrc-{config.HON_NAEU_RC_OS_PART}', 'arch' : 'i686'}
-        lrc_query = {'version' : '0.0.0.0', 'os' : f'lrc-{config.HON_NAEU_RC_OS_PART}', 'arch' : 'x86-biarch'}
-        mrc_query = {'version' : '0.0.0.0', 'os' : f'mrc-{config.HON_NAEU_RC_OS_PART}', 'arch' : 'universal'}
-        
-        async with aiohttp.ClientSession() as session:
-
-            async def get_latest_version(url, query):
-                async with session.get(url, params=query) as resp:
-                    serialized = await resp.text()
-                    unserialized = phpserialize.loads(serialized.encode())[0] #deserialize
-                    decoded = {k.decode() : v.decode()  for k, v in unserialized.items()}
-                    version = decoded['version']
-                return version
-
-            wrc = await get_latest_version(rc_patcher, wrc_query)
-            lrc = await get_latest_version(rc_patcher, lrc_query)
-            mrc = await get_latest_version(rc_patcher, mrc_query)
-
-        await ctx.send(f"**Windows:** {wrc}\n**Mac:** {mrc}\n**Linux:** {lrc}")
-
-
-@bot.command(name="honstats")
-@in_whitelist(config.DISCORD_WHITELIST_IDS)
-async def show_simple_stats(ctx, nickname=None):
-    """show_simple_stats ac"""
-
-    ac_client_requester = 'http://' + config.HON_NAEU_MASTERSERVER + '/client_requester.php'
-
-    if nickname is None:
-        nickname = ctx.author.display_name
-    
-    query = {'f' : 'show_simple_stats', 'nickname' : nickname}
-
-    async with aiohttp.ClientSession() as session:
-
-        async with session.get(ac_client_requester, params=query) as resp:
-            result = await resp.text()
-            result = phpserialize.loads(result.encode('utf-8'))
-            print(result)
-            result = {k.decode('utf-8', 'ignore') : v  for k, v in result.items() if not isinstance(k, int)}
-            print(result)
-            await ctx.send(result)
-
-@bot.command(name="rchonstats")
-@in_whitelist(config.DISCORD_WHITELIST_IDS)
-async def show_simple_stats_rc(ctx, nickname=None):
-    """show_simple_stats rc"""
-
-    rc_client_requester = 'http://' + config.HON_NAEU_RC_MASTERSERVER + '/client_requester.php'
-
-    if nickname is None:
-        nickname = ctx.author.display_name
-    
-    query = {'f' : 'show_simple_stats', 'nickname' : nickname}
-
-    async with aiohttp.ClientSession() as session:
-
-        async with session.get(rc_client_requester, params=query) as resp:
-            result = await resp.text()
-            result = phpserialize.loads(result.encode('utf-8'))
-            print(result)
-            result = {k.decode('utf-8', 'ignore') : v  for k, v in result.items() if not isinstance(k, int)}
-            print(result)
-            await ctx.send(result)
-
-@bot.command()
-@in_whitelist(config.DISCORD_WHITELIST_IDS)
-async def srp(ctx):
-    """secure remote password authentication""" #TO DO: remove py 2.7 syntax, fix srp, secrets to conf, f in async, aiohttp, global for cookie
-    try:
-        import srp
-    except:
-        pass
-    from urllib.request import Request
-    from urllib.request import urlopen
-    from urllib.parse import urlencode, quote
-    #...
-
-
-#-------------------- RCT Stats --------------------
-#TO DO: clean up branching, async functions
-@bot.command(aliases=['info', 'sheet', 'rank'])
-@database_ready()
-async def stats(ctx, member:discord.Member=None):
-    """Gets user's RCT game info from the sheet"""
-    start = timeit.default_timer()
-    global LIST_OF_LISTS
-    global LIST_OF_LISTS_TRIVIA
-    check_failed = False
-
-    if member is None:
-        member = ctx.message.author
-    member_discord_id = str(member.id)
-    requester_discord_id = str(ctx.message.author.id)
-    requester_name = None
-
-    for row in LIST_OF_LISTS:
-        if row[32] == member_discord_id:
-            row_values = row
-        if row[32] == requester_discord_id:
-            requester_name = row[1]
-
-    nick = row_values[1]
-    nick_lower = nick.lower()
-
-    #check trivia spreadsheet for points
-    try:
-        for row in LIST_OF_LISTS_TRIVIA:
-            if row[0].lower() == nick_lower:
-                row_values_trivia = row
-                break
-        trivia_points = row_values_trivia[2]
-    except:
-        trivia_points = 0
-
-    if row_values[21] == '':
-        absence = 'No'
-    else:
-        absence = 'Yes'
-    games = int(row_values[2])
-    bonus = []
-    if games >= 10:
-        bonus.append('10')
-    if games >= 20:
-        bonus.append('20')
-    if int(row_values[16]) > 0:
-        bonus.append('50')
-    if len(bonus) == 0:
-        bonus.append('None')
-        bonus = ', '.join(bonus)
-    else:
-        bonus = ', '.join(bonus)+' games'
-
-    #this cycle
-    seconds = int(row_values[3])
-    dhms = ''
-    for scale in 86400, 3600, 60:
-        result, seconds = divmod(seconds, scale)
-        if dhms != '' or result > 0:
-            dhms += '{0:02d}:'.format(result)
-    dhms += '{0:02d}'.format(seconds)
-
-    # if seconds>=60:
-    #     dhms = dhms.split(':')
-    #     gametime = "{0} minutes {1} seconds".format(dhms[0],dhms[1])
-    # elif seconds>=3600:
-    #     dhms = dhms.split(':')
-    #     gametime = "{0} hours {1} minutes {2} seconds".format(dhms[0],dhms[1],dhms[2])
-    # else:
-    #     gametime = "{0} seconds".format(dhms)
-
-    gametime = '{0}'.format(dhms)
-
-    #total
-    seconds_total = int(row_values[6])
-    dhms_total = ''
-    for scale_total in 86400, 3600, 60:
-        result_total, seconds_total = divmod(seconds_total, scale_total)
-        if dhms_total != '' or result_total > 0:
-            dhms_total += '{0:02d}:'.format(result_total)
-    dhms_total += '{0:02d}'.format(seconds_total)
-
-    # if seconds_total>=60:
-    #     dhms_total = dhms_total.split(':')
-    #     gametime_total = "{0} minutes {1} seconds".format(dhms_total[0],dhms_total[1])
-    # elif seconds_total>=3600:
-    #     dhms_total = dhms_total.split(':')
-    #     gametime_total = "{0} hours {1} minutes {2} seconds".format(dhms_total[0],dhms_total[1],dhms_total[2])
-    # elif seconds_total>=86400:
-    #     dhms_total = dhms_total.split(':')
-    #     gametime_total = "{0} days {1} hours {2} minutes {3} seconds".format(dhms_total[0],dhms_total[1],dhms_total[2],dhms_total[2])
-    # else:
-    #     gametime_total = "{0} seconds".format(dhms_total)
-
-    gametime_total = '{0}'.format(dhms_total)
-
-    global PLAYER_SLASH_HERO #TO DO: adapt this horror to dict
-    heroes = []
-    players = []
-    try:
-        for x in PLAYER_SLASH_HERO:
-            if x != '' and '/' in x:
-                y = x.split(',')
-                for z in y:
-                    h = z.split('/')[0]
-                    h = h.strip(' ')
-                    k = z.split('/')[1]
-                    heroes.append(k)
-                    players.append(h)
-    except:
-        games_played = '0'
-        check_failed = True
-    try:
-        [x.lower() for x in players].index(nick_lower)
-    except:
-        games_played = '0'
-        check_failed = True
-    heroes_played = []
-    if not check_failed:
-        for i in range(0, len(players)):
-            if players[i].lower() == nick_lower:
-                heroes_played.append(heroes[i])
-                #playerName=players[i]
-        #games_played = collections.Counter(heroes_played)
-        games_played = str(len(heroes_played))
-    
-    def is_current_member():
-        return row_values[0].lower() in ('true', '1')
-    #TO DO: this to function
-
-    current_member = row_values[0]
-    if current_member == 'TRUE':
-        former = ''
-    else:
-        former = 'a former '
-
-    rank_name = row_values[10]
-    if rank_name == 'Immortal' and current_member == 'TRUE':
-        rank_url = 'https://i.imgur.com/dpugisO.png'
-    elif rank_name == 'Legendary' and current_member == 'TRUE':
-        rank_url = 'https://i.imgur.com/59Jighv.png'
-    elif rank_name == 'Diamond' and current_member == 'TRUE':
-        rank_url = 'https://i.imgur.com/AZYAK39.png'
-    elif rank_name == 'Gold' and current_member == 'TRUE':
-        rank_url = 'https://i.imgur.com/ZDLUlqs.png'
-    elif rank_name == 'Silver' and current_member == 'TRUE':
-        rank_url = 'https://i.imgur.com/xxxlPAq.png'
-    elif rank_name == 'Bronze' and current_member == 'TRUE':
-        rank_url = 'https://i.imgur.com/svAUm00.png'
-    else:
-        rank_url = 'https://i.imgur.com/ys2UBNW.png'
-
-    guild = member.guild
-    senior_tester_candidate_role = discord.utils.get(guild.roles, name="Senior Tester Candidate")
-    senior_tester_role = discord.utils.get(guild.roles, name="Senior Tester")
-    staff_role = discord.utils.get(guild.roles, name="Frostburn Staff")
-    role_list = member.roles
-    if staff_role in role_list:
-        effective_role = 'Frostburn staff member'
-        pass
-    elif senior_tester_role in role_list:
-        effective_role = 'senior tester'
-    elif senior_tester_candidate_role in role_list:
-        effective_role = 'senior tester candidate'
-    else:
-        effective_role="tester"
-
-    nick_src = nick
-    if nick.startswith('`') or nick.startswith('_'):
-        nick=('\\'+nick)
-
-    embed = discord.Embed(title="Retail Candidate Testers", type="rich", description="Information for {0}{1} {2}.".format(former, effective_role, nick), url="https://forums.heroesofnewerth.com/forumdisplay.php?209-Retail-Candidate-Testers", color=0xff6600, timestamp=ctx.message.created_at)
-    embed.set_author(name=nick_src, url="https://docs.google.com/spreadsheets/d/1HpDhrKbyK01rRUUFw3v-30QrNJpLHaOmWYrUxkKDbq0/edit#gid=0", icon_url=member.avatar_url)
-    if current_member == 'TRUE':
-        embed.add_field(name="Unconfirmed games", value=games_played, inline=True)
-        #embed.add_field(name=u"\u2063", value=u"\u2063", inline=True)
-        embed.add_field(name="Games", value=games, inline=True)
-    embed.add_field(name="Total games", value=row_values[5], inline=True)
-    if current_member == 'TRUE':
-        embed.add_field(name="Game time", value=gametime, inline=True)
-    embed.add_field(name="Total game time", value=gametime_total, inline=True)
-    if current_member == 'TRUE':
-        embed.add_field(name="Bug reports", value=row_values[4], inline=True)
-    embed.add_field(name="Total bug reports", value=row_values[7], inline=True)
-    #embed.add_field(name="Total games", value=row_values[3], inline=True)
-    #embed.add_field(name="Total game time", value="N/A", inline=True)
-    #embed.add_field(name="Total bug reports", value=row_values[10], inline=True)
-    if current_member == 'TRUE':
-        embed.add_field(name="Tokens earned", value=row_values[8], inline=True)
-        embed.add_field(name="Bonuses", value=bonus, inline=True)
-        embed.add_field(name="Activity rank", value=row_values[10], inline=True)
-        embed.add_field(name="Multiplier", value="{0}x".format(row_values[12]), inline=True)
-        embed.add_field(name="Perks", value=row_values[19], inline=True)
-        embed.add_field(name="Absence", value=absence, inline=True)
-    embed.add_field(name="Join date", value=row_values[20], inline=True)
-    embed.add_field(name="Trivia points", value=trivia_points, inline=True)
-    if current_member == 'FALSE' and row_values[22] != '':
-        embed.add_field(name="Reason for removal", value=row_values[22], inline=False)
-    #embed.add_field(name=u"\u2063", value=u"\u2063", inline=True)
-    #embed.add_field(name=u"\u2063", value=u"\u2063", inline=True)
-    if row_values[31] != '':
-        embed.add_field(name="Awards", value=u"\u2063"+row_values[31], inline=True)
-    if requester_discord_id is not None:
-        embed.set_footer(text="Requested by {0} (✓). React with 🆗 to delete this message.".format(requester_name), icon_url="https://i.imgur.com/q8KmQtw.png")
-    else:
-        embed.set_footer(text="Requested by {0} ({1}#{2}). React with 🆗 to delete this message.".format(ctx.message.author.display_name, ctx.message.author.name, ctx.message.author.discriminator), icon_url="https://i.imgur.com/q8KmQtw.png")
-    #embed.set_footer(text="React with 🆗 to delete this message.", icon_url="https://i.imgur.com/Ou1k4lD.png")
-    #embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
-    embed.set_thumbnail(url=rank_url)
-    message = await ctx.send(embed=embed)
-    stop = timeit.default_timer()
-    print(stop-start)
-    await message.add_reaction('🆗')
-    await bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id)
-    await message.delete()
 
 
 #-------------------- Forums & Bug Reports --------------------
@@ -669,9 +303,7 @@ async def create(ctx, patch:str=None, link:str=None):
 @bot.command()
 @is_tester()
 async def report(ctx):
-    global SETTINGS
     global OPEN_REPORTS
-    global LIST_OF_LISTS
 
     report_author = ctx.message.author
     source_channel = ctx.message.channel
@@ -690,7 +322,7 @@ async def report(ctx):
     OPEN_REPORTS.append(report_author)
 
     report_author_discord_id = str(report_author.id)
-    for x in LIST_OF_LISTS:
+    for x in config.LIST_OF_LISTS:
         if x[32] == report_author_discord_id:
             report_author_verified_name = x[1]
             break
@@ -722,11 +354,11 @@ async def report(ctx):
     await bc_message.edit(content=bc_content, embed=bc_embed)
 
     emojis_dict = {
-                '⚙': {'category': 'Mechanics/General', 'threadid': SETTINGS[7]},
-                '📋': {'category': 'Tooltips', 'threadid': SETTINGS[11]},
-                '🎨': {'category': 'Art', 'threadid': SETTINGS[8]},
-                '🔊': {'category': 'Sound', 'threadid': SETTINGS[9]},
-                '💻': {'category': 'User Interface', 'threadid': SETTINGS[10]}
+                '⚙': {'category': 'Mechanics/General', 'threadid': config.SETTINGS[7]},
+                '📋': {'category': 'Tooltips', 'threadid': config.SETTINGS[11]},
+                '🎨': {'category': 'Art', 'threadid': config.SETTINGS[8]},
+                '🔊': {'category': 'Sound', 'threadid': config.SETTINGS[9]},
+                '💻': {'category': 'User Interface', 'threadid': config.SETTINGS[10]}
                 }
 
     #reaction_symbols = [reaction.emoji for reaction in bc_message.reactions if reaction.emoji in emojis_dict.keys()] #no clue why bc_message.reactions returns an empty list every time
@@ -945,7 +577,7 @@ async def report(ctx):
         senior = discord.utils.get(guild.roles, name="Frostburn Staff")
         if senior in check_user_roles or frostburn in check_user_roles:
             senior_tester_id = str(user.id)
-            for x in LIST_OF_LISTS:
+            for x in config.LIST_OF_LISTS:
                 if x[32] == senior_tester_id:
                     senior_tester_verified_name = x[1]
                     break
@@ -995,7 +627,6 @@ async def report(ctx):
 @bot.command()
 @commands.has_any_role('Manage Roles', 'Overlord', 'Frostburn Staff', 'Senior Tester', 'Senior Tester Candidate')
 async def hero(ctx):
-    global PLAYER_SLASH_HERO
 
     hul_embed = discord.Embed(title="Hero Usage List", type="rich", color=0xff6600)
     hul_embed.set_author(name=ctx.message.author.display_name, icon_url=ctx.message.author.avatar_url)
@@ -1016,7 +647,7 @@ async def hero(ctx):
         if reaction.emoji == '📊':
             heroes = []
             try:
-                for x in PLAYER_SLASH_HERO:
+                for x in config.PLAYER_SLASH_HERO:
                     if x != '' and '/' in x:
                         y = x.split(',')
                         for z in y:
@@ -1073,7 +704,7 @@ async def hero(ctx):
             heroes = []
             players = []
             try:
-                for x in PLAYER_SLASH_HERO:
+                for x in config.PLAYER_SLASH_HERO:
                     if x!='' and '/' in x:
                         y=x.split(',')
                         for z in y:
@@ -1142,7 +773,7 @@ async def hero(ctx):
             heroes = []
             players = []
             try:
-                for x in PLAYER_SLASH_HERO:
+                for x in config.PLAYER_SLASH_HERO:
                     if x != '' and '/' in x:
                         y = x.split(',')
                         for z in y:
@@ -1293,17 +924,6 @@ async def on_ready():
     print('------')
 
 @bot.event
-async def on_command_error(ctx, error):
-    if isinstance(error, NotInWhiteList):
-        await ctx.author.send(error)
-
-    if isinstance(error, DatabaseNotReady):
-        await ctx.send("{.mention} Slow down speedy, I just woke up. Try *me* again in a few seconds.".format(ctx.author))
-
-    print(error)
-    return
-
-@bot.event
 async def on_message(message):
     ctx = await bot.get_context(message)
 
@@ -1382,14 +1002,7 @@ async def on_message(message):
 #-------------------- Background Tasks --------------------
 async def fetch_sheet():
     await bot.wait_until_ready()
-
-    global LIST_OF_LISTS
-    global LIST_OF_LISTS_TRIVIA
-    global SETTINGS
-    global PLAYER_SLASH_HERO
     global FETCH_SHEET_PASS
-
-    global DATABASE_READY
 
     def get_creds():
         return ServiceAccountCredentials.from_json_keyfile_name(config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES)
@@ -1408,13 +1021,13 @@ async def fetch_sheet():
         settings_worksheet = await rct_spreadsheet.worksheet('Settings')
         games_worksheet = await rct_spreadsheet.worksheet('Games')
 
-        #update globals
-        LIST_OF_LISTS = await rewards_worksheet.get_all_values()
-        LIST_OF_LISTS_TRIVIA = await trivia_worksheet.get_all_values()
-        SETTINGS = await settings_worksheet.col_values(2)
-        PLAYER_SLASH_HERO = await games_worksheet.col_values(13)
+        #update dynamic
+        config.LIST_OF_LISTS = await rewards_worksheet.get_all_values()
+        config.LIST_OF_LISTS_TRIVIA = await trivia_worksheet.get_all_values()
+        config.SETTINGS = await settings_worksheet.col_values(2)
+        config.PLAYER_SLASH_HERO = await games_worksheet.col_values(13)
 
-        DATABASE_READY = True
+        config.DATABASE_READY = True
         
         count_pass += 1
         FETCH_SHEET_PASS = count_pass
