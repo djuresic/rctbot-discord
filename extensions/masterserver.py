@@ -5,7 +5,7 @@ from discord.ext import commands
 
 import aiohttp
 
-import phpserialize
+import utils.phpserialize as phpserialize
 
 import config
 from extensions.checks import is_tester, in_whitelist
