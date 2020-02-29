@@ -45,9 +45,6 @@ import config # What have I done...
 
 #dynamic
 FETCH_SHEET_PASS = 0
-OPEN_REPORTS = []
-hangmanRunning = False
-xpCooldownList = []
 
 winter_solstice = '''Some say the world will end in fire,
 Some say in ice.
