@@ -1,3 +1,5 @@
+from hashlib import md5, sha256 # for srp later
+
 import discord
 from discord.ext import commands
 
