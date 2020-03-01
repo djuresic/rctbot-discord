@@ -129,7 +129,7 @@ async def on_message(message):
                     index_get = await resp.text()
                     securitytoken = index_get.split('SECURITYTOKEN = "')[1][:51]
                 
-                content = message.content.split(config.DISCORD_FORUMS_ROLE_ID)[1].strip(' ')
+                content = message.content.split(f'{config.DISCORD_FORUMS_ROLE_ID}>')[1].strip(' ')
                 announcement = "{0}\n\n\nMade by: [COLOR=#00cc99]{1.display_name}[/COLOR] ({1.name}#{1.discriminator})".format(content, message.author)
                 poststarttime = str(int(time()))
                 posthash = md5(announcement.encode('utf-8')).hexdigest() #"This is fine."
