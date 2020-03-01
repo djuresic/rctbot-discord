@@ -551,7 +551,7 @@ class BugReports(commands.Cog):
                 new_value = int(old_value)-1
                 await bug_reports_worksheet.update_cell(k+1, 2, str(new_value))
             old_content = is_this_valid.content
-            new_content = old_content[:-41] + "⚠ This report has was deemed valid by {0}, but a smilar or related one had already been submitted.".format(self.senior_tester_name)
+            new_content = old_content[:-41] + "⚠ This report was deemed valid by {0}, but a smilar or related one had already been submitted.".format(self.senior_tester_name)
             await is_this_valid.edit(content=new_content)
 
         else:
