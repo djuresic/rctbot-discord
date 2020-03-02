@@ -251,8 +251,8 @@ class BugReports(commands.Cog):
         report_author = ctx.message.author
         bug_reports_channel = self.bot.get_channel(config.DISCORD_BUGS_CHANNEL_ID)
 
-        if report_author not in bug_reports_channel.members or report_author.id not in config.DISCORD_WHITELIST_IDS: #TO DO: this has to go
-            return
+        # if report_author not in bug_reports_channel.members or report_author.id not in config.DISCORD_WHITELIST_IDS: #TO DO: this has to go
+        #     return
 
         if report_author in self.OPEN_REPORTS:
             already_pending_content = "You already have a bug report pending, please complete that one first."
