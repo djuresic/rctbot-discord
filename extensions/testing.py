@@ -33,4 +33,4 @@ class Testing(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Testing(bot))
-    print('Testing loaded.')
+    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)

@@ -3,6 +3,8 @@ import random
 import discord
 from discord.ext import commands
 
+import config
+
 class Gambling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -16,4 +18,4 @@ class Gambling(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Gambling(bot))
-    print('Gambling loaded.')
+    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)

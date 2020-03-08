@@ -76,4 +76,5 @@ class ErrorHandler(commands.Cog):
 
 def setup(bot):
     bot.add_cog(ErrorHandler(bot))
-    print('Loaded checks!')
+    print("Error handler ready.")
+    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)

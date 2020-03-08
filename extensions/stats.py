@@ -445,4 +445,4 @@ class Stats(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Stats(bot))
-    print('Stats loaded.')
+    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)

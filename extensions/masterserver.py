@@ -104,4 +104,4 @@ class Masterserver(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Masterserver(bot))
-    print('Masterserver is being loaded.')
+    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)

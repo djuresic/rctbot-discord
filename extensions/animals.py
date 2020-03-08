@@ -50,7 +50,7 @@ class Animals(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Animals(bot))
-    print('Extension animals is being loaded.')
+    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
 
 # def teardown(bot):
 #     print('animals unloaded!')

@@ -2,13 +2,13 @@ import os
 import platform
 import json
 
-#Heroku
+# Heroku
 if 'DYNO' in os.environ:
     HEROKU_DEPLOYED = True
 else:
     HEROKU_DEPLOYED = False
 
-# load local config, platform for dev purposes
+# Load local config, platform for dev purposes
 if 'Windows' in platform.system():
     CONFIG_FILE = 'dev_config.json'
 else:
@@ -30,7 +30,12 @@ if os.path.exists(CONFIG_FILE):
 else:
     raise Exception(f'Missing configuration file {CONFIG_FILE} in directory.')
 
-#Discord
+# Extensions
+BOT_STARTUP_EXTENSIONS = []
+BOT_DISABLED_EXTENSIONS = []
+BOT_LOADED_EXTENSIONS = []
+
+# Discord
 DISCORD_TOKEN = CONFIG_DISCORD['TOKEN']
 DISCORD_NOTES_CHANNEL_ID = CONFIG_DISCORD['NOTES_CHANNEL_ID']
 DISCORD_ANNOUNCEMENTS_CHANNEL_ID = CONFIG_DISCORD['ANNOUNCEMENTS_CHANNEL_ID']
@@ -41,7 +46,7 @@ DISCORD_WHITELIST_IDS = CONFIG_DISCORD['WHITELIST_IDS']
 
 DISCORD_DM_COMMANDS = ['report', 'notes'] #TO DO: replace with a decorator (guild_only and dm_allowed)
 
-#Heroes of Newerth
+# Heroes of Newerth
 HON_USER_AGENT = CONFIG_HON['USER_AGENT']
 HON_NAEU_MASTERSERVER = CONFIG_HON['NAEU_MASTERSERVER']
 HON_NAEU_RC_MASTERSERVER = CONFIG_HON['NAEU_RC_MASTERSERVER']
@@ -61,13 +66,15 @@ HON_FORUM_RCT_BUGS_SUBFORUM_ID = CONFIG_HON['FORUM_RCT_BUGS_SUBFORUM_ID']
 HON_FORUM_CREATE_ALL_THREADS = CONFIG_HON['FORUM_CREATE_ALL_THREADS']
 HON_FORUM_SCREENSHOT_LIMIT = CONFIG_HON['FORUM_SCREENSHOT_LIMIT']
 
-#Google
+# Google
 GOOGLE_CLIENT_SECRET_FILE = CONFIG_GOOGLE['CLIENT_SECRET_FILE']
 GOOGLE_SCOPES = CONFIG_GOOGLE['SCOPES']
 
-#dynamic
+# dynamic
 DATABASE_READY = False
 LIST_OF_LISTS = None
 LIST_OF_LISTS_TRIVIA = None
 PLAYER_SLASH_HERO = None #TO DO: this horror to dict
 SETTINGS = None #TO DO: dict please
+
+print("Loaded configuration.")

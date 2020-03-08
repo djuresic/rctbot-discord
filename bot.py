@@ -12,7 +12,6 @@ import os
 import asyncio
 import platform #sys
 from time import time, gmtime, strftime
-from hashlib import md5
 
 import discord
 from discord.ext import commands
@@ -24,6 +23,7 @@ import aiohttp
 # import youtube_dl TO DO: music port
 
 from extensions.checks import in_whitelist
+import extensions.forums as forums
 
 # note to myself: ctx.author: shorthand for Message.author, also applies to: guild, channel
 
@@ -50,26 +50,26 @@ And would suffice.
 
 - Robert Frost'''
 
-BOT_STARTUP_EXTENSIONS = []
-BOT_DISABLED_EXTENSIONS = []
-
-with os.scandir('extensions') as it:
-    for entry in it:
-        if entry.name.endswith('.py') and entry.is_file():
-            extension_name = entry.name.strip('.py')
-            if extension_name not in BOT_DISABLED_EXTENSIONS:
-                BOT_STARTUP_EXTENSIONS.append(f'extensions.{extension_name}')
-
 
 bot = commands.Bot(command_prefix=['!', '.'], description=winter_solstice)
 
-if __name__ == "__main__":
-    for extension in BOT_STARTUP_EXTENSIONS:
+
+if __name__ == '__main__':
+    with os.scandir('extensions') as it:
+        for entry in it:
+            if entry.name.endswith('.py') and entry.is_file():
+                extension_name = entry.name.strip('.py')
+                if extension_name not in config.BOT_DISABLED_EXTENSIONS:
+                    config.BOT_STARTUP_EXTENSIONS.append(f'extensions.{extension_name}')
+
+    for extension in config.BOT_STARTUP_EXTENSIONS:
         try:
             bot.load_extension(extension)
         except Exception as e:
             exc = '{}: {}'.format(type(e).__name__, e)
             print('Failed to load extension {}\n{}'.format(extension, exc))
+    
+    print('Loaded extensions: {}'.format(', '.join(config.BOT_LOADED_EXTENSIONS)))
 
 
 @bot.command()
@@ -107,57 +107,14 @@ async def on_message(message):
     if message.channel.id == config.DISCORD_ANNOUNCEMENTS_CHANNEL_ID:
         if config.DISCORD_FORUMS_ROLE_ID in message.raw_role_mentions:
 
-            index = 'https://forums.heroesofnewerth.com/index.php'
-            login_url = 'https://forums.heroesofnewerth.com/login.php'
-            login_params = {'do' : 'login'}
-            login_data = {'cookieuser':'1',
-                        'do':'login',
-                        's':'',
-                        'securitytoken':'guest',
-                        'vb_login_md5password':config.HON_FORUM_USER_MD5_PASSWORD,
-                        'vb_login_md5password_utf':config.HON_FORUM_USER_MD5_PASSWORD,
-                        'vb_login_password':'',
-                        'vb_login_password_hint':'Password',
-                        'vb_login_username':config.HON_FORUM_USER}
-
             async with aiohttp.ClientSession() as session:
 
-                async with session.post(login_url, params=login_params, data=login_data) as resp:
-                    await resp.text()
-                
-                async with session.get(index) as resp:
-                    index_get = await resp.text()
-                    securitytoken = index_get.split('SECURITYTOKEN = "')[1][:51]
-                
+                await forums.login(session)
+
                 content = message.content.split(f'{config.DISCORD_FORUMS_ROLE_ID}>')[1].strip(' ')
                 announcement = "{0}\n\n\nMade by: [COLOR=#00cc99]{1.display_name}[/COLOR] ({1.name}#{1.discriminator})".format(content, message.author)
-                poststarttime = str(int(time()))
-                posthash = md5(announcement.encode('utf-8')).hexdigest() #"This is fine."
 
-                new_reply_url = 'https://forums.heroesofnewerth.com/newreply.php'
-                post_params = {'do' : 'postreply', 't' : config.HON_FORUM_ANNOUNCEMENTS_THREAD_ID}
-                post_data = {'ajax':'1',
-                            'ajax_lastpost':'',
-                            'do':'postreply',
-                            'fromquickreply':'1',
-                            'loggedinuser':config.HON_FORUM_USER_ACCOUNT_ID,
-                            'securitytoken':securitytoken,
-                            'message':announcement,
-                            'message_backup':announcement,
-                            'p':'who cares',
-                            'parseurl':'1',
-                            'post_as':config.HON_FORUM_USER_ACCOUNT_ID,
-                            'posthash':posthash,
-                            'poststarttime':poststarttime,
-                            's':'',
-                            'securitytoken':securitytoken,
-                            'signature':'1',
-                            'specifiedpost':'0',
-                            't':config.HON_FORUM_ANNOUNCEMENTS_THREAD_ID,
-                            'wysiwyg':'0'}
-                
-                async with session.post(new_reply_url, params=post_params, data=post_data) as resp:
-                    await resp.text()
+                await forums.new_reply(session, config.HON_FORUM_ANNOUNCEMENTS_THREAD_ID, announcement)
 
     await bot.process_commands(message)
 

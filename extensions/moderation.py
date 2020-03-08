@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 
+import config
+
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -39,7 +41,27 @@ class Moderation(commands.Cog):
             await message.add_reaction('🆗')
             await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=30.0)
             await message.delete()
+    
+    @commands.command()
+    @commands.has_permissions(manage_messages=True)
+    async def whois(self, ctx, member: discord.Member=None):
+        if member is None:
+            ctx.send("Incorrect format. The correct format is: `.info <user>`")
+            return
+        embed = discord.Embed(title="User information", type="rich", color=0xff6600, timestamp=ctx.message.timestamp)
+        embed.set_author(name=member.display_name, icon_url=member.avatar_url)
+        embed.add_field(name="Status", value=member.status, inline=True)
+        embed.add_field(name="Currently playing", value=member.game, inline=True)
+        embed.add_field(name="Discord ID", value=member.id, inline=True)
+        embed.add_field(name="Account created at", value=member.created_at, inline=True)
+        embed.add_field(name="Server join date", value=member.joined_at, inline=False)
+        embed.set_footer(text="RCTBot", icon_url="https://i.imgur.com/Ou1k4lD.png")
+        embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
+        message = await ctx.send(embed=embed)
+        await message.add_reaction('🆗')
+        await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=30.0)
+        await message.delete()
 
 def setup(bot):
     bot.add_cog(Moderation(bot))
-    print('Moderation loaded.')
+    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
