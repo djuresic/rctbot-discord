@@ -8,6 +8,11 @@ import config
 from extensions.checks import is_tester
 
 
+async def game_hosted(bot, match_name, match_id):
+    channel = bot.get_channel(config.DISCORD_GAME_LOBBIES_CHANNEL_ID)
+    return await channel.send(f'Game **{match_name}** ({match_id}) has been created. **Join up!**')
+
+
 class Testing(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
