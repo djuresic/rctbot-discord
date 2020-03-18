@@ -174,12 +174,27 @@ class BugReports(commands.Cog):
         await bc_message.edit(content=bc_content, embed=bc_embed)
 
         emojis_dict = {
-                    '⚙': {'category': 'Mechanics/General', 'threadid': config.SETTINGS[7]},
-                    '📋': {'category': 'Tooltips', 'threadid': config.SETTINGS[11]},
-                    '🎨': {'category': 'Art', 'threadid': config.SETTINGS[8]},
-                    '🔊': {'category': 'Sound', 'threadid': config.SETTINGS[9]},
-                    '💻': {'category': 'User Interface', 'threadid': config.SETTINGS[10]}
-                    }
+            '⚙': {
+                'category': 'Mechanics/General',
+                'threadid': config.SETTINGS[7]
+            },
+            '📋': {
+                'category': 'Tooltips',
+                'threadid': config.SETTINGS[11]
+            },
+            '🎨': {
+                'category': 'Art',
+                'threadid': config.SETTINGS[8]
+            },
+            '🔊': {
+                'category': 'Sound',
+                'threadid': config.SETTINGS[9]
+            },
+            '💻': {
+                'category': 'User Interface',
+                'threadid': config.SETTINGS[10]
+            }
+        }
 
         #reaction_symbols = [reaction.emoji for reaction in bc_message.reactions if reaction.emoji in emojis_dict.keys()] # No clue why bc_message.reactions returns an empty list every time
         if config.HON_FORUM_CREATE_ALL_THREADS:
@@ -218,19 +233,22 @@ class BugReports(commands.Cog):
             await proceed_prompt_no_message.edit(content=proceed_prompt_no_content)
             return
 
+        def message_check(message):
+            return message.author == report_author and message.guild is None and not message.content.startswith(('!', '.'))  # Commands prefix tuple
+
         ask_for_version_content = "Please enter the **version** of the RCT client. Format: `<0.xx.xxx>` e.g. `0.27.231.1`"
         ask_for_version_message = await report_author.send("{.mention} ".format(report_author) + ask_for_version_content)
-        rc_version_message = await self.bot.wait_for('message', check=lambda m: m.author == report_author)
+        rc_version_message = await self.bot.wait_for('message', check=message_check)
         await ask_for_version_message.edit(content=ask_for_version_content)
 
         ask_for_build_date_content = "Please enter the **build date** of the RCT client. Format: `<Day Month Year>` e.g. `2 April 2018`"
         ask_for_build_date_message = await report_author.send("{.mention} ".format(report_author) + ask_for_build_date_content)
-        build_date_message = await self.bot.wait_for('message', check=lambda m: m.author == report_author)
+        build_date_message = await self.bot.wait_for('message', check=message_check)
         await ask_for_build_date_message.edit(content=ask_for_build_date_content)
 
         ask_for_screenshots_content = "Please enter the **number of screenshots** your have. Format : `<integer>` e.g.  `2`\nIn case you don't have any screenshots or want to include them in the description instead, enter `0` to proceed."
         ask_for_screenshots_message = await report_author.send("{.mention} ".format(report_author) + ask_for_screenshots_content)
-        number_of_screenshots_message = await self.bot.wait_for('message', check=lambda m: m.author == report_author)
+        number_of_screenshots_message = await self.bot.wait_for('message', check=message_check)
         await ask_for_screenshots_message.edit(content=ask_for_screenshots_content)
 
         screenshots_list = []
@@ -246,7 +264,7 @@ class BugReports(commands.Cog):
             for i in range(1, number_of_screenshots+1, 1):
                 ask_for_screenshot_link_content = "Please enter the **screenshot link** number {} of the bug. e.g. `https://i.imgur.com/D0Yn9JC.png`".format(i)
                 ask_for_screenshot_link_message = await report_author.send("{.mention} ".format(report_author) + ask_for_screenshot_link_content)
-                screenshot_link_message = await self.bot.wait_for('message', check=lambda m: m.author == report_author)
+                screenshot_link_message = await self.bot.wait_for('message', check=message_check)
                 screenshots_list.append(screenshot_link_message.content)
                 await ask_for_screenshot_link_message.edit(content=ask_for_screenshot_link_content)
 
@@ -258,7 +276,7 @@ class BugReports(commands.Cog):
 
         ask_for_description_content = "Please enter the **description** of the bug, up to 2000 characters. Use `Shift + Enter` for new lines, `Enter` to submit. e.g. `This avatar's skill does not play a sound, does not work at all (results in nothing after being cast) and has no visuals.`"
         ask_for_description_message = await report_author.send("{.mention} ".format(report_author) + ask_for_description_content)
-        bug_description_message = await self.bot.wait_for('message', check=lambda m: m.author == report_author)
+        bug_description_message = await self.bot.wait_for('message', check=message_check)
         await ask_for_description_message.edit(content=ask_for_description_content)
 
         if len(screenshots_list) < 1:
@@ -320,7 +338,7 @@ class BugReports(commands.Cog):
             if reporters[i] == report_author_verified_name:
                 k = i
                 break
-        #add +1 report
+        # Add 1 report
         if k == -1:
             val = 1
             await bug_reports_worksheet.update_cell(len(reporters)+1, 1, report_author_verified_name)
@@ -354,7 +372,6 @@ class BugReports(commands.Cog):
                 self.senior_tester_name = '{0} ({1.name}#{1.discriminator})'.format(senior_tester_verified_name, user)
             return senior in check_user_roles or frostburn in check_user_roles
 
-        #validate=await self.bot.wait_for_reaction(['✅','❌','⚠'],message=is_this_valid,check=check)
         reaction, user = await self.bot.wait_for('reaction_add', check=check)
 
         if reaction.emoji == '❌':
