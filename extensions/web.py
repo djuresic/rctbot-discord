@@ -20,8 +20,10 @@ async def web_server(bot):
     
     @routes.post(config.WEB_GAME_LOBBY_PATH)
     async def game_lobby(request): # POST handler for game lobbies
+        data = await request.post()
+        # print(data)
         try:
-            token = (await request.post())['token']
+            token = data['token']
         except:
             print(f"401: Unauthorized {config.WEB_GAME_LOBBY_PATH}")
             return web.Response(text="401: Unauthorized", status=401)
@@ -31,15 +33,13 @@ async def web_server(bot):
             return web.Response(text="403: Forbidden", status=403)
 
         try:
-            # data = (await request.post())['data'] # This Soon(tm)
-            # print(data)
-            lobby_name = (await request.post())['match_name']
-            match_id = (await request.post())['match_id']
+            lobby_name = data['match_name']
+            match_id = data['match_id']
             await game_hosted(bot, lobby_name, match_id)
             return web.Response(text="OK")
         except:
             return web.Response(text="400: Bad Request", status=400)
-        #return web.Response(body='data: {}'.format(data))
+        # return web.Response(body='data: {}'.format(a))
 
     app = web.Application()
     app.add_routes(routes)
@@ -64,6 +64,18 @@ class Web(commands.Cog):
                 'match_id': '1337'
             }
             async with session.post(f'https://{config.WEB_DOMAIN}{config.WEB_GAME_LOBBY_PATH}', data=data) as resp:
+                await resp.text()
+    
+    @commands.command()
+    @in_whitelist(config.DISCORD_WHITELIST_IDS)
+    async def dev_post_insecure(self, ctx):
+        async with aiohttp.ClientSession() as session:
+            data = {
+                'token': config.WEB_TOKEN,
+                'match_name': 'RCT with Lightwalker',
+                'match_id': '1337'
+            }
+            async with session.post(f'http://{config.WEB_DOMAIN}{config.WEB_GAME_LOBBY_PATH}', data=data) as resp:
                 await resp.text()
 
     @commands.command()
