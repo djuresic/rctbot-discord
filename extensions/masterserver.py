@@ -37,14 +37,17 @@ async def translate_masterserver(masterserver, short=True):
     return name
 
 
-async def initial_authentication(): # Add TC
+async def initial_authentication():
     data = await authenticate('ac', config.HON_USERNAME, config.HON_PASSWORD)
     rc_data = await authenticate('rc', config.HON_RC_USERNAME, config.HON_RC_PASSWORD)
+    tc_data = await authenticate('tc', config.HON_TC_USERNAME, config.HON_TC_PASSWORD)
 
     config.HON_NAEU_COOKIE = data[b'cookie'].decode()
     print("ac cookie set")
     config.HON_NAEU_RC_COOKIE = rc_data[b'cookie'].decode()
     print("rc cookie set")
+    config.HON_NAEU_TC_COOKIE = tc_data[b'cookie'].decode()
+    print("tc cookie set")
 
 
 async def request(session, query, masterserver='ac', path=None, cookie=False, deserialize=True): # default to RC masterserver instead
@@ -205,18 +208,25 @@ class Masterserver(commands.Cog):
 
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
+    async def readc(self, ctx):
+        await ctx.send(f'ac: {config.HON_NAEU_COOKIE}; rc: {config.HON_NAEU_RC_COOKIE}; tc: {config.HON_NAEU_TC_COOKIE}')
+
+    @commands.command()
+    @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def forcesrp(self, ctx):
         data = await authenticate('ac', config.HON_USERNAME, config.HON_PASSWORD)
         rc_data = await authenticate('rc', config.HON_RC_USERNAME, config.HON_RC_PASSWORD)
+        tc_data = await authenticate('tc', config.HON_TC_USERNAME, config.HON_TC_PASSWORD)
         config.HON_NAEU_COOKIE = data[b'cookie'].decode()
         config.HON_NAEU_RC_COOKIE = rc_data[b'cookie'].decode()
+        config.HON_NAEU_TC_COOKIE = tc_data[b'cookie'].decode()
         # ip = data[b'ip'].decode()
         # account_id = data[b'account_id'].decode()
         # nickname = data[b'nickname'].decode()
         # chat_url = data[b'chat_url'].decode()
         # chat_port = data[b'chat_port'].decode()
         # auth_hash = data[b'auth_hash'].decode()
-        await ctx.send(f'ac: {config.HON_NAEU_COOKIE}; rc: {config.HON_NAEU_RC_COOKIE}')
+        await ctx.send(f'ac: {config.HON_NAEU_COOKIE}; rc: {config.HON_NAEU_RC_COOKIE}; tc: {config.HON_NAEU_TC_COOKIE}')
         # await ctx.send(f"{ip}, {cookie}, {account_id}, {nickname}, {chat_url}, {chat_port}, {auth_hash}")
     
     @commands.command()
