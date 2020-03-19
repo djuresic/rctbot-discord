@@ -97,6 +97,7 @@ async def authenticate(masterserver, login, password): # <3
     session = aiohttp.ClientSession()
     login = login.lower()
     query = {'f': 'pre_auth', 'login': login}
+    srp.rfc5054_enable()
     user = srp.User(six.b(login), None, hash_alg=srp.SHA256, ng_type=srp.NG_CUSTOM, n_hex=six.b(config.HON_S2_N), g_hex=six.b(config.HON_S2_G))
     _, A = user.start_authentication()
     query['A'] = binascii.hexlify(A).decode()
