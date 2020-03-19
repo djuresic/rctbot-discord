@@ -11,73 +11,53 @@ import utils.phpserialize as phpserialize
 import srp
 
 import config
-from extensions.checks import is_tester, in_whitelist
+from extensions.checks import is_tester, in_whitelist, is_authenticated
 # import extensions.administration as administration
 
 
 async def translate_masterserver(masterserver, short=True):
-    translation = {
-        'ac': {
-            'client': 'Heroes of Newerth',
-            'short': 'Retail'
-        },
-        'rc': {
-            'client': 'Heroes of Newerth Release Candidate',
-            'short': 'RCT'
-        },
-        'tc': {
-            'client': 'Heroes of Newerth Private Test',
-            'short': 'SBT'
-        }
-    }
+    info = config.HON_MASTERSERVER_INFO[masterserver]
     if short:
-        name = translation[masterserver]['short']
+        return info['short']
     else:
-        name = translation[masterserver]['client']
-    return name
+        return info['client']
 
 
-async def initial_authentication():
-    data = await authenticate('ac', config.HON_USERNAME, config.HON_PASSWORD)
-    rc_data = await authenticate('rc', config.HON_RC_USERNAME, config.HON_RC_PASSWORD)
-    tc_data = await authenticate('tc', config.HON_TC_USERNAME, config.HON_TC_PASSWORD)
+async def authenticate_and_update_info(masterserver):
+    info = config.HON_MASTERSERVER_INFO[masterserver]
+    data = await authenticate(masterserver, info['user'], info['password'])
 
-    config.HON_NAEU_COOKIE = data[b'cookie'].decode()
-    print("ac cookie set")
-    config.HON_NAEU_RC_COOKIE = rc_data[b'cookie'].decode()
-    print("rc cookie set")
-    config.HON_NAEU_TC_COOKIE = tc_data[b'cookie'].decode()
-    print("tc cookie set")
+    try:
+        config.HON_MASTERSERVER_INFO[masterserver]['cookie'] = data[b'cookie'].decode()
+        config.HON_MASTERSERVER_INFO[masterserver]['ip'] = data[b'ip'].decode()
+        config.HON_MASTERSERVER_INFO[masterserver]['auth_hash'] = data[b'auth_hash'].decode()
+        config.HON_MASTERSERVER_INFO[masterserver]['chat_url'] = data[b'chat_url'].decode()
+        config.HON_MASTERSERVER_INFO[masterserver]['chat_port']= int(data[b'chat_port'].decode())
+        config.HON_MASTERSERVER_INFO[masterserver]['account_id'] = int(data[b'account_id'].decode())
+        config.HON_MASTERSERVER_INFO[masterserver]['nickname'] = data[b'nickname'].decode()
+
+        config.HON_MASTERSERVER_INFO[masterserver]['authenticated'] = True
+        print(f"{info['short']} authenticated!")
+        return True
+
+    except:
+        config.HON_MASTERSERVER_INFO[masterserver]['authenticated'] = False
+        print(f"{info['short']} failed to authenticate!")
+        return False
 
 
 async def request(session, query, masterserver='ac', path=None, cookie=False, deserialize=True): # default to RC masterserver instead
     # print(query)
-    clients = {
-        'ac': {
-            'hostname': config.HON_NAEU_MASTERSERVER,
-            'version': config.HON_UA_VERSION,
-            'cookie': config.HON_NAEU_COOKIE
-        },
-        'rc': {
-            'hostname': config.HON_NAEU_RC_MASTERSERVER,
-            'version': config.HON_UA_RC_VERSION,
-            'cookie': config.HON_NAEU_RC_COOKIE
-        },
-        'tc': {
-            'hostname': config.HON_NAEU_TC_MASTERSERVER,
-            'version': config.HON_UA_TC_VERSION,
-            'cookie': config.HON_NAEU_TC_COOKIE
-        }
-    }
+    info = config.HON_MASTERSERVER_INFO[masterserver]
 
     if path is None:
         path = 'client_requester.php'
 
     if cookie:
-        query['cookie'] = clients[masterserver]['cookie']
+        query['cookie'] = info['cookie']
 
-    hostname = clients[masterserver]['hostname']
-    version = clients[masterserver]['version']
+    hostname = info['hostname']
+    version = info['version']
     headers = {'User-Agent': f'{config.HON_GAME_CLIENT}/{version}/l{masterserver}/x86-biarch', 'X-Forwarded-For': 'unknown'}
     # print(headers)
 
@@ -163,81 +143,141 @@ class Masterserver(commands.Cog):
             await ctx.send(f"{client}\n\n**Windows:** {w_version}\n**Mac:** {l_version}\n**Linux:** {m_version}")
 
 
-    @commands.command(name="honstats")
+    @commands.command(name="sstats")
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
-    async def show_simple_stats(self, ctx, nickname=None): # Rewrite
-        """show_simple_stats ac"""
-
-        ac_client_requester = 'http://' + config.HON_NAEU_MASTERSERVER + '/client_requester.php'
+    async def show_simple_stats(self, ctx, nickname=None, masterserver='ac'): # Dev purpose only
+        """show_simple_stats"""
 
         if nickname is None:
             nickname = ctx.author.display_name
         
-        query = {'f' : 'show_simple_stats', 'nickname' : nickname}
+        query = {'f' : 'show_simple_stats', 'nickname' : nickname.lower()}
 
         async with aiohttp.ClientSession() as session:
-
-            async with session.get(ac_client_requester, params=query) as resp:
-                result = await resp.text()
-                result = phpserialize.loads(result.encode('utf-8'))
-                print(result)
-                result = {k.decode('utf-8', 'ignore') : v  for k, v in result.items() if not isinstance(k, int)}
-                print(result)
-                await ctx.send(result)
-
-    @commands.command(name="rchonstats")
-    @in_whitelist(config.DISCORD_WHITELIST_IDS)
-    async def show_simple_stats_rc(self, ctx, nickname=None): # Rewrite
-        """show_simple_stats rc"""
-
-        rc_client_requester = 'http://' + config.HON_NAEU_RC_MASTERSERVER + '/client_requester.php'
-
-        if nickname is None:
-            nickname = ctx.author.display_name
-        
-        query = {'f' : 'show_simple_stats', 'nickname' : nickname}
-
-        async with aiohttp.ClientSession() as session:
-
-            async with session.get(rc_client_requester, params=query) as resp:
-                result = await resp.text()
-                result = phpserialize.loads(result.encode('utf-8'))
-                print(result)
-                result = {k.decode('utf-8', 'ignore') : v  for k, v in result.items() if not isinstance(k, int)}
-                print(result)
-                await ctx.send(result)
+            print(await request(session, query, masterserver=masterserver))
 
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def readc(self, ctx):
-        await ctx.send(f'ac: {config.HON_NAEU_COOKIE}; rc: {config.HON_NAEU_RC_COOKIE}; tc: {config.HON_NAEU_TC_COOKIE}')
+        await ctx.send(f"ac: {config.HON_MASTERSERVER_INFO['ac']['cookie']},\nrc: {config.HON_MASTERSERVER_INFO['rc']['cookie']},\ntc: {config.HON_MASTERSERVER_INFO['tc']['cookie']}")
 
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def forcesrp(self, ctx):
-        data = await authenticate('ac', config.HON_USERNAME, config.HON_PASSWORD)
-        rc_data = await authenticate('rc', config.HON_RC_USERNAME, config.HON_RC_PASSWORD)
-        tc_data = await authenticate('tc', config.HON_TC_USERNAME, config.HON_TC_PASSWORD)
-        config.HON_NAEU_COOKIE = data[b'cookie'].decode()
-        config.HON_NAEU_RC_COOKIE = rc_data[b'cookie'].decode()
-        config.HON_NAEU_TC_COOKIE = tc_data[b'cookie'].decode()
-        # ip = data[b'ip'].decode()
-        # account_id = data[b'account_id'].decode()
-        # nickname = data[b'nickname'].decode()
-        # chat_url = data[b'chat_url'].decode()
-        # chat_port = data[b'chat_port'].decode()
-        # auth_hash = data[b'auth_hash'].decode()
-        await ctx.send(f'ac: {config.HON_NAEU_COOKIE}; rc: {config.HON_NAEU_RC_COOKIE}; tc: {config.HON_NAEU_TC_COOKIE}')
-        # await ctx.send(f"{ip}, {cookie}, {account_id}, {nickname}, {chat_url}, {chat_port}, {auth_hash}")
+        await authenticate_and_update_info('ac')
+        await authenticate_and_update_info('rc')
+        await authenticate_and_update_info('tc')
+        await ctx.send(f"ac: {config.HON_MASTERSERVER_INFO['ac']['cookie']},\nrc: {config.HON_MASTERSERVER_INFO['rc']['cookie']},\ntc: {config.HON_MASTERSERVER_INFO['tc']['cookie']}")
     
-    @commands.command()
+    @commands.command(name="mstq")
+    @is_authenticated()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
-    async def mstq(self, ctx, matchid: str, masterserver: str='ac'):
+    async def get_match_stats(self, ctx, matchid: str, masterserver: str='ac'):
         async with aiohttp.ClientSession() as session:
             match = await request(session, {'f': 'get_match_stats', 'match_id[]': matchid}, masterserver=masterserver, cookie=True)
             print(match)
             # await ctx.send(match)
-    
+
+    @commands.command()
+    @is_authenticated()
+    @in_whitelist(config.DISCORD_WHITELIST_IDS)
+    async def lookup(self, ctx, player: str, masterserver: str='ac'):
+        player = player.lower()
+        query = {'f' : 'show_stats', 'nickname' : player, 'table' : 'ranked'}
+        query_ss = {'f' : 'show_simple_stats', 'nickname' : player}
+
+        async with aiohttp.ClientSession() as session:
+            data = await request(session, query, masterserver=masterserver, cookie=True)
+
+            try:
+                account_id = data[b'account_id'].decode()
+            except:
+                return await ctx.send(f'Account does not exist.')
+
+            data_ss = await request(session, query_ss, masterserver=masterserver)
+
+            client = await translate_masterserver(masterserver, short=False)
+
+            try:
+                nickname = data[b'nickname'].decode().split(']')[1]
+            except:
+                nickname = data[b'nickname'].decode()
+            
+            try:
+                clan_name = data[b'name'].decode()
+            except:
+                clan_name = 'None'
+
+            if clan_name != 'None':
+                clan_tag = data[b'nickname'].decode().split(']')[0]+']'
+            else:
+                clan_tag = 'None'
+            
+            try:
+                clan_rank = data[b'rank'].decode()
+            except:
+                clan_rank = 'None'
+            
+            if clan_rank != 'None' and clan_name == 'None': # Ah yes, the ghost clan.
+                clan_name = u'\u2063'
+                clan_tag = '[]'
+                embed_nickname = f'{clan_tag}{nickname}'
+            else:
+                embed_nickname = nickname
+
+            try:
+                last_activity = data[b'last_activity'].decode()
+            except:
+                last_activity = 'None'
+
+            try:
+                account_type = config.HON_TYPE_MAP[data[b'account_type'].decode()]
+            except:
+                account_type = 'Unknown'
+
+            try:
+                standing = config.HON_STANDING_MAP[data[b'standing'].decode()]
+            except:
+                standing = 'Unknown'
+
+            if masterserver == 'ac':
+                # async with session.get(f'https://hon-avatar.now.sh/{account_id}') as resp:
+                #     account_icon_url = await resp.text()
+                #     print(account_icon_url)
+                account_icon_url = 'https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png'
+            else:
+                account_icon_url = 'https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png'
+
+        embed = discord.Embed(title=embed_nickname, type="rich", description=client, color=0xff6600, timestamp=ctx.message.created_at)
+        embed.set_author(name="Account Information", url=f"https://www.heroesofnewerth.com/playerstats/ranked/{nickname}", icon_url=account_icon_url)
+
+        embed.add_field(name="Nickname", value=nickname, inline=True)
+        embed.add_field(name="Account ID", value=account_id, inline=True)
+        embed.add_field(name="Super ID", value=data[b'super_id'].decode(), inline=True)
+
+        embed.add_field(name="Created", value=data[b'create_date'].decode(), inline=True)
+        embed.add_field(name="Last Activity", value=last_activity, inline=True)
+
+        embed.add_field(name="Account Type", value=account_type, inline=True)
+        embed.add_field(name="Standing", value=standing, inline=True)
+
+        embed.add_field(name="Clan Tag", value=clan_tag, inline=True)
+        embed.add_field(name="Clan Name", value=clan_name, inline=True)
+        embed.add_field(name="Clan Rank", value=clan_rank, inline=True)
+
+        embed.add_field(name="Level", value=data_ss[b'level'].decode(), inline=True)
+        embed.add_field(name="Level Experience", value=data_ss[b'level_exp'].decode(), inline=True)
+
+        embed.add_field(name="Avatars", value=data_ss[b'avatar_num'], inline=True)
+
+        embed.set_footer(text="Requested by {0} ({1}#{2}). React with 🆗 to delete this message.".format(ctx.message.author.display_name, ctx.message.author.name, ctx.message.author.discriminator), icon_url="https://i.imgur.com/Ou1k4lD.png")
+        embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
+
+        message = await ctx.send(embed=embed)
+        await message.add_reaction('🆗')
+        await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id)
+        await message.delete()
+
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def id2nick(self, ctx, account_id: str, masterserver: str='ac'):
@@ -262,5 +302,7 @@ class Masterserver(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Masterserver(bot))
-    bot.loop.create_task(initial_authentication())
+    bot.loop.create_task(authenticate_and_update_info('ac'))
+    bot.loop.create_task(authenticate_and_update_info('rc'))
+    bot.loop.create_task(authenticate_and_update_info('tc'))
     config.BOT_LOADED_EXTENSIONS.append(__loader__.name)

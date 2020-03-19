@@ -75,9 +75,8 @@ HON_FORUM_RCT_BUGS_SUBFORUM_ID = CONFIG_HON['FORUM_RCT_BUGS_SUBFORUM_ID']
 HON_FORUM_CREATE_ALL_THREADS = CONFIG_HON['FORUM_CREATE_ALL_THREADS']
 HON_FORUM_SCREENSHOT_LIMIT = CONFIG_HON['FORUM_SCREENSHOT_LIMIT']
 
-HON_NAEU_COOKIE = ''
-HON_NAEU_RC_COOKIE = ''
-HON_NAEU_TC_COOKIE = ''
+HON_TYPE_MAP = CONFIG_HON['TYPE_MAP']
+HON_STANDING_MAP = CONFIG_HON['STANDING_MAP']
 
 HON_TC_PASSWORD = CONFIG_HON['TC_PASSWORD']
 HON_TC_USERNAME = CONFIG_HON['TC_USERNAME']
@@ -87,6 +86,61 @@ HON_RC_USERNAME = CONFIG_HON['RC_USERNAME']
 
 HON_PASSWORD = CONFIG_HON['PASSWORD']
 HON_USERNAME = CONFIG_HON['USERNAME']
+
+# Let's try this
+HON_MASTERSERVER_INFO = {
+    'ac': {
+        'short': 'Retail',
+        'hostname': HON_NAEU_MASTERSERVER,
+        'client': 'Heroes of Newerth',
+        'version': HON_UA_VERSION,
+        'user': HON_USERNAME,
+        'password': HON_PASSWORD,
+        'authenticated': False,
+        'nickname': '',
+        'account_id': 0,
+        'cookie': '',
+        'ip': '',
+        'auth_hash': '',
+        'chat_url': '',
+        'chat_port': 0,
+        'thing': ''
+    },
+    'rc': {
+        'short': 'RCT',
+        'hostname': HON_NAEU_RC_MASTERSERVER,
+        'client': 'Heroes of Newerth Release Candidate',
+        'version': HON_UA_RC_VERSION,
+        'user': HON_RC_USERNAME,
+        'password': HON_RC_PASSWORD,
+        'authenticated': False,
+        'nickname': '',
+        'account_id': 0,
+        'cookie': '',
+        'ip': '',
+        'auth_hash': '',
+        'chat_url': '',
+        'chat_port': 0,
+        'thing': ''
+    },
+    'tc': {
+        'short': 'SBT',
+        'hostname': HON_NAEU_TC_MASTERSERVER,
+        'client': 'Heroes of Newerth Private Test',
+        'version': HON_UA_TC_VERSION,
+        'user': HON_TC_USERNAME,
+        'password': HON_TC_PASSWORD,
+        'authenticated': False,
+        'nickname': '',
+        'account_id': 0,
+        'cookie': '',
+        'ip': '',
+        'auth_hash': '',
+        'chat_url': '',
+        'chat_port': 0,
+        'thing': ''
+    }
+}
 
 
 # Google

@@ -13,6 +13,9 @@ class NotInWhiteList(commands.CheckFailure):
 class NotATester(commands.CheckFailure): #TO DO: special case in handler
     pass
 
+class NotMasterserverAuthenticated(commands.CheckFailure): #TO DO: special case in handler
+    pass
+
 class GuildOnlyCommand(commands.CheckFailure):
     pass
 
@@ -52,6 +55,14 @@ def is_tester():
         return found_id and is_enabled
     return commands.check(is_tester_check)
 
+def is_authenticated(): # Expensive, keeping for now though
+    async def is_authenticated_check(ctx):
+        for masterserver in ['ac', 'rc', 'tc']:
+            if not config.HON_MASTERSERVER_INFO[masterserver]['authenticated']:
+                raise NotMasterserverAuthenticated(f"{config.HON_MASTERSERVER_INFO[masterserver]['short']} not authenticated! Please inform a Senior Tester.")
+        return True
+    return commands.check(is_authenticated_check)
+
 def guild_only(): #TO DO: this annoyance
     async def guild_only_check(ctx):
         if ctx.message.guild is None:
@@ -70,6 +81,9 @@ class ErrorHandler(commands.Cog):
 
         if isinstance(error, DatabaseNotReady):
             await ctx.send("{.mention} Slow down speedy, I just woke up. Try *me* again in a few seconds.".format(ctx.author))
+ 
+        if isinstance(error, NotMasterserverAuthenticated):
+            await ctx.send(error)
 
         print(error)
         return
