@@ -248,8 +248,8 @@ class Masterserver(commands.Cog):
             else:
                 account_icon_url = 'https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png'
 
-        embed = discord.Embed(title=embed_nickname, type="rich", description=client, color=0xff6600, timestamp=ctx.message.created_at)
-        embed.set_author(name="Account Information", url=f"https://www.heroesofnewerth.com/playerstats/ranked/{nickname}", icon_url=account_icon_url)
+        embed = discord.Embed(title=client, type="rich", description="Account Information", color=0xff6600, timestamp=ctx.message.created_at)
+        embed.set_author(name=embed_nickname, url=f"https://www.heroesofnewerth.com/playerstats/ranked/{nickname}", icon_url=account_icon_url)
 
         embed.add_field(name="Nickname", value=nickname, inline=True)
         embed.add_field(name="Account ID", value=account_id, inline=True)
