@@ -1,5 +1,4 @@
 import binascii
-import six
 from hashlib import md5, sha256
 
 import asyncio
@@ -78,7 +77,7 @@ async def authenticate(masterserver, login, password): # <3
     login = login.lower()
     query = {'f': 'pre_auth', 'login': login}
     srp.rfc5054_enable()
-    user = srp.User(six.b(login), None, hash_alg=srp.SHA256, ng_type=srp.NG_CUSTOM, n_hex=six.b(config.HON_S2_N), g_hex=six.b(config.HON_S2_G))
+    user = srp.User(login.encode(), None, hash_alg=srp.SHA256, ng_type=srp.NG_CUSTOM, n_hex=config.HON_S2_N.encode(), g_hex=config.HON_S2_G.encode())
     _, A = user.start_authentication()
     query['A'] = binascii.hexlify(A).decode()
     result = await request(session, query, masterserver=masterserver)
@@ -86,7 +85,7 @@ async def authenticate(masterserver, login, password): # <3
     s = binascii.unhexlify(result[b'salt'])
     B = binascii.unhexlify(result[b'B'])
     salt2 = result[b'salt2']
-    user.password = six.b(sha256(six.b(md5(six.b(md5(password.encode()).hexdigest()) + salt2 + six.b(config.HON_SRP_SS)).hexdigest()) + six.b(config.HON_SRP_SL)).hexdigest())
+    user.password = (sha256((md5((md5(password.encode()).hexdigest()).encode() + salt2 + config.HON_SRP_SS.encode()).hexdigest()).encode() + config.HON_SRP_SL.encode()).hexdigest()).encode()
     user.p = user.password
     M = user.process_challenge(s, B)
     del(query['A'])
