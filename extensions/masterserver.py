@@ -298,14 +298,19 @@ class Masterserver(commands.Cog):
             embed.add_field(name="Selected", value=selected_upgrades, inline=True)
             embed.add_field(name="Other", value=other_upgrades, inline=True)
 
-        embed.set_footer(text="Requested by {0} ({1}#{2}). React with 🆗 to delete this message.".format(ctx.message.author.display_name, ctx.message.author.name, ctx.message.author.discriminator), icon_url="https://i.imgur.com/Ou1k4lD.png")
+        embed.set_footer(text="Requested by {0} ({1}#{2}). React with 🗑️ to delete, 💾 to keep this message.".format(ctx.message.author.display_name, ctx.message.author.name, ctx.message.author.discriminator), icon_url="https://i.imgur.com/Ou1k4lD.png")
         embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
 
         message = await ctx.send(embed=embed)
-        await message.add_reaction('🆗')
+        await message.add_reaction('🗑️')
+        await message.add_reaction('💾')
+
         try:
-            await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=120.0)
-            await message.delete()
+            reaction, _ = await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji in ['🗑️', '💾'] and reaction.message.id == message.id, timeout=300.0)
+
+            if reaction.emoji == '🗑️':
+                await message.delete()
+
         except asyncio.TimeoutError:
             await message.delete()
 
@@ -322,13 +327,6 @@ class Masterserver(commands.Cog):
         client = await translate_masterserver(masterserver)
         result = await nick2id(nickname, masterserver=masterserver)
         await ctx.send(f"Client: {client}\nNickname: {result['nickname']}\nID: **{result['account_id']}**")
-    
-    @commands.command()
-    @in_whitelist(config.DISCORD_WHITELIST_IDS)
-    async def snot(self, ctx): # Not yet
-        async with aiohttp.ClientSession() as session:
-            # await administration.send_notification(session)
-            return
 
 
 def setup(bot):
