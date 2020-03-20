@@ -1,3 +1,4 @@
+import asyncio
 import discord
 from discord.ext import commands
 
@@ -14,8 +15,11 @@ class Moderation(commands.Cog):
         if number < 2 or number > 99:
             message = await ctx.send('Invalid number of messages.')
             await message.add_reaction('🆗')
-            await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=30.0)
-            await message.delete()
+            try:
+                await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=30.0)
+                await message.delete()
+            except asyncio.TimeoutError:
+                await message.delete()
             return
 
         if offender is not None:
@@ -31,16 +35,22 @@ class Moderation(commands.Cog):
             await channel.delete_messages(messages)
             message = await ctx.send('Deleted the last {0} messages from {1.mention}.'.format(len(messages), offender))
             await message.add_reaction('🆗')
-            await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=30.0)
-            await message.delete()
+            try:
+                await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=30.0)
+                await message.delete()
+            except asyncio.TimeoutError:
+                await message.delete()
 
         else:
             #messages = await channel.history(limit=number).flatten()
             deleted = await channel.purge(limit=number+1) # Accounting for command invoking message
             message = await ctx.send('Deleted the last {} messages.'.format(len(deleted)))
             await message.add_reaction('🆗')
-            await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=30.0)
-            await message.delete()
+            try:
+                await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=30.0)
+                await message.delete()
+            except asyncio.TimeoutError:
+                await message.delete()
     
     @commands.command()
     @commands.has_permissions(manage_messages=True)
@@ -59,8 +69,11 @@ class Moderation(commands.Cog):
         #embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png") # HoN logo
         message = await ctx.send(embed=embed)
         await message.add_reaction('🆗')
-        await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=30.0)
-        await message.delete()
+        try:
+            await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=60.0)
+            await message.delete()
+        except asyncio.TimeoutError:
+            await message.delete()
 
 def setup(bot):
     bot.add_cog(Moderation(bot))

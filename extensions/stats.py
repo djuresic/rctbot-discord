@@ -223,8 +223,11 @@ class Stats(commands.Cog):
         stop = timeit.default_timer()
         print(stop-start)
         await message.add_reaction('🆗')
-        await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id)
-        await message.delete()
+        try:
+            await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=120.0)
+            await message.delete()
+        except asyncio.TimeoutError:
+            await message.delete()
 
     #TO DO: this needs to be prettier
     @commands.command(aliases=['hero', 'herousage'])

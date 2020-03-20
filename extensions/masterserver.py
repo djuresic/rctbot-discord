@@ -2,6 +2,7 @@ import binascii
 import six
 from hashlib import md5, sha256
 
+import asyncio
 import aiohttp
 import discord
 from discord.ext import commands
@@ -303,8 +304,11 @@ class Masterserver(commands.Cog):
 
         message = await ctx.send(embed=embed)
         await message.add_reaction('🆗')
-        await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id)
-        await message.delete()
+        try:
+            await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji == '🆗' and reaction.message.id == message.id, timeout=120.0)
+            await message.delete()
+        except asyncio.TimeoutError:
+            await message.delete()
 
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
