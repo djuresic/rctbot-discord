@@ -246,7 +246,7 @@ class Stats(commands.Cog):
         await hul_message.add_reaction('📈')
         await hul_message.add_reaction('📉')
         await hul_message.add_reaction('📊')
-        reaction, user = await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji in ['📈','📉','📊'] and reaction.message.id == hul_message.id)
+        reaction, _ = await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == ctx.message.author and reaction.emoji in ['📈','📉','📊'] and reaction.message.id == hul_message.id)
         #reaction_action=await self.bot.wait_for_reaction(['📈','📉','📊'], user=ctx.message.author, timeout=60.0, message=hul_message)
         await hul_message.delete()
         start = timeit.default_timer()

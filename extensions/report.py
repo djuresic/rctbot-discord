@@ -202,7 +202,7 @@ class BugReports(commands.Cog):
         else:
             reaction_symbols = ['📋','⚙','❌']
 
-        reaction, user = await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == report_author and reaction.emoji in reaction_symbols and reaction.message.id == bc_message.id)
+        reaction, _ = await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == report_author and reaction.emoji in reaction_symbols and reaction.message.id == bc_message.id)
         await bc_message.edit(content=None, embed=bc_embed)
         ##await self.bot.delete_message(ctx.message)
 
@@ -222,7 +222,7 @@ class BugReports(commands.Cog):
         await proceed_prompt_message.add_reaction('✅')
         await proceed_prompt_message.add_reaction('❌')
         
-        reaction, user = await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == report_author and reaction.emoji in ['✅','❌'] and reaction.message.id == proceed_prompt_message.id)
+        reaction, _ = await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == report_author and reaction.emoji in ['✅','❌'] and reaction.message.id == proceed_prompt_message.id)
         await proceed_prompt_message.edit(content=proceed_prompt_content)
         
         if reaction.emoji == '❌':
@@ -298,7 +298,7 @@ class BugReports(commands.Cog):
         await final_report_prompt_message.add_reaction('✅')
         await final_report_prompt_message.add_reaction('❌')
 
-        reaction, user = await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == report_author and reaction.emoji in ['✅','❌'] and reaction.message.id == final_report_prompt_message.id)
+        reaction, _ = await self.bot.wait_for('reaction_add', check=lambda reaction, user: user == report_author and reaction.emoji in ['✅','❌'] and reaction.message.id == final_report_prompt_message.id)
         await final_report_prompt_message.edit(content=final_report_prompt_content)
 
         if reaction.emoji == '❌':
@@ -372,7 +372,7 @@ class BugReports(commands.Cog):
                 self.senior_tester_name = '{0} ({1.name}#{1.discriminator})'.format(senior_tester_verified_name, user)
             return senior in check_user_roles or frostburn in check_user_roles
 
-        reaction, user = await self.bot.wait_for('reaction_add', check=check)
+        reaction, _ = await self.bot.wait_for('reaction_add', check=check)
 
         if reaction.emoji == '❌':
             if k == -1:

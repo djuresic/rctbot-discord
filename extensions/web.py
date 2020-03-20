@@ -15,11 +15,11 @@ async def web_server(bot):
     routes = web.RouteTableDef()
 
     @routes.get('/')
-    async def hello_world(request):
+    async def _hello_world(request):
         return web.Response(text=f"Hello, World! {config.WEB_DOMAIN} - OK")
     
     @routes.post(config.WEB_GAME_LOBBY_PATH)
-    async def game_lobby(request): # POST handler for game lobbies
+    async def _game_lobby(request): # POST handler for game lobbies
         data = await request.post()
         # print(data)
         try:
