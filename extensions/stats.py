@@ -138,27 +138,26 @@ class Stats(commands.Cog):
             games_played = str(len(heroes_played))
         
         def is_current_member():
-            return row_values[0].lower() in ('true', '1')
-        #TO DO: this to function
+            return row_values[0].lower() in ('true', '1', 'tester', 'senior', 'staff') # true, 1 legacy
 
-        current_member = row_values[0]
-        if current_member == 'TRUE':
+        current_member = is_current_member()
+        if current_member:
             former = ''
         else:
             former = 'a former '
 
         rank_name = row_values[10]
-        if rank_name == 'Immortal' and current_member == 'TRUE':
+        if rank_name == 'Immortal' and current_member:
             rank_url = 'https://i.imgur.com/dpugisO.png'
-        elif rank_name == 'Legendary' and current_member == 'TRUE':
+        elif rank_name == 'Legendary' and current_member:
             rank_url = 'https://i.imgur.com/59Jighv.png'
-        elif rank_name == 'Diamond' and current_member == 'TRUE':
+        elif rank_name == 'Diamond' and current_member:
             rank_url = 'https://i.imgur.com/AZYAK39.png'
-        elif rank_name == 'Gold' and current_member == 'TRUE':
+        elif rank_name == 'Gold' and current_member:
             rank_url = 'https://i.imgur.com/ZDLUlqs.png'
-        elif rank_name == 'Silver' and current_member == 'TRUE':
+        elif rank_name == 'Silver' and current_member:
             rank_url = 'https://i.imgur.com/xxxlPAq.png'
-        elif rank_name == 'Bronze' and current_member == 'TRUE':
+        elif rank_name == 'Bronze' and current_member:
             rank_url = 'https://i.imgur.com/svAUm00.png'
         else:
             rank_url = 'https://i.imgur.com/ys2UBNW.png'
@@ -184,21 +183,21 @@ class Stats(commands.Cog):
 
         embed = discord.Embed(title="Retail Candidate Testers", type="rich", description="Information for {0}{1} {2}.".format(former, effective_role, nick), url="https://forums.heroesofnewerth.com/forumdisplay.php?209-Retail-Candidate-Testers", color=0xff6600, timestamp=ctx.message.created_at)
         embed.set_author(name=nick_src, url="https://docs.google.com/spreadsheets/d/1HpDhrKbyK01rRUUFw3v-30QrNJpLHaOmWYrUxkKDbq0/edit#gid=0", icon_url=member.avatar_url)
-        if current_member == 'TRUE':
+        if current_member:
             embed.add_field(name="Unconfirmed games", value=games_played, inline=True)
             #embed.add_field(name=u"\u2063", value=u"\u2063", inline=True)
             embed.add_field(name="Games", value=games, inline=True)
         embed.add_field(name="Total games", value=row_values[5], inline=True)
-        if current_member == 'TRUE':
+        if current_member:
             embed.add_field(name="Game time", value=gametime, inline=True)
         embed.add_field(name="Total game time", value=gametime_total, inline=True)
-        if current_member == 'TRUE':
+        if current_member:
             embed.add_field(name="Bug reports", value=row_values[4], inline=True)
         embed.add_field(name="Total bug reports", value=row_values[7], inline=True)
         #embed.add_field(name="Total games", value=row_values[3], inline=True)
         #embed.add_field(name="Total game time", value="N/A", inline=True)
         #embed.add_field(name="Total bug reports", value=row_values[10], inline=True)
-        if current_member == 'TRUE':
+        if current_member:
             embed.add_field(name="Tokens earned", value=row_values[8], inline=True)
             embed.add_field(name="Bonuses", value=bonus, inline=True)
             embed.add_field(name="Activity rank", value=row_values[10], inline=True)
@@ -207,7 +206,7 @@ class Stats(commands.Cog):
             embed.add_field(name="Absence", value=absence, inline=True)
         embed.add_field(name="Join date", value=row_values[20], inline=True)
         embed.add_field(name="Trivia points", value=trivia_points, inline=True)
-        if current_member == 'FALSE' and row_values[22] != '':
+        if not current_member and row_values[22] != '':
             embed.add_field(name="Reason for removal", value=row_values[22], inline=False)
         #embed.add_field(name=u"\u2063", value=u"\u2063", inline=True)
         #embed.add_field(name=u"\u2063", value=u"\u2063", inline=True)

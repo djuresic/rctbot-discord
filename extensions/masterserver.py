@@ -2,16 +2,15 @@ import binascii
 import six
 from hashlib import md5, sha256
 
+import aiohttp
 import discord
 from discord.ext import commands
-
-import aiohttp
 
 import utils.phpserialize as phpserialize
 import srp
 
 import config
-from extensions.checks import is_tester, in_whitelist, is_authenticated
+from extensions.checks import is_tester, is_senior, in_whitelist, is_authenticated
 # import extensions.administration as administration
 
 
@@ -178,67 +177,44 @@ class Masterserver(commands.Cog):
             print(match)
             # await ctx.send(match)
 
-    @commands.command()
+    @commands.command(aliases=['lu', 'lup', 'lkp', 'lkup'])
+    @is_senior()
     @is_authenticated()
-    @in_whitelist(config.DISCORD_WHITELIST_IDS)
-    async def lookup(self, ctx, player: str, masterserver: str='ac'):
-        player = player.lower()
-        query = {'f' : 'show_stats', 'nickname' : player, 'table' : 'ranked'}
-        query_ss = {'f' : 'show_simple_stats', 'nickname' : player}
+    async def lookup(self, ctx, player: str, masterserver: str='ac', upgrades: str='False'):
+        """lookup <nickname or account ID> <masterserver> [-u|--upgrades]"""
+
+        if player.isdigit():
+            result = await id2nick(player, masterserver=masterserver)
+            if result is not None and not isinstance(result, dict): # Till id2nick returns nick
+                player = result.decode().lower()
+            else:
+                return await ctx.send('Account does not exist.')
+        else:
+            player = player.lower()
+
+        def to_bool(upgrades):
+            return upgrades.lower() in ('true', '1', 'yes', '-u', '--upgrades')
+
+        upgrades = to_bool(upgrades)
 
         async with aiohttp.ClientSession() as session:
+            query = {'f' : 'show_stats', 'nickname' : player, 'table' : 'ranked'}
             data = await request(session, query, masterserver=masterserver, cookie=True)
 
             try:
                 account_id = data[b'account_id'].decode()
             except:
-                return await ctx.send(f'Account does not exist.')
+                return await ctx.send('Account does not exist.')
 
-            data_ss = await request(session, query_ss, masterserver=masterserver)
+            if upgrades:
+                query_ss = {'f' : 'show_simple_stats', 'nickname' : player}
+                data_ss = await request(session, query_ss, masterserver=masterserver)
 
-            client = await translate_masterserver(masterserver, short=False)
+                query['table'] = 'mastery'
+                data_mu = await request(session, query, masterserver=masterserver, cookie=True)
 
-            try:
-                nickname = data[b'nickname'].decode().split(']')[1]
-            except:
-                nickname = data[b'nickname'].decode()
-            
-            try:
-                clan_name = data[b'name'].decode()
-            except:
-                clan_name = 'None'
-
-            if clan_name != 'None':
-                clan_tag = data[b'nickname'].decode().split(']')[0]+']'
-            else:
-                clan_tag = 'None'
-            
-            try:
-                clan_rank = data[b'rank'].decode()
-            except:
-                clan_rank = 'None'
-            
-            if clan_rank != 'None' and clan_name == 'None': # Ah yes, the ghost clan.
-                clan_name = u'\u2063'
-                clan_tag = '[]'
-                embed_nickname = f'{clan_tag}{nickname}'
-            else:
-                embed_nickname = nickname
-
-            try:
-                last_activity = data[b'last_activity'].decode()
-            except:
-                last_activity = 'None'
-
-            try:
-                account_type = config.HON_TYPE_MAP[data[b'account_type'].decode()]
-            except:
-                account_type = 'Unknown'
-
-            try:
-                standing = config.HON_STANDING_MAP[data[b'standing'].decode()]
-            except:
-                standing = 'Unknown'
+                selected_upgrades = ', '.join([v.decode() for v in data_mu[b'selected_upgrades'].values() if isinstance(v, bytes)])
+                other_upgrades = ', '.join([v.decode() for v in data[b'my_upgrades'].values() if isinstance(v, bytes)])
 
             if masterserver == 'ac':
                 # async with session.get(f'https://hon-avatar.now.sh/{account_id}') as resp:
@@ -247,6 +223,55 @@ class Masterserver(commands.Cog):
                 account_icon_url = 'https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png'
             else:
                 account_icon_url = 'https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png'
+
+        # print(data)
+        # print(data_ss)
+
+        client = await translate_masterserver(masterserver, short=False)
+
+        try:
+            nickname = data[b'nickname'].decode().split(']')[1]
+        except:
+            nickname = data[b'nickname'].decode()
+        
+        try:
+            clan_name = data[b'name'].decode()
+        except:
+            clan_name = 'None'
+
+        if clan_name != 'None':
+            clan_tag = data[b'nickname'].decode().split(']')[0]+']'
+        else:
+            clan_tag = 'None'
+        
+        try:
+            clan_rank = data[b'rank'].decode()
+        except:
+            clan_rank = 'None'
+        
+        if clan_rank != 'None' and clan_name == 'None': # Ah yes, the ghost clan.
+            clan_name = u'\u2063'
+            clan_tag = '[]'
+            embed_nickname = f'{clan_tag}{nickname}'
+        elif clan_name != 'None':
+            embed_nickname = f'{clan_tag}{nickname}'
+        else:
+            embed_nickname = nickname
+
+        try:
+            last_activity = data[b'last_activity'].decode()
+        except:
+            last_activity = 'None'
+
+        try:
+            account_type = config.HON_TYPE_MAP[data[b'account_type'].decode()]
+        except:
+            account_type = 'Unknown'
+
+        try:
+            standing = config.HON_STANDING_MAP[data[b'standing'].decode()]
+        except:
+            standing = 'Unknown'
 
         embed = discord.Embed(title=client, type="rich", description="Account Information", color=0xff6600, timestamp=ctx.message.created_at)
         embed.set_author(name=embed_nickname, url=f"https://www.heroesofnewerth.com/playerstats/ranked/{nickname}", icon_url=account_icon_url)
@@ -265,10 +290,13 @@ class Masterserver(commands.Cog):
         embed.add_field(name="Clan Name", value=clan_name, inline=True)
         embed.add_field(name="Clan Rank", value=clan_rank, inline=True)
 
-        embed.add_field(name="Level", value=data_ss[b'level'].decode(), inline=True)
-        embed.add_field(name="Level Experience", value=data_ss[b'level_exp'].decode(), inline=True)
+        embed.add_field(name="Level", value=data[b'level'].decode(), inline=True)
+        embed.add_field(name="Level Experience", value=data[b'level_exp'], inline=True)
 
-        embed.add_field(name="Avatars", value=data_ss[b'avatar_num'], inline=True)
+        if upgrades:
+            embed.add_field(name="Avatars", value=data_ss[b'avatar_num'], inline=True)
+            embed.add_field(name="Selected", value=selected_upgrades, inline=True)
+            embed.add_field(name="Other", value=other_upgrades, inline=True)
 
         embed.set_footer(text="Requested by {0} ({1}#{2}). React with 🆗 to delete this message.".format(ctx.message.author.display_name, ctx.message.author.name, ctx.message.author.discriminator), icon_url="https://i.imgur.com/Ou1k4lD.png")
         embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")

@@ -41,19 +41,39 @@ def is_tester():
             raise DatabaseNotReady("Database is not ready!")
 
         found_id = False
-        is_enabled = False
+        verified = False
 
-        def checkbox_to_bool(checkbox):
-            return checkbox.lower() in ('true', '1')
+        def verify(selected):
+            return selected.lower() in ('tester', 'senior', 'staff')
 
         for x in config.LIST_OF_LISTS:
             if x[32] == str(ctx.author.id):
                 found_id = True
-                is_enabled = checkbox_to_bool(x[0])
+                verified = verify(x[0])
                 break
 
-        return found_id and is_enabled
+        return found_id and verified
     return commands.check(is_tester_check)
+
+def is_senior():
+    async def is_senior_check(ctx):
+        if not config.DATABASE_READY:
+            raise DatabaseNotReady("Database is not ready!")
+
+        found_id = False
+        verified = False
+
+        def verify(selected):
+            return selected.lower() in ('senior', 'staff')
+
+        for x in config.LIST_OF_LISTS:
+            if x[32] == str(ctx.author.id):
+                found_id = True
+                verified = verify(x[0])
+                break
+
+        return found_id and verified
+    return commands.check(is_senior_check)
 
 def is_authenticated(): # Expensive, keeping for now though
     async def is_authenticated_check(ctx):
