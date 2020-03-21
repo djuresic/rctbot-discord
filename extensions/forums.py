@@ -135,5 +135,9 @@ async def edit_post(session, post_id, title, message, reason, security_token=Non
         return await resp.text()
 
 
-def setup(bot):  # Don't need this yet but hey it doesn't hurt to have
+def setup(bot):
     config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+
+
+def teardown(bot):
+    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)

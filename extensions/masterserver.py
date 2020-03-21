@@ -463,3 +463,8 @@ def setup(bot):
     bot.loop.create_task(authenticate_and_update_info("rc"))
     bot.loop.create_task(authenticate_and_update_info("tc"))
     config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+
+
+def teardown(bot):
+    bot.remove_cog(Masterserver(bot))
+    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)

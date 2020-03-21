@@ -34,6 +34,7 @@ else:
     raise Exception(f"Missing configuration file {CONFIG_FILE} in directory.")
 
 # Extensions
+BOT_EXTENSIONS_DIRECTORY = "extensions"
 BOT_STARTUP_EXTENSIONS = []
 BOT_DISABLED_EXTENSIONS = []
 BOT_LOADED_EXTENSIONS = []
@@ -163,6 +164,7 @@ WEB_GAME_LOBBY_PATH = CONFIG_WEB["GAME_LOBBY_PATH"]
 
 # dynamic
 DATABASE_READY = False
+SYNC_SPREADSHEET = False
 LIST_OF_LISTS = []
 LIST_OF_LISTS_TRIVIA = []
 PLAYER_SLASH_HERO = []

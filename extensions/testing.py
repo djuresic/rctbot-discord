@@ -44,3 +44,8 @@ class Testing(commands.Cog):
 def setup(bot):
     bot.add_cog(Testing(bot))
     config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+
+
+def teardown(bot):
+    bot.remove_cog(Testing(bot))
+    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)

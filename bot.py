@@ -17,16 +17,11 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-import gspread_asyncio
-from oauth2client.service_account import ServiceAccountCredentials
-
 from extensions.checks import in_whitelist
 import extensions.forums as forums
 
 import config  # What have I done...
 
-# dynamic
-FETCH_SHEET_PASS = 0
 
 winter_solstice = """Some say the world will end in fire,
 Some say in ice.
@@ -45,27 +40,107 @@ bot = commands.Bot(command_prefix=["!", "."], description=winter_solstice)
 
 
 if __name__ == "__main__":
-    with os.scandir("extensions") as it:
+    directory = config.BOT_EXTENSIONS_DIRECTORY
+    with os.scandir(directory) as it:
         for entry in it:
             if entry.name.endswith(".py") and entry.is_file():
-                extension_name = entry.name.strip(".py")
-                if extension_name not in config.BOT_DISABLED_EXTENSIONS:
-                    config.BOT_STARTUP_EXTENSIONS.append(f"extensions.{extension_name}")
+                module = entry.name.strip(".py")
+                if module not in config.BOT_DISABLED_EXTENSIONS:
+                    config.BOT_STARTUP_EXTENSIONS.append(f"{directory}.{module}")
 
     for extension in config.BOT_STARTUP_EXTENSIONS:
         try:
             bot.load_extension(extension)
         except Exception as e:
             exc = "{}: {}".format(type(e).__name__, e)
-            print("Failed to load extension {}\n{}".format(extension, exc))
+            print(f"Failed to load {extension}\n{exc}")
 
-    print("Loaded extensions: {}".format(", ".join(config.BOT_LOADED_EXTENSIONS)))
+    print(
+        "Loaded modules: {}".format(
+            ", ".join(
+                [
+                    extension.split(f"{directory}.")[1]
+                    for extension in config.BOT_LOADED_EXTENSIONS
+                ]
+            )
+        )
+    )
 
 
 @bot.command()
 @in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def dev_permission_test(ctx):
     await ctx.send("{.mention} You do have permission.".format(ctx.message.author))
+
+
+@bot.command(name="load", hidden=True)
+@in_whitelist(config.DISCORD_WHITELIST_IDS)
+async def _load(ctx, module: str):
+    """Loads a module."""
+    extension = f"{config.BOT_EXTENSIONS_DIRECTORY}.{module}"
+    try:
+        bot.load_extension(extension)
+    except Exception as e:
+        await ctx.send("{}: {}".format(type(e).__name__, e))
+    else:
+        await ctx.send(f"Loaded {extension} \N{OK HAND SIGN}")
+
+
+@bot.command(name="unload", hidden=True)
+@in_whitelist(config.DISCORD_WHITELIST_IDS)
+async def _unload(ctx, module: str):
+    """Unloads a module."""
+    extension = f"{config.BOT_EXTENSIONS_DIRECTORY}.{module}"
+    try:
+        bot.unload_extension(extension)
+    except Exception as e:
+        await ctx.send("{}: {}".format(type(e).__name__, e))
+    else:
+        await ctx.send(f"Unloaded {extension} \N{OK HAND SIGN}")
+
+
+@bot.command(name="reload", hidden=True)
+@in_whitelist(config.DISCORD_WHITELIST_IDS)
+async def _reload(ctx, module: str):
+    """Reloads a module."""
+    extension = f"{config.BOT_EXTENSIONS_DIRECTORY}.{module}"
+    try:
+        bot.reload_extension(extension)
+    except Exception as e:
+        await ctx.send("{}: {}".format(type(e).__name__, e))
+    else:
+        await ctx.send(f"Reloaded {extension} \N{OK HAND SIGN}")
+
+
+@bot.command(name="loaded", hidden=True)
+@in_whitelist(config.DISCORD_WHITELIST_IDS)
+async def _loaded(ctx):
+    """Lists loaded modules."""
+    loaded = ", ".join(
+        sorted(
+            [
+                extension.split(f"{config.BOT_EXTENSIONS_DIRECTORY}.")[1]
+                for extension in config.BOT_LOADED_EXTENSIONS
+            ]
+        )
+    )
+    await ctx.send(f"Loaded modules: {loaded}")
+
+
+@bot.command(name="unloaded", hidden=True)
+@in_whitelist(config.DISCORD_WHITELIST_IDS)
+async def _unloaded(ctx):
+    """Lists unloaded modules."""
+    unloaded = ", ".join(
+        sorted(
+            [
+                extension.split(f"{config.BOT_EXTENSIONS_DIRECTORY}.")[1]
+                for extension in config.BOT_STARTUP_EXTENSIONS
+                if extension not in config.BOT_LOADED_EXTENSIONS
+            ]
+        )
+    )
+    await ctx.send(f"Unloaded modules: {unloaded}")
 
 
 @bot.event
@@ -84,7 +159,7 @@ async def on_ready():
 
 
 @bot.event
-async def on_message(message):
+async def on_message(message):  # Move to a cog
     ctx = await bot.get_context(message)
 
     if message.guild is None and ctx.valid:  # TO DO: with guild_only and dm_allowed
@@ -126,49 +201,6 @@ async def on_message(message):
     await bot.process_commands(message)
 
 
-async def fetch_sheet():
-    await bot.wait_until_ready()
-    global FETCH_SHEET_PASS
-
-    def get_creds():
-        return ServiceAccountCredentials.from_json_keyfile_name(
-            config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES
-        )
-
-    gspread_client_manager = gspread_asyncio.AsyncioGspreadClientManager(get_creds)
-
-    count_pass = 0
-    # while not bot.is_closed:
-    while True:
-        gspread_client = (
-            await gspread_client_manager.authorize()
-        )  # "This is fine." (It's actually fine, for real. gspread_asyncio has a cache.)
-
-        # spreadsheet and worksheets
-        rct_spreadsheet = await gspread_client.open("RCT Spreadsheet")
-        rewards_worksheet = await rct_spreadsheet.worksheet("RCT Players and Rewards")
-        trivia_worksheet = await rct_spreadsheet.worksheet("trivia_sheet")
-        settings_worksheet = await rct_spreadsheet.worksheet("Settings")
-        games_worksheet = await rct_spreadsheet.worksheet("Games")
-
-        # update dynamic
-        config.LIST_OF_LISTS = await rewards_worksheet.get_all_values()
-        config.LIST_OF_LISTS_TRIVIA = await trivia_worksheet.get_all_values()
-        config.SETTINGS = await settings_worksheet.col_values(2)
-        config.PLAYER_SLASH_HERO = await games_worksheet.col_values(13)
-
-        config.DATABASE_READY = True
-
-        count_pass += 1
-        FETCH_SHEET_PASS = count_pass
-        if count_pass <= 2:
-            print("fetch_sheet pass {0}".format(FETCH_SHEET_PASS))
-
-        await asyncio.sleep(60)
-
-
 bot.remove_command("help")
-
-bot.loop.create_task(fetch_sheet())
 
 bot.run(config.DISCORD_TOKEN)

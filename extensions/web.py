@@ -113,3 +113,8 @@ def setup(bot):
     bot.add_cog(Web(bot))
     bot.loop.create_task(web_server(bot))
     config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+
+
+def teardown(bot):
+    bot.remove_cog(Web(bot))
+    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
