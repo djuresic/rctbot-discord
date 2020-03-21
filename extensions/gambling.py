@@ -5,15 +5,20 @@ from discord.ext import commands
 
 import config
 
+
 class Gambling(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-    
+
     @commands.command()
-    async def roll(self, ctx, low : int, high : int):
+    async def roll(self, ctx, low: int, high: int):
         """Let's roll the dice!"""
         result = random.randint(low, high)
-        await ctx.send('{0} rolled {1} {2} and got **{3}**.'.format(ctx.message.author.mention, low, high, result))
+        await ctx.send(
+            "{0} rolled {1} {2} and got **{3}**.".format(
+                ctx.message.author.mention, low, high, result
+            )
+        )
 
 
 def setup(bot):

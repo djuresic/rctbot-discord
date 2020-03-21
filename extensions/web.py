@@ -14,16 +14,16 @@ async def web_server(bot):
 
     routes = web.RouteTableDef()
 
-    @routes.get('/')
+    @routes.get("/")
     async def _hello_world(request):
         return web.Response(text=f"Hello, World! {config.WEB_DOMAIN} - OK")
-    
+
     @routes.post(config.WEB_GAME_LOBBY_PATH)
-    async def _game_lobby(request): # POST handler for game lobbies
+    async def _game_lobby(request):  # POST handler for game lobbies
         data = await request.post()
         # print(data)
         try:
-            token = data['token']
+            token = data["token"]
         except:
             print(f"401: Unauthorized {config.WEB_GAME_LOBBY_PATH}")
             return web.Response(text="401: Unauthorized", status=401)
@@ -33,8 +33,8 @@ async def web_server(bot):
             return web.Response(text="403: Forbidden", status=403)
 
         try:
-            lobby_name = data['match_name']
-            match_id = data['match_id']
+            lobby_name = data["match_name"]
+            match_id = data["match_id"]
             await game_hosted(bot, lobby_name, match_id)
             return web.Response(text="OK")
         except:
@@ -47,46 +47,51 @@ async def web_server(bot):
     await runner.setup()
     site = web.TCPSite(runner, config.WEB_LOCAL_IP, config.WEB_LOCAL_PORT)
     await site.start()
-    print(f"Web server started on {config.WEB_LOCAL_IP}:{config.WEB_LOCAL_PORT} ({config.WEB_DOMAIN}).")
+    print(
+        f"Web server started on {config.WEB_LOCAL_IP}:{config.WEB_LOCAL_PORT} ({config.WEB_DOMAIN})."
+    )
 
 
 class Web(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-    
+
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def dev_post(self, ctx):
         async with aiohttp.ClientSession() as session:
             data = {
-                'token': config.WEB_TOKEN,
-                'match_name': 'RCT with Lightwalker',
-                'match_id': '1337'
+                "token": config.WEB_TOKEN,
+                "match_name": "RCT with Lightwalker",
+                "match_id": "1337",
             }
-            async with session.post(f'https://{config.WEB_DOMAIN}{config.WEB_GAME_LOBBY_PATH}', data=data) as resp:
+            async with session.post(
+                f"https://{config.WEB_DOMAIN}{config.WEB_GAME_LOBBY_PATH}", data=data
+            ) as resp:
                 await resp.text()
-    
+
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def dev_post_insecure(self, ctx):
         async with aiohttp.ClientSession() as session:
             data = {
-                'token': config.WEB_TOKEN,
-                'match_name': 'RCT with Lightwalker',
-                'match_id': '1337'
+                "token": config.WEB_TOKEN,
+                "match_name": "RCT with Lightwalker",
+                "match_id": "1337",
             }
-            async with session.post(f'http://{config.WEB_DOMAIN}{config.WEB_GAME_LOBBY_PATH}', data=data) as resp:
+            async with session.post(
+                f"http://{config.WEB_DOMAIN}{config.WEB_GAME_LOBBY_PATH}", data=data
+            ) as resp:
                 await resp.text()
 
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def dev_post_nopw(self, ctx):
         async with aiohttp.ClientSession() as session:
-            data = {
-                'match_name': 'RCT with Lightwalker',
-                'match_id': '1337'
-            }
-            async with session.post(f'https://{config.WEB_DOMAIN}{config.WEB_GAME_LOBBY_PATH}', data=data) as resp:
+            data = {"match_name": "RCT with Lightwalker", "match_id": "1337"}
+            async with session.post(
+                f"https://{config.WEB_DOMAIN}{config.WEB_GAME_LOBBY_PATH}", data=data
+            ) as resp:
                 await resp.text()
 
     @commands.command()
@@ -94,11 +99,13 @@ class Web(commands.Cog):
     async def dev_post_wrongpw(self, ctx):
         async with aiohttp.ClientSession() as session:
             data = {
-                'token': 'thiscantbetherealtokenorcanit',
-                'match_name': 'RCT with Lightwalker',
-                'match_id': '1337'
+                "token": "thiscantbetherealtokenorcanit",
+                "match_name": "RCT with Lightwalker",
+                "match_id": "1337",
             }
-            async with session.post(f'https://{config.WEB_DOMAIN}{config.WEB_GAME_LOBBY_PATH}', data=data) as resp:
+            async with session.post(
+                f"https://{config.WEB_DOMAIN}{config.WEB_GAME_LOBBY_PATH}", data=data
+            ) as resp:
                 await resp.text()
 
 

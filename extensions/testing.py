@@ -10,7 +10,9 @@ from extensions.checks import is_tester
 
 async def game_hosted(bot, match_name, match_id):
     channel = bot.get_channel(config.DISCORD_GAME_LOBBIES_CHANNEL_ID)
-    return await channel.send(f'Game **{match_name}** ({match_id}) has been created. **Join up!**')
+    return await channel.send(
+        f"Game **{match_name}** ({match_id}) has been created. **Join up!**"
+    )
 
 
 class Testing(commands.Cog):
@@ -24,17 +26,20 @@ class Testing(commands.Cog):
         author = ctx.author
         log_channel = self.bot.get_channel(config.DISCORD_NOTES_CHANNEL_ID)
 
-        token_generator = f'https://{config.HON_ALT_DOMAIN}/site/create-access-token'
-        cat_query = {'discordId' : author.id, 'password' : config.HON_CAT_PASSWORD}
-        
+        token_generator = f"https://{config.HON_ALT_DOMAIN}/site/create-access-token"
+        cat_query = {"discordId": author.id, "password": config.HON_CAT_PASSWORD}
+
         async with aiohttp.ClientSession() as session:
 
             async with session.get(token_generator, params=cat_query) as resp:
                 token = await resp.text()
 
-        notes_url = f'https://{config.HON_ALT_DOMAIN}/{token}'
-        await author.send(f'Current Testing Notes: {notes_url}')
-        await log_channel.send(f'({strftime("%a, %d %b %Y, %H:%M:%S %Z", gmtime())}) {author.mention} received Testing Notes with the URL: `{notes_url}`')
+        notes_url = f"https://{config.HON_ALT_DOMAIN}/{token}"
+        await author.send(f"Current Testing Notes: {notes_url}")
+        await log_channel.send(
+            f'({strftime("%a, %d %b %Y, %H:%M:%S %Z", gmtime())}) {author.mention} received Testing Notes with the URL: `{notes_url}`'
+        )
+
 
 def setup(bot):
     bot.add_cog(Testing(bot))
