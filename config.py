@@ -158,9 +158,9 @@ WEB_GAME_LOBBY_PATH = CONFIG_WEB['GAME_LOBBY_PATH']
 
 # dynamic
 DATABASE_READY = False
-LIST_OF_LISTS = None
-LIST_OF_LISTS_TRIVIA = None
-PLAYER_SLASH_HERO = None # TO DO: this horror to dict
-SETTINGS = None # TO DO: dict please
+LIST_OF_LISTS = []
+LIST_OF_LISTS_TRIVIA = []
+PLAYER_SLASH_HERO = [] # TO DO: this horror to dict
+SETTINGS = [] # TO DO: dict please
 
 print("Loaded configuration.")
