@@ -10,32 +10,41 @@ import config
 FETCH_SHEET_PASS = 0
 
 
+def get_creds():
+    """Returns Service Account credentials."""
+    return ServiceAccountCredentials.from_json_keyfile_name(
+        config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES
+    )
+
+
+# Do spreadsheet.client() instead of spreadsheet.CLIENT_MANAGER.authorize()
+CLIENT_MANAGER = gspread_asyncio.AsyncioGspreadClientManager(get_creds)
+
+
+async def set_client():
+    """Calls authorize() method on client manager and returns a ready-to-use client."""
+    return await CLIENT_MANAGER.authorize()
+
+
 async def sync_spreadsheet(bot):
-    await bot.wait_until_ready()
+    # await bot.wait_until_ready()
     global FETCH_SHEET_PASS
-
-    def get_creds():
-        return ServiceAccountCredentials.from_json_keyfile_name(
-            config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES
-        )
-
-    gspread_client_manager = gspread_asyncio.AsyncioGspreadClientManager(get_creds)
 
     count_pass = 0
     # while not bot.is_closed:
     while config.SYNC_SPREADSHEET:
         gspread_client = (
-            await gspread_client_manager.authorize()
+            await set_client()
         )  # "This is fine." (It's actually fine, for real. gspread_asyncio has a cache.)
 
-        # spreadsheet and worksheets
+        # Spreadsheet and worksheets
         rct_spreadsheet = await gspread_client.open("RCT Spreadsheet")
         rewards_worksheet = await rct_spreadsheet.worksheet("RCT Players and Rewards")
         trivia_worksheet = await rct_spreadsheet.worksheet("trivia_sheet")
         settings_worksheet = await rct_spreadsheet.worksheet("Settings")
         games_worksheet = await rct_spreadsheet.worksheet("Games")
 
-        # update dynamic
+        # Update dynamic
         config.LIST_OF_LISTS = await rewards_worksheet.get_all_values()
         config.LIST_OF_LISTS_TRIVIA = await trivia_worksheet.get_all_values()
         config.SETTINGS = await settings_worksheet.col_values(2)

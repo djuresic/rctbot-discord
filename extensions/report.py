@@ -6,17 +6,14 @@ import asyncio
 from time import time
 from hashlib import md5
 
+import aiohttp
 import discord
 from discord.ext import commands
-
-import gspread_asyncio
-from oauth2client.service_account import ServiceAccountCredentials
-
-import aiohttp
 
 import config
 from extensions.checks import is_tester
 import extensions.forums as forums
+import extensions.spreadsheet as spreadsheet
 
 
 class BugReports(commands.Cog):
@@ -132,16 +129,7 @@ class BugReports(commands.Cog):
                     thread_art_id = content.split(thread_art_search)[1][:6]
 
             try:
-
-                def get_creds():
-                    return ServiceAccountCredentials.from_json_keyfile_name(
-                        config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES
-                    )
-
-                gspread_client_manager = gspread_asyncio.AsyncioGspreadClientManager(
-                    get_creds
-                )
-                gspread_client = await gspread_client_manager.authorize()
+                gspread_client = await spreadsheet.set_client()
 
                 rct_spreadsheet = await gspread_client.open("RCT Spreadsheet")
                 settings_worksheet = await rct_spreadsheet.worksheet("Settings")
@@ -455,13 +443,7 @@ class BugReports(commands.Cog):
             )
         )
 
-        def get_creds():
-            return ServiceAccountCredentials.from_json_keyfile_name(
-                config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES
-            )
-
-        gspread_client_manager = gspread_asyncio.AsyncioGspreadClientManager(get_creds)
-        gspread_client = await gspread_client_manager.authorize()
+        gspread_client = await spreadsheet.set_client()
 
         rct_spreadsheet = await gspread_client.open("RCT Spreadsheet")
         bug_reports_worksheet = await rct_spreadsheet.worksheet("Bug Reports")
