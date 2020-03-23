@@ -10,6 +10,7 @@ else:
 
 # Load local config, platform for dev purposes
 if "Windows" in platform.system():
+    os.environ["PYTHONASYNCIODEBUG"] = "1"
     CONFIG_FILE = "dev_config.json"
 else:
     CONFIG_FILE = "config.json"

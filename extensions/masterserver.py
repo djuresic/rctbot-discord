@@ -25,7 +25,9 @@ async def translate_masterserver(masterserver, short=True):
 
 async def authenticate_and_update_info(masterserver):
     info = config.HON_MASTERSERVER_INFO[masterserver]
-    data = await authenticate(masterserver, info["user"], info["password"])
+    data = await authenticate(
+        masterserver, info["user"], info["password"]
+    )  # This is blocking
 
     try:
         config.HON_MASTERSERVER_INFO[masterserver]["cookie"] = data[b"cookie"].decode()
