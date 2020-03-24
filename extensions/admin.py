@@ -153,6 +153,68 @@ class Administration(commands.Cog):
         final_rows = len(await ws.col_values(1))
         await ctx.send(f"Rows total now: {final_rows}\nOver and out.")
 
+    @admin.command(name="enable")
+    async def _enable(self, ctx, member: discord.Member):
+        "admin enable <member mention>"
+
+        nickname_lower = member.display_name.lower()
+        discord_id = str(member.id)
+
+        client = await spreadsheet.set_client()
+        ss = await client.open(self.spreadsheet_name)
+        ws = await ss.worksheet(self.rewards_worksheet_name)
+        players = await ws.col_values(2)
+        players = [player.lower() for player in players]
+
+        if nickname_lower in players:
+            row = players.index(nickname_lower) + 1
+            id_cell = await ws.cell(row, 33)
+            existing_id = id_cell.value
+
+            if existing_id != "" and existing_id.isdigit():
+                existing_member = await self.bot.fetch_user(int(existing_id))
+                if int(existing_id) == member.id:
+                    await ctx.send(
+                        f"Nickname **{discord.utils.escape_markdown(member.display_name)}** is already matched to the correct Discord ID. Discord user: {existing_member.mention}"
+                    )
+                    await ws.update_cell(row, 1, "Tester")
+                    return await ctx.send(
+                        f"Enabled **{discord.utils.escape_markdown(member.display_name)}** ({discord_id})."
+                    )
+
+                else:
+                    message = await ctx.send(
+                        f"Nickname **{discord.utils.escape_markdown(member.display_name)}** is already matched to another Discord ID ({existing_id}). Discord user: {existing_member.mention}\nOverwrite?"
+                    )
+                    await message.add_reaction("✅")
+                    await message.add_reaction("❌")
+
+                    reaction, _ = await self.bot.wait_for(
+                        "reaction_add",
+                        check=lambda reaction, user: user == ctx.author
+                        and reaction.emoji in ["✅", "❌"]
+                        and reaction.message.id == message.id,
+                    )
+
+                    if reaction.emoji == "❌":
+                        return await ctx.send("Cancelled.")
+                    else:
+                        await ws.update_cell(row, 1, "Tester")
+                        await ws.update_cell(row, 33, discord_id)
+                        await ctx.send(
+                            f"Overwritten and enabled **{discord.utils.escape_markdown(member.display_name)}** ({discord_id})."
+                        )
+            else:
+                await ws.update_cell(row, 1, "Tester")
+                await ws.update_cell(row, 33, discord_id)
+                await ctx.send(
+                    f"Enabled **{discord.utils.escape_markdown(member.display_name)}** ({discord_id})."
+                )
+        else:
+            await ctx.send(
+                f"Could not find **{discord.utils.escape_markdown(member.display_name)}** in the database.\nPlease make sure Discord and in-game nicknames match."
+            )
+
 
 def setup(bot):
     bot.add_cog(Administration(bot))
