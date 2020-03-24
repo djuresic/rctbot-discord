@@ -40,6 +40,7 @@ class Administration(commands.Cog):
         else:
             names = names.split(";")
 
+        names = list(dict.fromkeys(names))  # Remove duplicates
         dr_names = "\n".join(names)
         message = await ctx.send(f"```\n{dr_names}```\nDoes this look correct?")
         await message.add_reaction("✅")
@@ -58,8 +59,16 @@ class Administration(commands.Cog):
         client = await spreadsheet.set_client()
         ss = await client.open(self.spreadsheet_name)
         ws = await ss.worksheet(self.rewards_worksheet_name)
+        players = await ws.col_values(2)
+        names = [
+            name
+            for name in names
+            if name.lower() not in [player.lower() for player in players]
+        ]
+        dr_names_new = "\n".join(names)
+        await ctx.send(f"First time members:\n```\n{dr_names_new}```")
         # init_rows = ws.row_count This is inconsistent.
-        init_rows = len(await ws.col_values(1))
+        init_rows = len(players)
         added_rows = len(names)
         now_rows = init_rows + added_rows
         await ctx.send(f"Current rows: {init_rows}\nAdding {added_rows} more.")
