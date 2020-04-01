@@ -1,3 +1,5 @@
+env
+.vs
 *.pyc
 __pycache__
 *.json
