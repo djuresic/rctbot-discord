@@ -132,7 +132,8 @@ class Administration(commands.Cog):
                     "",  # Reserved
                     "",
                     "",  # Discord ID
-                )
+                ),
+                table_range="A1",
             )
 
             await ws.update_cell(row, 9, token_formula)
