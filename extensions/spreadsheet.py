@@ -1,15 +1,15 @@
 import asyncio
 
+from discord.ext import tasks, commands
+
 import gspread
 import gspread_asyncio
 from gspread_asyncio import _nowait
 from oauth2client.service_account import ServiceAccountCredentials
 
 import config
+from extensions.checks import is_senior
 
-# This should properly use discord.ext.tasks ASAP; meanwhile it must N E V E R be reloaded!
-
-FETCH_SHEET_PASS = 0
 
 # gspread_asyncio doesn't currently include changes made to some methods in gspread, overriding:
 class AsyncioGspreadClientManagerUpdated(gspread_asyncio.AsyncioGspreadClientManager):
@@ -112,13 +112,17 @@ async def set_client():
     return await CLIENT_MANAGER.authorize()
 
 
-async def sync_spreadsheet(bot):
-    # await bot.wait_until_ready()
-    global FETCH_SHEET_PASS
+class Spreadsheet(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.counter = 0
+        self.fetch.start()  # pylint: disable=no-member
 
-    count_pass = 0
-    # while not bot.is_closed:
-    while config.SYNC_SPREADSHEET:
+    def cog_unload(self):
+        self.fetch.cancel()  # pylint: disable=no-member
+
+    @tasks.loop(seconds=65.0)
+    async def fetch(self):
         gspread_client = (
             await set_client()
         )  # "This is fine." (It's actually fine, for real. gspread_asyncio has a cache.)
@@ -138,26 +142,30 @@ async def sync_spreadsheet(bot):
 
         config.DATABASE_READY = True
 
-        count_pass += 1
-        FETCH_SHEET_PASS = count_pass
-        if count_pass <= 2:
-            print("fetch_sheet pass {0}".format(FETCH_SHEET_PASS))
+        self.counter += 1
 
-        await asyncio.sleep(60)
-    print("Some instance of sync_spreadsheet stopped. :)")  # :(
+    @fetch.before_loop
+    async def before_fetch(self):
+        print("Synchronizing with Google Sheets.")
+
+    @fetch.after_loop
+    async def after_fetch(self):
+        print("No longer synchronizing with Google Sheets.")
+
+    @commands.group(hidden=True)
+    @is_senior()
+    async def spreadsheet(self, ctx):
+        pass
+
+    @spreadsheet.command(name="counter")
+    async def _counter(self, ctx):
+        await ctx.send(f"Times successful: {self.counter}")
 
 
 def setup(bot):
-    config.SYNC_SPREADSHEET = True
-    # Yes, I just did it so you don't have to. D O  N O T  D O  T H I S!
-    bot.loop.create_task(sync_spreadsheet(bot))
-    print("Synchronizing with Google Sheets.")
+    bot.add_cog(Spreadsheet(bot))
     config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
-    config.SYNC_SPREADSHEET = False  # Just... don't.
-    print(
-        "No longer synchronizing with Google Sheets."
-    )  # Doesn't cancel the task, yep...
     config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
