@@ -27,7 +27,7 @@ class Administration(commands.Cog):
         self.conc_player_tokens = '=IFERROR(CONCATENATE(B{row}," ",ROUND(X{row},0)))'
         # fmt: on
 
-    @commands.group()
+    @commands.group(hidden=True)
     @is_senior()
     async def admin(self, ctx):
         pass
@@ -215,6 +215,21 @@ class Administration(commands.Cog):
             await ctx.send(
                 f"Could not find **{discord.utils.escape_markdown(member.display_name)}** in the database.\nPlease make sure Discord and in-game nicknames match."
             )
+
+    @admin.command(aliases=["remn", "norank", "nor"])
+    async def remnants(self, ctx):
+        list_of_lists = config.LIST_OF_LISTS
+        nor_players = [
+            list_of_lists[x][1]
+            for x in range(len(list_of_lists))
+            if list_of_lists[x][10] == "No rank" and list_of_lists[x][0] == "Tester"
+        ]
+        await ctx.send(
+            "Testers without rank: {}```\n{}```".format(
+                len(nor_players),
+                "\n".join(nor_players) if len(nor_players) > 0 else "None",
+            )
+        )
 
 
 def setup(bot):
