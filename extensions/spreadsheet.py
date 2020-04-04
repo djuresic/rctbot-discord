@@ -1,4 +1,5 @@
 import asyncio
+from datetime import datetime, timezone
 
 from discord.ext import tasks, commands
 
@@ -141,6 +142,7 @@ class Spreadsheet(commands.Cog):
         config.PLAYER_SLASH_HERO = await games_worksheet.col_values(13)
 
         config.DATABASE_READY = True
+        config.LAST_RETRIEVED = datetime.now(timezone.utc)
 
         self.counter += 1
 
