@@ -41,6 +41,28 @@ async def web_server(bot):
             return web.Response(text="400: Bad Request", status=400)
         # return web.Response(body='data: {}'.format(a))
 
+    @routes.post(config.WEB_CHAT_COLOR_PATH)
+    async def _chat_color(request):  # POST handler for cc upgrade
+        data = await request.post()
+        # print(data)
+        try:
+            token = data["token"]
+        except:
+            print(f"401: Unauthorized {config.WEB_CHAT_COLOR_PATH}")
+            return web.Response(text="401: Unauthorized", status=401)
+
+        if token != config.WEB_TOKEN:
+            print(f"403: Forbidden {config.WEB_CHAT_COLOR_PATH}")
+            return web.Response(text="403: Forbidden", status=403)
+
+        try:
+            _nickname = data["nickname"]
+            _account_id = data["account_id"]
+            await cc_detected(bot, _nickname, _account_id)
+            return web.Response(text="OK")
+        except:
+            return web.Response(text="400: Bad Request", status=400)
+
     app = web.Application()
     app.add_routes(routes)
     runner = web.AppRunner(app)

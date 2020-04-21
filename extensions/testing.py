@@ -15,6 +15,13 @@ async def game_hosted(bot, match_name, match_id):
     )
 
 
+async def cc_detected(bot, nickname, account_id):
+    channel = bot.get_channel(config.DISCORD_BOT_LOG_CHANNEL_ID)
+    return await channel.send(
+        f"Player **{nickname}** ({account_id}) should not be wearing the Mentor Wings chat color!"
+    )
+
+
 class Testing(commands.Cog):
     def __init__(self, bot):
         self.bot = bot

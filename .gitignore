@@ -5,3 +5,5 @@ __pycache__
 *.json
 extensions/chat.py
 packets.py
+ftest.py
+*.html
