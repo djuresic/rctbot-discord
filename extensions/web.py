@@ -6,7 +6,7 @@ from discord.ext import commands
 
 import config
 from extensions.checks import in_whitelist
-from extensions.testing import game_hosted
+from extensions.testing import game_hosted, cc_detected
 
 
 async def web_server(bot):
