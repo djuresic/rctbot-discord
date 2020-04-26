@@ -1,12 +1,14 @@
 import asyncio
 from datetime import date
 
+import aiohttp
 import discord
 from discord.ext import commands
 
 import config
 from extensions.checks import is_senior
 import extensions.spreadsheet as spreadsheet
+import extensions.acpm as acp
 
 
 class Administration(commands.Cog):
@@ -230,6 +232,72 @@ class Administration(commands.Cog):
                 "\n".join(nor_players) if len(nor_players) > 0 else "None",
             )
         )
+
+    @commands.group(hidden=True)
+    @is_senior()
+    async def clan(self, ctx):
+        pass
+
+    # Needs better status check for all 4, .lu for now
+    @clan.command(name="add", aliases=["invite", "inv"])
+    async def _add(self, ctx, player: str, masterserver: str = "ac"):
+        async with aiohttp.ClientSession(
+            connector=(await acp.proxy_connector())
+        ) as session:
+            status = await acp.authenticate(session)
+            if status != 200:
+                return await ctx.send(f"{status}")
+            await acp.add_member(session, player, ctx.author, masterserver)
+            await ctx.send(f"Added {discord.utils.escape_markdown(player)}")
+
+    @clan.command(name="remove", aliases=["kick", "rem"])
+    async def _remove(self, ctx, player: str, masterserver: str = "ac"):
+        async with aiohttp.ClientSession(
+            connector=(await acp.proxy_connector())
+        ) as session:
+            status = await acp.authenticate(session)
+            if status != 200:
+                return await ctx.send(f"{status}")
+            await acp.remove_member(session, player, ctx.author, masterserver)
+            await ctx.send(f"Removed {discord.utils.escape_markdown(player)}")
+
+    @clan.command(name="promote")
+    async def _promote(self, ctx, player: str, masterserver: str = "ac"):
+        async with aiohttp.ClientSession(
+            connector=(await acp.proxy_connector())
+        ) as session:
+            status = await acp.authenticate(session)
+            if status != 200:
+                return await ctx.send(f"{status}")
+            await acp.promote_member(session, player, ctx.author, masterserver)
+            await ctx.send(f"Promoted {discord.utils.escape_markdown(player)}")
+
+    @clan.command(name="demote")
+    async def _demote(self, ctx, player: str, masterserver: str = "ac"):
+        async with aiohttp.ClientSession(
+            connector=(await acp.proxy_connector())
+        ) as session:
+            status = await acp.authenticate(session)
+            if status != 200:
+                return await ctx.send(f"{status}")
+            await acp.demote_member(session, player, ctx.author, masterserver)
+            await ctx.send(f"Demoted {discord.utils.escape_markdown(player)}")
+
+    @commands.group(hidden=True)
+    @is_senior()
+    async def perks(self, ctx):
+        pass
+
+    @perks.command(name="add", aliases=["give"])
+    async def _add(self, ctx, player: str):
+        async with aiohttp.ClientSession(
+            connector=(await acp.proxy_connector())
+        ) as session:
+            status = await acp.authenticate(session)
+            if status != 200:
+                return await ctx.send(f"{status}")
+            await acp.add_perks(session, player, ctx.author)
+            await ctx.send(f"Gave perks to {discord.utils.escape_markdown(player)}")
 
 
 def setup(bot):
