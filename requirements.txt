@@ -2,3 +2,4 @@ discord.py
 gspread-asyncio
 oauth2client
 srp
+aiohttp_socks
