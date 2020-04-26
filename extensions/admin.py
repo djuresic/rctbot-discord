@@ -240,7 +240,7 @@ class Administration(commands.Cog):
 
     # Needs better status check for all 4, .lu for now
     @clan.command(name="add", aliases=["invite", "inv"])
-    async def _add(self, ctx, player: str, masterserver: str = "ac"):
+    async def _cadd(self, ctx, player: str, masterserver: str = "ac"):
         async with aiohttp.ClientSession(
             connector=(await acp.proxy_connector())
         ) as session:
@@ -251,7 +251,7 @@ class Administration(commands.Cog):
             await ctx.send(f"Added {discord.utils.escape_markdown(player)}")
 
     @clan.command(name="remove", aliases=["kick", "rem"])
-    async def _remove(self, ctx, player: str, masterserver: str = "ac"):
+    async def _cremove(self, ctx, player: str, masterserver: str = "ac"):
         async with aiohttp.ClientSession(
             connector=(await acp.proxy_connector())
         ) as session:
@@ -262,7 +262,7 @@ class Administration(commands.Cog):
             await ctx.send(f"Removed {discord.utils.escape_markdown(player)}")
 
     @clan.command(name="promote")
-    async def _promote(self, ctx, player: str, masterserver: str = "ac"):
+    async def _cpromote(self, ctx, player: str, masterserver: str = "ac"):
         async with aiohttp.ClientSession(
             connector=(await acp.proxy_connector())
         ) as session:
@@ -273,7 +273,7 @@ class Administration(commands.Cog):
             await ctx.send(f"Promoted {discord.utils.escape_markdown(player)}")
 
     @clan.command(name="demote")
-    async def _demote(self, ctx, player: str, masterserver: str = "ac"):
+    async def _cdemote(self, ctx, player: str, masterserver: str = "ac"):
         async with aiohttp.ClientSession(
             connector=(await acp.proxy_connector())
         ) as session:
@@ -289,7 +289,7 @@ class Administration(commands.Cog):
         pass
 
     @perks.command(name="add", aliases=["give"])
-    async def _add(self, ctx, player: str):
+    async def _padd(self, ctx, player: str):
         async with aiohttp.ClientSession(
             connector=(await acp.proxy_connector())
         ) as session:
