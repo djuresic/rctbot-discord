@@ -6,6 +6,8 @@ import aiohttp
 import discord
 from discord.ext import commands
 
+from utils.honavatar import get_avatar
+
 import config
 from extensions.checks import database_ready, is_senior
 from extensions.masterserver import nick2id
@@ -282,18 +284,7 @@ class Stats(commands.Cog):
 
         # Check if the player owns a Custom Account Icon on the retail client and display it.
         _account_id = row_values[33]
-        if _account_id != "":
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"https://hon-avatar.now.sh/{_account_id}"
-                ) as resp:
-                    account_icon_url = await resp.text()
-                    if not account_icon_url.endswith(".cai"):
-                        account_icon_url = "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
-        else:
-            account_icon_url = (
-                "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
-            )
+        account_icon_url = await get_avatar(_account_id)
 
         embed = discord.Embed(
             title="Retail Candidate Testers",

@@ -318,9 +318,7 @@ class Masterserver(commands.Cog):
                 )
 
             if masterserver == "ac":
-                # async with session.get(f'https://hon-avatar.now.sh/{account_id}') as resp:
-                #     account_icon_url = await resp.text()
-                #     print(account_icon_url)
+                # account_icon_url = await get_avatar(account_id)
                 account_icon_url = "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
             else:
                 account_icon_url = "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
