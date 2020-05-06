@@ -14,7 +14,7 @@ class Welcome(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member):
         guild = member.guild
-        channel = guild.get_channel(406902132424441857)  # This
+        channel = guild.get_channel(config.DISCORD_WELCOME_CHANNEL_ID)  # This
         tester = discord.utils.get(guild.roles, name="Tester")
         moderator = discord.utils.get(guild.roles, name="Community Moderator")
         senior = discord.utils.get(guild.roles, name="Senior Tester")
@@ -52,7 +52,6 @@ class Welcome(commands.Cog):
     @is_senior()
     async def omj(self, ctx):
         guild = ctx.guild
-        # channel = guild.get_channel(406902132424441857)
         tester = discord.utils.get(guild.roles, name="Tester")
         moderator = discord.utils.get(guild.roles, name="Community Moderator")
         senior = discord.utils.get(guild.roles, name="Senior Tester")
