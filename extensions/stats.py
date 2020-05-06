@@ -163,6 +163,7 @@ class Stats(commands.Cog):
             "Gold": "https://i.imgur.com/ZDLUlqs.png",
             "Silver": "https://i.imgur.com/xxxlPAq.png",
             "Bronze": "https://i.imgur.com/svAUm00.png",
+            "Warning": "https://i.imgur.com/svAUm00.png",
             "No rank": "https://i.imgur.com/ys2UBNW.png",
         }
 
