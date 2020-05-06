@@ -6,9 +6,10 @@ import discord
 from discord.ext import commands
 
 import config
-from extensions.checks import is_senior
+from extensions.checks import is_senior, is_tester
 import extensions.spreadsheet as spreadsheet
 import extensions.acpm as acp
+from extensions.masterserver import nick2id
 
 
 class Administration(commands.Cog):
@@ -99,6 +100,10 @@ class Administration(commands.Cog):
 
             join_date = date.today().strftime("%m/%d/%Y")
 
+            ac_account_id = (await nick2id(names[index], masterserver="tc"))[
+                "account_id"
+            ]
+
             await ws.append_row(
                 (
                     "None",  # Rank
@@ -134,6 +139,8 @@ class Administration(commands.Cog):
                     "",  # Reserved
                     "",
                     "",  # Discord ID
+                    "",  # AC Account ID
+                    "",  # RC Account ID
                 ),
                 table_range=f"A{row}",
             )
@@ -148,6 +155,7 @@ class Administration(commands.Cog):
             await ws.update_cell(row, 24, tokens_left_to_give)
             await ws.update_cell(row, 26, games_left_to_count)
             await ws.update_cell(row, 28, conc_player_tokens)
+            await ws.update_cell(row, 34, ac_account_id)
 
             await ctx.send("Done.")
 
@@ -244,7 +252,7 @@ class Administration(commands.Cog):
         async with aiohttp.ClientSession(
             connector=(await acp.proxy_connector())
         ) as session:
-            status = await acp.authenticate(session)
+            status = await acp.authenticate(session, masterserver=masterserver)
             if status != 200:
                 return await ctx.send(f"{status}")
             await acp.add_member(session, player, ctx.author, masterserver)
@@ -255,7 +263,7 @@ class Administration(commands.Cog):
         async with aiohttp.ClientSession(
             connector=(await acp.proxy_connector())
         ) as session:
-            status = await acp.authenticate(session)
+            status = await acp.authenticate(session, masterserver=masterserver)
             if status != 200:
                 return await ctx.send(f"{status}")
             await acp.remove_member(session, player, ctx.author, masterserver)
@@ -266,7 +274,7 @@ class Administration(commands.Cog):
         async with aiohttp.ClientSession(
             connector=(await acp.proxy_connector())
         ) as session:
-            status = await acp.authenticate(session)
+            status = await acp.authenticate(session, masterserver=masterserver)
             if status != 200:
                 return await ctx.send(f"{status}")
             await acp.promote_member(session, player, ctx.author, masterserver)
@@ -277,7 +285,7 @@ class Administration(commands.Cog):
         async with aiohttp.ClientSession(
             connector=(await acp.proxy_connector())
         ) as session:
-            status = await acp.authenticate(session)
+            status = await acp.authenticate(session, masterserver=masterserver)
             if status != 200:
                 return await ctx.send(f"{status}")
             await acp.demote_member(session, player, ctx.author, masterserver)
@@ -298,6 +306,26 @@ class Administration(commands.Cog):
                 return await ctx.send(f"{status}")
             await acp.add_perks(session, player, ctx.author)
             await ctx.send(f"Gave perks to {discord.utils.escape_markdown(player)}")
+
+    @commands.command(hidden=True)
+    @is_senior()
+    async def password(self, ctx):
+        async with aiohttp.ClientSession(
+            connector=(await acp.proxy_connector())
+        ) as session:
+            status = await acp.authenticate(session, masterserver="tc")
+            if status != 200:
+                return await ctx.send(f"{status}")
+            nickname = list(
+                row
+                for row in config.LIST_OF_LISTS
+                if str(row[32]) == str(ctx.author.id)
+            )[0][1]
+            print(nickname)
+            await acp.change_password(session, nickname, "test1234", ctx.author)
+            await ctx.author.send(
+                f"Changed password for {discord.utils.escape_markdown(nickname)}"
+            )
 
 
 def setup(bot):
