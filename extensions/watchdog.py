@@ -25,7 +25,7 @@ class Watchdog(commands.Cog):
         self.counter = 0
         self.log_channel = config.DISCORD_WATCHDOG_CHANNEL_ID
         self.word_list = config.HON_WORD_LIST
-        # self.process.start()  # pylint: disable=no-member
+        self.process.start()  # pylint: disable=no-member
 
     def cog_unload(self):
         self.process.cancel()  # pylint: disable=no-member
