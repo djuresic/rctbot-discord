@@ -15,6 +15,7 @@ class Welcome(commands.Cog):
     async def on_member_join(self, member):
         guild = member.guild
         channel = guild.get_channel(config.DISCORD_WELCOME_CHANNEL_ID)  # This
+        community = discord.utils.get(guild.roles, name="Community Member")
         tester = discord.utils.get(guild.roles, name="Tester")
         moderator = discord.utils.get(guild.roles, name="Community Moderator")
         senior = discord.utils.get(guild.roles, name="Senior Tester")
@@ -46,6 +47,7 @@ class Welcome(commands.Cog):
         embed.set_footer(
             text="And another one!", icon_url="https://i.imgur.com/q8KmQtw.png",
         )
+        await member.add_roles(community)
         await channel.send(embed=embed)
 
     @commands.command()
