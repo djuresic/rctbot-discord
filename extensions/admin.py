@@ -1,4 +1,6 @@
 import asyncio
+import string
+import secrets
 from datetime import date
 
 import aiohttp
@@ -240,6 +242,12 @@ class Administration(commands.Cog):
                 "\n".join(nor_players) if len(nor_players) > 0 else "None",
             )
         )
+
+    @commands.command(aliases=["gen"])
+    @is_senior()
+    async def generate(self, ctx, length: int = 24):
+        alphabet = string.ascii_letters + string.digits
+        await ctx.send("".join(secrets.choice(alphabet) for i in range(length)))
 
     @commands.group(hidden=True)
     @is_senior()
