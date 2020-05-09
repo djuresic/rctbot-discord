@@ -100,7 +100,7 @@ class Administration(commands.Cog):
 
             join_date = date.today().strftime("%m/%d/%Y")
 
-            ac_account_id = (await nick2id(names[index], masterserver="tc"))[
+            ac_account_id = (await nick2id(names[index], masterserver="ac"))[
                 "account_id"
             ]
 
