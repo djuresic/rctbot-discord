@@ -37,7 +37,7 @@ class Welcome(commands.Cog):
             type="rich",
             description=f"""Please tell us your HoN username so that we can set it as your Discord nickname. Be respectful to every player and use common sense. If you have any questions, ask here on {channel.mention} or talk to a {moderator.mention} in private.
             
-            If you have been accepted as a {tester.mention}, your verification code is `{code}` and your Discord ID is `{member.id}`. Please proceed as instructed in the forum message and wait for a {senior.mention} to assign you the corresponding role so that you may access our private channels. In case you are not a tester but wish to become one, check the links below for more information.""",
+            If you have been accepted as a {tester.mention}, your verification code is `{code}` and your Discord ID is `{member.id}`. Please proceed as instructed in the forum PM and wait for a {senior.mention} to assign you the corresponding role so that you may access our private channels. In case you are not a tester but wish to become one, check the links below for more information.""",
             color=0xFF6600,
             timestamp=datetime.now(timezone.utc),
         )
@@ -83,7 +83,7 @@ class Welcome(commands.Cog):
             type="rich",
             description=f"""Please tell us your HoN username so that we can set it as your Discord nickname. Be respectful to every player and use common sense. If you have any questions, ask here on {ctx.channel.mention} or talk to a {moderator.mention} in private.
             
-            If you have been accepted as a {tester.mention}, your verification code is `{code}` and your Discord ID is `{ctx.author.id}`. Please proceed as instructed in the forum message and wait for a {senior.mention} to assign you the corresponding role so that you may access our private channels. In case you are not a tester but wish to become one, check the links below for more information.""",
+            If you have been accepted as a {tester.mention}, your verification code is `{code}` and your Discord ID is `{ctx.author.id}`. Please proceed as instructed in the forum PM and wait for a {senior.mention} to assign you the corresponding role so that you may access our private channels. In case you are not a tester but wish to become one, check the links below for more information.""",
             color=0xFF6600,
             timestamp=datetime.now(timezone.utc),
         )
