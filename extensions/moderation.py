@@ -2,7 +2,8 @@ import asyncio
 import discord
 from discord.ext import commands
 
-import config
+import core.perseverance
+import core.config as config
 
 
 class Moderation(commands.Cog):
@@ -117,9 +118,9 @@ class Moderation(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Moderation(bot))
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
     bot.remove_cog(Moderation(bot))
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

@@ -9,7 +9,29 @@ from hashlib import md5
 import discord
 from discord.ext import commands
 
-import config
+import core.perseverance
+import core.config as config
+
+# Move to a new module.
+async def login_ipb(session):
+    """Log into the Heroes of Newerth forums."""
+    index = "https://forums.heroesofnewerth.com/index.php"
+
+    async with session.get(index) as resp:
+        index_get = await resp.text()
+        csrf_key = index_get.split('csrfKey: "')[1].split('"')[0]
+
+    login_params = {"/login/": ""}
+    login_data = {
+        "csrfKey": csrf_key,
+        "auth": config.HON_FORUM_USER,
+        "password": config.HON_FORUM_USER_PASSWORD,
+        "_processLogin": ["usernamepassword", "usernamepassword"],
+    }
+
+    async with session.post(index, params=login_params, data=login_data) as resp:
+        await resp.text()
+    return csrf_key
 
 
 async def login(session):
@@ -136,8 +158,8 @@ async def edit_post(session, post_id, title, message, reason, security_token=Non
 
 
 def setup(bot):
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

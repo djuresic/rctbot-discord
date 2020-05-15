@@ -9,9 +9,10 @@ import aiohttp
 from discord.ext import tasks, commands
 from discord.utils import escape_markdown
 
-import config
-from extensions.checks import is_senior  # core.checks
-import extensions.spreadsheet as spreadsheet  # core.spreadsheet Soon:tm:
+import core.perseverance
+import core.config as config
+from core.checks import is_senior  # core.checks
+import core.spreadsheet as spreadsheet  # core.spreadsheet Soon:tm:
 
 # Porting pr, watchdog and zucclist to prod bot...
 # pr, now process, uses discord.ext.tasks to achieve the same goal as before.
@@ -236,8 +237,8 @@ class Watchdog(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Watchdog(bot))
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

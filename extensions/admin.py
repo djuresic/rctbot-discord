@@ -7,11 +7,12 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-import config
-from extensions.checks import is_senior, is_tester
-import extensions.spreadsheet as spreadsheet
-import extensions.acpm as acp
-from extensions.masterserver import nick2id
+import core.perseverance
+import core.config as config
+from core.checks import is_senior, is_tester
+import core.spreadsheet as spreadsheet
+import hon.acp as acp
+from hon.masterserver import nick2id
 
 
 class Administration(commands.Cog):
@@ -338,9 +339,9 @@ class Administration(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Administration(bot))
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
     bot.remove_cog(Administration(bot))
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

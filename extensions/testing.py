@@ -4,8 +4,9 @@ from time import strftime, gmtime
 import discord
 from discord.ext import commands
 
-import config
-from extensions.checks import is_tester
+import core.perseverance
+import core.config as config
+from core.checks import is_tester
 
 
 async def game_hosted(bot, match_name, match_id):
@@ -50,9 +51,9 @@ class Testing(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Testing(bot))
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
     bot.remove_cog(Testing(bot))
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

@@ -6,11 +6,12 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-from utils.honavatar import get_avatar
+from hon.avatar import get_avatar
 
-import config
-from extensions.checks import database_ready, is_senior
-from extensions.masterserver import nick2id
+import core.perseverance
+import core.config as config
+from core.checks import database_ready, is_senior
+from hon.masterserver import nick2id
 
 # TO DO: timeout wait_for reaction
 
@@ -644,9 +645,9 @@ class Stats(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Stats(bot))
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
     bot.remove_cog(Stats(bot))
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

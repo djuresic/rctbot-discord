@@ -8,8 +8,9 @@ import gspread_asyncio
 from gspread_asyncio import _nowait
 from oauth2client.service_account import ServiceAccountCredentials
 
-import config
-from extensions.checks import is_senior
+import core.perseverance
+import core.config as config
+from core.checks import is_senior
 
 
 # gspread_asyncio doesn't currently include changes made to some methods in gspread, overriding:
@@ -166,8 +167,8 @@ class Spreadsheet(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Spreadsheet(bot))
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

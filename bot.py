@@ -17,11 +17,11 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-from extensions.checks import in_whitelist
-import extensions.forums as forums
+import core.perseverance
+import core.config as config
+from core.checks import in_whitelist
 
-import config  # What have I done...
-
+import hon.forums as forums
 
 winter_solstice = """Some say the world will end in fire,
 Some say in ice.
@@ -40,15 +40,17 @@ bot = commands.Bot(command_prefix=["!", "."], description=winter_solstice)
 
 
 if __name__ == "__main__":
-    directory = config.BOT_EXTENSIONS_DIRECTORY
-    with os.scandir(directory) as it:
-        for entry in it:
-            if entry.name.endswith(".py") and entry.is_file():
-                module = entry.name.strip(".py")
-                if module not in config.BOT_DISABLED_EXTENSIONS:
-                    config.BOT_STARTUP_EXTENSIONS.append(f"{directory}.{module}")
+    for directory in core.perseverance.EXTENSIONS_DIRECTORIES:
+        with os.scandir(directory) as it:
+            for entry in it:
+                if entry.name.endswith(".py") and entry.is_file():
+                    module = entry.name[:-3]
+                    if module not in core.perseverance.DISABLED_EXTENSIONS:
+                        core.perseverance.STARTUP_EXTENSIONS.append(
+                            f"{directory}.{module}"
+                        )
 
-    for extension in config.BOT_STARTUP_EXTENSIONS:
+    for extension in core.perseverance.STARTUP_EXTENSIONS:
         try:
             bot.load_extension(extension)
         except Exception as e:
@@ -59,8 +61,8 @@ if __name__ == "__main__":
         "Loaded modules: {}".format(
             ", ".join(
                 [
-                    extension.split(f"{directory}.")[1]
-                    for extension in config.BOT_LOADED_EXTENSIONS
+                    extension.split(".")[-1]
+                    for extension in core.perseverance.LOADED_EXTENSIONS
                 ]
             )
         )
@@ -77,7 +79,12 @@ async def dev_permission_test(ctx):
 @in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def _load(ctx, module: str):
     """Loads a module."""
-    extension = f"{config.BOT_EXTENSIONS_DIRECTORY}.{module}"
+    for item in core.perseverance.STARTUP_EXTENSIONS:
+        if item.endswith(f".{module}"):
+            extension = item
+            break
+        else:
+            extension = "youredoingitwrongagainsmh"
     try:
         bot.load_extension(extension)
     except Exception as e:
@@ -90,7 +97,12 @@ async def _load(ctx, module: str):
 @in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def _unload(ctx, module: str):
     """Unloads a module."""
-    extension = f"{config.BOT_EXTENSIONS_DIRECTORY}.{module}"
+    for item in core.perseverance.STARTUP_EXTENSIONS:
+        if item.endswith(f".{module}"):
+            extension = item
+            break
+        else:
+            extension = "youredoingitwrongagainsmh"
     try:
         bot.unload_extension(extension)
     except Exception as e:
@@ -103,7 +115,12 @@ async def _unload(ctx, module: str):
 @in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def _reload(ctx, module: str):
     """Reloads a module."""
-    extension = f"{config.BOT_EXTENSIONS_DIRECTORY}.{module}"
+    for item in core.perseverance.STARTUP_EXTENSIONS:
+        if item.endswith(f".{module}"):
+            extension = item
+            break
+        else:
+            extension = "youredoingitwrongagainsmh"
     try:
         bot.reload_extension(extension)
     except Exception as e:
@@ -116,31 +133,39 @@ async def _reload(ctx, module: str):
 @in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def _loaded(ctx):
     """Lists loaded modules."""
-    loaded = ", ".join(
-        sorted(
-            [
-                extension.split(f"{config.BOT_EXTENSIONS_DIRECTORY}.")[1]
-                for extension in config.BOT_LOADED_EXTENSIONS
-            ]
+    message = []
+    for directory in core.perseverance.EXTENSIONS_DIRECTORIES:
+        loaded = ", ".join(
+            sorted(
+                [
+                    extension.split(f"{directory}.")[1]
+                    for extension in core.perseverance.LOADED_EXTENSIONS
+                    if f"{directory}." in extension
+                ]
+            )
         )
-    )
-    await ctx.send(f"Loaded modules: {loaded}")
+        message.append(f"Loaded modules from {directory}: {loaded}")
+    await ctx.send("\n".join(message))
 
 
 @bot.command(name="unloaded", hidden=True)
 @in_whitelist(config.DISCORD_WHITELIST_IDS)
 async def _unloaded(ctx):
     """Lists unloaded modules."""
-    unloaded = ", ".join(
-        sorted(
-            [
-                extension.split(f"{config.BOT_EXTENSIONS_DIRECTORY}.")[1]
-                for extension in config.BOT_STARTUP_EXTENSIONS
-                if extension not in config.BOT_LOADED_EXTENSIONS
-            ]
+    message = []
+    for directory in core.perseverance.EXTENSIONS_DIRECTORIES:
+        unloaded = ", ".join(
+            sorted(
+                [
+                    extension.split(f"{directory}.")[1]
+                    for extension in core.perseverance.STARTUP_EXTENSIONS
+                    if extension not in core.perseverance.LOADED_EXTENSIONS
+                    and f"{directory}." in extension
+                ]
+            )
         )
-    )
-    await ctx.send(f"Unloaded modules: {unloaded}")
+        message.append(f"Unloaded modules from {directory}: {unloaded}")
+    await ctx.send("\n".join(message))
 
 
 @bot.event

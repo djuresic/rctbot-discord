@@ -2,6 +2,8 @@ import os
 import platform
 import json
 
+import core.perseverance
+
 # Heroku
 if "DYNO" in os.environ:
     HEROKU_DEPLOYED = True
@@ -34,11 +36,6 @@ if os.path.exists(CONFIG_FILE):
 else:
     raise Exception(f"Missing configuration file {CONFIG_FILE} in directory.")
 
-# Extensions
-BOT_EXTENSIONS_DIRECTORY = "extensions"
-BOT_STARTUP_EXTENSIONS = []
-BOT_DISABLED_EXTENSIONS = []
-BOT_LOADED_EXTENSIONS = []
 
 # Discord
 DISCORD_TOKEN = CONFIG_DISCORD["TOKEN"]
@@ -194,3 +191,11 @@ PLAYER_SLASH_HERO = []
 SETTINGS = []
 
 print("Loaded configuration.")
+
+
+def setup(bot):
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
+
+
+def teardown(bot):  # Reloading this is dangerous
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

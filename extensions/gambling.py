@@ -3,7 +3,8 @@ import random
 import discord
 from discord.ext import commands
 
-import config
+import core.perseverance
+import core.config as config
 
 
 class Gambling(commands.Cog):
@@ -23,9 +24,9 @@ class Gambling(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Gambling(bot))
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
     bot.remove_cog(Gambling(bot))
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

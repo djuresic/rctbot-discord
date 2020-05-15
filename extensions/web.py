@@ -4,8 +4,9 @@ from aiohttp import web
 import discord
 from discord.ext import commands
 
-import config
-from extensions.checks import in_whitelist
+import core.perseverance
+import core.config as config
+from core.checks import in_whitelist
 from extensions.testing import game_hosted, cc_detected
 
 
@@ -134,9 +135,9 @@ class Web(commands.Cog):
 def setup(bot):
     bot.add_cog(Web(bot))
     bot.loop.create_task(web_server(bot))
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
     bot.remove_cog(Web(bot))
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

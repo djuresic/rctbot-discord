@@ -1,36 +1,18 @@
 import discord
 from discord.ext import commands
 
-import config
+import core.perseverance
+import core.config as config
+import core.errors
 
-
-class DatabaseNotReady(commands.CheckFailure):
-    pass
-
-
-class NotInWhiteList(commands.CheckFailure):
-    pass
-
-
-class NotATester(commands.CheckFailure):  # TO DO: special case in handler
-    pass
-
-
-class NotMasterserverAuthenticated(
-    commands.CheckFailure
-):  # TO DO: special case in handler
-    pass
-
-
-class GuildOnlyCommand(commands.CheckFailure):
-    pass
+# Needs an update
 
 
 def database_ready():
     # ctx mandatory positional argument
     async def database_ready_check(ctx):
         if not config.DATABASE_READY:
-            raise DatabaseNotReady("Database is not ready!")
+            raise core.errors.DatabaseNotReady("Database is not ready!")
         return True
         # return config.DATABASE_READY
 
@@ -40,7 +22,7 @@ def database_ready():
 def in_whitelist(whitelist):
     async def in_whitelist_check(ctx):
         if ctx.author.id not in whitelist:
-            raise NotInWhiteList("You're not on the whitelist!")
+            raise core.errors.NotInWhiteList("You're not on the whitelist!")
         return True
 
     return commands.check(in_whitelist_check)
@@ -49,7 +31,7 @@ def in_whitelist(whitelist):
 def is_tester():
     async def is_tester_check(ctx):
         if not config.DATABASE_READY:
-            raise DatabaseNotReady("Database is not ready!")
+            raise core.errors.DatabaseNotReady("Database is not ready!")
 
         found_id = False
         verified = False
@@ -71,7 +53,7 @@ def is_tester():
 def is_senior():
     async def is_senior_check(ctx):
         if not config.DATABASE_READY:
-            raise DatabaseNotReady("Database is not ready!")
+            raise core.errors.DatabaseNotReady("Database is not ready!")
 
         found_id = False
         verified = False
@@ -94,7 +76,7 @@ def is_authenticated():  # Expensive, keeping for now though
     async def is_authenticated_check(ctx):
         for masterserver in ["ac", "rc", "tc"]:
             if not config.HON_MASTERSERVER_INFO[masterserver]["authenticated"]:
-                raise NotMasterserverAuthenticated(
+                raise core.errors.NotMasterserverAuthenticated(
                     f"{config.HON_MASTERSERVER_INFO[masterserver]['short']} not authenticated! Please inform a Senior Tester."
                 )
         return True
@@ -105,41 +87,15 @@ def is_authenticated():  # Expensive, keeping for now though
 def guild_only():  # TO DO: this annoyance
     async def guild_only_check(ctx):
         if ctx.message.guild is None:
-            raise GuildOnlyCommand("Not allowed in Direct Message!")
+            raise core.errors.GuildOnlyCommand("Not allowed in Direct Message!")
         return True
 
     return commands.check(guild_only_check)
 
 
-class ErrorHandler(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx, error):
-        if isinstance(error, NotInWhiteList):
-            await ctx.author.send(error)
-
-        if isinstance(error, DatabaseNotReady):
-            await ctx.send(
-                "{.mention} Slow down speedy, I just woke up. Try *me* again in a few seconds.".format(
-                    ctx.author
-                )
-            )
-
-        if isinstance(error, NotMasterserverAuthenticated):
-            await ctx.send(error)
-
-        print(error)
-        return
-
-
 def setup(bot):
-    bot.add_cog(ErrorHandler(bot))
-    print("Error handler ready.")
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
-    bot.remove_cog(ErrorHandler(bot))
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

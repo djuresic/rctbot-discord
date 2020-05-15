@@ -10,10 +10,11 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-import config
-from extensions.checks import is_tester
-import extensions.forums as forums
-import extensions.spreadsheet as spreadsheet
+import core.perseverance
+import core.config as config
+from core.checks import is_tester
+import hon.forums as forums
+import core.spreadsheet as spreadsheet
 
 
 class BugReports(commands.Cog):
@@ -558,9 +559,9 @@ class BugReports(commands.Cog):
 
 def setup(bot):
     bot.add_cog(BugReports(bot))
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
     bot.remove_cog(BugReports(bot))
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

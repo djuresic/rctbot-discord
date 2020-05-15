@@ -3,9 +3,10 @@ import asyncio
 import discord
 from discord.ext import commands
 
-import config
-from extensions.checks import is_tester, is_senior
-import extensions.spreadsheet as spreadsheet
+import core.perseverance
+import core.config as config
+from core.checks import is_tester, is_senior
+import core.spreadsheet as spreadsheet
 
 
 class Leaderboard(commands.Cog):
@@ -182,9 +183,9 @@ class Leaderboard(commands.Cog):
 
 def setup(bot):
     bot.add_cog(Leaderboard(bot))
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
     bot.remove_cog(Leaderboard(bot))
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

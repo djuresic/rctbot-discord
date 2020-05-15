@@ -7,11 +7,12 @@ import aiohttp
 from aiohttp_socks import ProxyConnector
 from discord.utils import escape_markdown
 
-from utils.honavatar import get_avatar
+from hon.avatar import get_avatar
 
-import config
-from extensions.masterserver import nick2id
-from extensions.webhooks import webhook_embed
+import core.perseverance
+import core.config as config
+from hon.masterserver import nick2id
+from core.webhooks import webhook_embed
 
 # Switch from nick2id to config and spreadsheet.
 
@@ -289,8 +290,8 @@ async def change_password(session, nickname, password, admin):
 
 
 def setup(bot):
-    config.BOT_LOADED_EXTENSIONS.append(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
-    config.BOT_LOADED_EXTENSIONS.remove(__loader__.name)
+    core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)
