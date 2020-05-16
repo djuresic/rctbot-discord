@@ -6,12 +6,11 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-from hon.avatar import get_avatar
-
 import core.perseverance
 import core.config as config
 from core.checks import database_ready, is_senior
-from hon.masterserver import nick2id
+
+from hon.avatar import get_avatar
 
 # TO DO: timeout wait_for reaction
 

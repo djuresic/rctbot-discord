@@ -8,6 +8,8 @@ import core.perseverance
 import core.config as config
 from core.checks import is_tester
 
+from hon.masterserver import Masterserver
+
 
 async def game_hosted(bot, match_name, match_id):
     channel = bot.get_channel(config.DISCORD_GAME_LOBBIES_CHANNEL_ID)
@@ -47,6 +49,38 @@ class Testing(commands.Cog):
         await log_channel.send(
             f'({strftime("%a, %d %b %Y, %H:%M:%S %Z", gmtime())}) {author.mention} received Testing Notes with the URL: `{notes_url}`'
         )
+
+    @commands.command()
+    @is_tester()
+    async def version(self, ctx, masterserver: str = "rc"):
+        """Check all client versions for <masterserver>. Defaults to RCT masterserver."""
+
+        async with ctx.message.channel.typing():
+
+            async with aiohttp.ClientSession() as session:
+                ms = Masterserver(masterserver, session=session)
+                w_version = await ms.latest_client_version("windows")
+                m_version = await ms.latest_client_version("mac")
+                l_version = await ms.latest_client_version("linux")
+
+            embed = discord.Embed(
+                title=ms.client_name,
+                type="rich",
+                description="Client Version",
+                color=ms.color,
+                timestamp=ctx.message.created_at,
+            )
+            embed.set_author(
+                name=ctx.author.display_name, icon_url=ctx.author.avatar_url
+            )
+            embed.add_field(name="Windows", value=w_version, inline=True)
+            embed.add_field(name="macOS", value=m_version, inline=True)
+            embed.add_field(name="Linux", value=l_version, inline=True)
+            embed.set_footer(
+                text="Yes honey.", icon_url="https://i.imgur.com/q8KmQtw.png",
+            )
+
+            await ctx.send(embed=embed)
 
 
 def setup(bot):

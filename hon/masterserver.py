@@ -13,89 +13,165 @@ import core.perseverance
 import core.config as config
 from core.checks import is_tester, is_senior, in_whitelist, is_authenticated
 
-# import extensions.administration as administration
 
-# dev
-# add acronym
-class MasterserverFunctions:
-    def __init__(self):
-        self.info = config.HON_MASTERSERVER_INFO
-        self.cookies = {"ac": None, "rc": None, "tc": None}
-        # for k, v in self.cookie if v is None self.update
+class Masterserver:
+    "Requires aiohttp.ClientSession()"
+
+    usernames = {
+        "ac": config.HON_USERNAME,
+        "rc": config.HON_RC_USERNAME,
+        "tc": config.HON_TC_USERNAME,
+    }
+    passwords = {
+        "ac": config.HON_PASSWORD,
+        "rc": config.HON_RC_PASSWORD,
+        "tc": config.HON_TC_PASSWORD,
+    }
+
+    hostnames = {
+        "ac": config.HON_NAEU_MASTERSERVER,
+        "rc": config.HON_NAEU_RC_MASTERSERVER,
+        "tc": config.HON_NAEU_TC_MASTERSERVER,
+    }
+    ua_versions = {
+        "ac": config.HON_UA_VERSION,
+        "rc": config.HON_UA_RC_VERSION,
+        "tc": config.HON_UA_TC_VERSION,
+    }
+    client_os = {
+        "ac": "ac",
+        "rc": f"rc-{config.HON_NAEU_RC_OS_PART}",
+        "tc": f"tc-{config.HON_NAEU_TC_OS_PART}",
+    }
+    client_names = {
+        "ac": "Heroes of Newerth",
+        "rc": "Heroes of Newerth Release Candidate",
+        "tc": "Heroes of Newerth Private Test",
+    }
+    short_client_names = {"ac": "Retail", "rc": "RCT", "tc": "SBT"}
+    colors = {"ac": 0x3CC03C, "rc": 0xFF6600, "tc": 0x0059FF}
+
+    authentications = {"ac": False, "rc": False, "tc": False}
+    cookies = {"ac": "None", "rc": None, "tc": None}  # class var
+    ips = {"ac": None, "rc": None, "tc": None}
+    auth_hashes = {"ac": None, "rc": None, "tc": None}
+    chat_urls = {"ac": None, "rc": None, "tc": None}
+    chat_ports = {"ac": None, "rc": None, "tc": None}
+    account_ids = {"ac": None, "rc": None, "tc": None}
+    nicknames = {"ac": None, "rc": None, "tc": None}
+
+    def __init__(self, masterserver, session=None):
+        self.session = session
+        self.masterserver = masterserver
+
+        self.username = self.usernames[masterserver]
+        self.password = self.passwords[masterserver]
+
+        self.hostname = self.hostnames[masterserver]
+        self.ua_version = self.ua_versions[masterserver]
+        self.client_name = self.client_names[masterserver]
+        self.short_client_name = self.short_client_names[masterserver]
+        self.color = self.colors[masterserver]
+
+        self.authenticated = self.authentications[masterserver]
+        self.cookie = self.cookies[masterserver]  # instance var
+        self.ip = self.ips[masterserver]
+        self.auth_hash = self.auth_hashes[masterserver]
         # add more
 
-    async def translate_masterserver(self, masterserver, short=True):
-        info = self.info[masterserver]
-        if short:
-            return info["short"]
-        else:
-            return info["client"]
+    async def close_session(self):
+        return await self.session.close()
 
-    async def authenticate_and_update_info(self, masterserver):
-        info = self.info[masterserver]
-        data = await self.authenticate(
-            masterserver, info["user"], info["password"]
-        )  # This is blocking
+    async def prepare(self):
+        "You are NOT prepared!"
+        data = await self.authenticate(self.username, self.password)  # This is blocking
 
         try:
-            self.info[masterserver]["cookie"] = data[b"cookie"].decode()
-            self.info[masterserver]["ip"] = data[b"ip"].decode()
-            self.info[masterserver]["auth_hash"] = data[b"auth_hash"].decode()
-            self.info[masterserver]["chat_url"] = data[b"chat_url"].decode()
-            self.info[masterserver]["chat_port"] = int(data[b"chat_port"].decode())
-            self.info[masterserver]["account_id"] = int(data[b"account_id"].decode())
-            self.info[masterserver]["nickname"] = data[b"nickname"].decode()
+            self.cookie = self.cookies[self.masterserver] = data[b"cookie"].decode()
+            # self.cookie = data[b"cookie"].decode()
+            self.ip = self.ips[self.masterserver] = data[b"ip"].decode()
+            self.auth_hash = self.auth_hashes[self.masterserver] = data[
+                b"auth_hash"
+            ].decode()
+            self.chat_url = self.chat_urls[self.masterserver] = data[
+                b"chat_url"
+            ].decode()
+            self.chat_port = self.chat_ports[self.masterserver] = int(
+                data[b"chat_port"].decode()
+            )
+            self.account_id = self.account_ids[self.masterserver] = int(
+                data[b"account_id"].decode()
+            )
+            self.nickname = self.nicknames[self.masterserver] = data[
+                b"nickname"
+            ].decode()
 
-            self.info[masterserver]["authenticated"] = True
-            print(f"{info['short']} authenticated!")
+            self.authenticated = self.authentications[self.masterserver] = True
+            # self.authenticated = True
+            print(f"{self.short_client_name} authenticated!")
             return True
 
         except:
-            self.info[masterserver]["authenticated"] = False
-            print(f"{info['short']} failed to authenticate!")
+            self.authenticated = self.authentications[self.masterserver] = False
+            # self.authenticated = False
+            print(f"{self.short_client_name} failed to authenticate!")
             return False
 
+    async def ensure_request(self, query, path=None, cookie=False, deserialize=True):
+        if not self.authenticated and cookie:
+            await self.prepare()
+        response = await self.request(
+            query, path=path, cookie=cookie, deserialize=deserialize
+        )
+        # if "cookie" in response[b"auth"].decode()
+        if response and b"auth" in response and response[0] == False:
+            for attempt in range(5):
+                prepared = await self.prepare()
+                if prepared:
+                    return await self.request(
+                        query, path=path, cookie=cookie, deserialize=deserialize
+                    )
+                else:
+                    print(f"Preparation attempt {attempt+1} failed")
+                await asyncio.sleep(attempt + 2)
+            return response
+        else:
+            return response
+
     async def request(
-        self,
-        session,
-        query,
-        masterserver="ac",
-        path=None,
-        cookie=False,
-        deserialize=True,
+        self, query, path=None, cookie=False, deserialize=True,
     ):  # default to RC masterserver instead
         # print(query)
-        info = self.info[masterserver]
 
         if path is None:
             path = "client_requester.php"
 
         if cookie:
-            query["cookie"] = info["cookie"]
+            query["cookie"] = self.cookie
 
-        hostname = info["hostname"]
-        version = info["version"]
         headers = {
-            "User-Agent": f"{config.HON_GAME_CLIENT}/{version}/l{masterserver}/x86-biarch",
+            "User-Agent": f"{config.HON_GAME_CLIENT}/{self.ua_version}/l{self.masterserver}/x86-biarch",
             "X-Forwarded-For": "unknown",
         }
         # print(headers)
+        # print(query)
 
-        async with session.get(
-            "http://{0}/{1}".format(hostname, path), params=query, headers=headers
+        async with self.session.get(
+            "http://{0}/{1}".format(self.hostname, path), params=query, headers=headers
         ) as resp:
             try:
                 data = await resp.text()
             except:
                 print("Something went wrong while querying masterserver")
-                return None
+                return None  # False
             if deserialize:
                 return phpserialize.loads(data.encode())
             else:
                 return data
 
-    async def authenticate(self, masterserver, login, password):  # <3
-        session = aiohttp.ClientSession()
+    async def authenticate(self, login, password):  # <3
+        # session = aiohttp.ClientSession()
+        # session = self.session
         login = login.lower()
         query = {"f": "pre_auth", "login": login}
         srp.rfc5054_enable()
@@ -109,7 +185,7 @@ class MasterserverFunctions:
         )
         _, A = user.start_authentication()
         query["A"] = binascii.hexlify(A).decode()
-        result = await self.request(session, query, masterserver=masterserver)
+        result = await self.request(query)
         if b"B" not in result:
             return result
         s = binascii.unhexlify(result[b"salt"])
@@ -132,240 +208,64 @@ class MasterserverFunctions:
         del query["A"]
         query["f"] = "srpAuth"
         query["proof"] = binascii.hexlify(M).decode()
-        result = await self.request(session, query, masterserver=masterserver)
-        await session.close()
+        result = await self.request(query)
+        # await session.close()
         # print(result)
         return result
 
-    async def nick2id(self, nickname, masterserver="ac"):
-        async with aiohttp.ClientSession() as session:
-            result = await self.request(
-                session,
-                {"f": "nick2id", "nickname[]": nickname.lower()},
-                masterserver=masterserver,
-            )
-            account_id = [
-                value.lower() for value in result.values() if isinstance(value, bytes)
-            ][
-                0
-            ]  # Not great
-            cs_nickname = [key for key, value in result.items() if value == account_id][
-                0
-            ]
-        return {"nickname": cs_nickname.decode(), "account_id": account_id.decode()}
+    async def latest_client_version(self, client_os="windows", include_zero=False):
+        """Client OS must be either Windows, macOS or Linux.
+        Case insensitive and only the first letter matters. (w, m, l)
+        
+        include_zero displays the hotfix digit even if it is 0."""
 
-    async def id2nick(self, account_id, masterserver="ac"):
-        async with aiohttp.ClientSession() as session:
-            result = await self.request(
-                session,
-                {"f": "id2nick", "account_id[]": account_id},
-                masterserver=masterserver,
-            )
-            try:
-                nickname = result[int(account_id)]
-            except:
-                nickname = result
-        return nickname
-
-
-async def translate_masterserver(masterserver, short=True):
-    info = config.HON_MASTERSERVER_INFO[masterserver]
-    if short:
-        return info["short"]
-    else:
-        return info["client"]
-
-
-async def authenticate_and_update_info(masterserver):
-    info = config.HON_MASTERSERVER_INFO[masterserver]
-    data = await authenticate(
-        masterserver, info["user"], info["password"]
-    )  # This is blocking
-
-    try:
-        config.HON_MASTERSERVER_INFO[masterserver]["cookie"] = data[b"cookie"].decode()
-        config.HON_MASTERSERVER_INFO[masterserver]["ip"] = data[b"ip"].decode()
-        config.HON_MASTERSERVER_INFO[masterserver]["auth_hash"] = data[
-            b"auth_hash"
-        ].decode()
-        config.HON_MASTERSERVER_INFO[masterserver]["chat_url"] = data[
-            b"chat_url"
-        ].decode()
-        config.HON_MASTERSERVER_INFO[masterserver]["chat_port"] = int(
-            data[b"chat_port"].decode()
-        )
-        config.HON_MASTERSERVER_INFO[masterserver]["account_id"] = int(
-            data[b"account_id"].decode()
-        )
-        config.HON_MASTERSERVER_INFO[masterserver]["nickname"] = data[
-            b"nickname"
-        ].decode()
-
-        config.HON_MASTERSERVER_INFO[masterserver]["authenticated"] = True
-        print(f"{info['short']} authenticated!")
-        return True
-
-    except:
-        config.HON_MASTERSERVER_INFO[masterserver]["authenticated"] = False
-        print(f"{info['short']} failed to authenticate!")
-        return False
-
-
-async def request(
-    session, query, masterserver="ac", path=None, cookie=False, deserialize=True
-):  # default to RC masterserver instead
-    # print(query)
-    info = config.HON_MASTERSERVER_INFO[masterserver]
-
-    if path is None:
-        path = "client_requester.php"
-
-    if cookie:
-        query["cookie"] = info["cookie"]
-
-    hostname = info["hostname"]
-    version = info["version"]
-    headers = {
-        "User-Agent": f"{config.HON_GAME_CLIENT}/{version}/l{masterserver}/x86-biarch",
-        "X-Forwarded-For": "unknown",
-    }
-    # print(headers)
-
-    async with session.get(
-        "http://{0}/{1}".format(hostname, path), params=query, headers=headers
-    ) as resp:
-        try:
-            data = await resp.text()
-        except:
-            print("Something went wrong while querying masterserver")
-            return None
-        if deserialize:
-            return phpserialize.loads(data.encode())
+        client_os = client_os[0].lower()
+        os_parameter = f"{client_os}{self.client_os[self.masterserver]}"
+        arch = {"w": "i686", "m": "universal", "l": "x86-biarch"}
+        query = {"version": "0.0.0.0", "os": os_parameter, "arch": arch[client_os]}
+        if include_zero:
+            return (await self.request(query, "patcher/patcher.php"))[
+                b"version"
+            ].decode()
         else:
-            return data
+            return (await self.request(query, "patcher/patcher.php"))[0][
+                b"version"
+            ].decode()
 
-
-async def authenticate(masterserver, login, password):  # <3
-    session = aiohttp.ClientSession()
-    login = login.lower()
-    query = {"f": "pre_auth", "login": login}
-    srp.rfc5054_enable()
-    user = srp.User(
-        login.encode(),
-        None,
-        hash_alg=srp.SHA256,
-        ng_type=srp.NG_CUSTOM,
-        n_hex=config.HON_S2_N.encode(),
-        g_hex=config.HON_S2_G.encode(),
-    )
-    _, A = user.start_authentication()
-    query["A"] = binascii.hexlify(A).decode()
-    result = await request(session, query, masterserver=masterserver)
-    if b"B" not in result:
-        return result
-    s = binascii.unhexlify(result[b"salt"])
-    B = binascii.unhexlify(result[b"B"])
-    salt2 = result[b"salt2"]
-    user.password = (
-        sha256(
-            (
-                md5(
-                    (md5(password.encode()).hexdigest()).encode()
-                    + salt2
-                    + config.HON_SRP_SS.encode()
-                ).hexdigest()
-            ).encode()
-            + config.HON_SRP_SL.encode()
-        ).hexdigest()
-    ).encode()
-    user.p = user.password
-    M = user.process_challenge(s, B)
-    del query["A"]
-    query["f"] = "srpAuth"
-    query["proof"] = binascii.hexlify(M).decode()
-    result = await request(session, query, masterserver=masterserver)
-    await session.close()
-    # print(result)
-    return result
-
-
-async def nick2id(nickname, masterserver="ac"):
-    async with aiohttp.ClientSession() as session:
-        result = await request(
-            session,
-            {"f": "nick2id", "nickname[]": nickname.lower()},
-            masterserver=masterserver,
-        )
+    async def nick2id(self, nickname):
+        result = await self.request({"f": "nick2id", "nickname[]": nickname.lower()})
         account_id = [
             value.lower() for value in result.values() if isinstance(value, bytes)
         ][
             0
         ]  # Not great
         cs_nickname = [key for key, value in result.items() if value == account_id][0]
-    return {"nickname": cs_nickname.decode(), "account_id": account_id.decode()}
+        return {"nickname": cs_nickname.decode(), "account_id": account_id.decode()}
 
-
-async def id2nick(account_id, masterserver="ac"):
-    async with aiohttp.ClientSession() as session:
-        result = await request(
-            session,
-            {"f": "id2nick", "account_id[]": account_id},
-            masterserver=masterserver,
-        )
+    async def id2nick(self, account_id):
+        result = await self.request({"f": "id2nick", "account_id[]": account_id})
         try:
             nickname = result[int(account_id)]
         except:
             nickname = result
-    return nickname
+        return nickname
+
+    async def show_stats(self, nickname, table):
+        query = {"f": "show_stats", "nickname": nickname.lower(), "table": table}
+        return await self.ensure_request(query, cookie=True)
+
+    async def show_simple_stats(self, nickname):
+        query = {"f": "show_simple_stats", "nickname": nickname.lower()}
+        return await self.ensure_request(query)
+
+    async def get_match_stats(self, match_id):
+        query = {"f": "get_match_stats", "match_id[]": match_id}
+        return await self.ensure_request(query, cookie=True)
 
 
-class MasterserverRelated(commands.Cog):
+class MasterserverTesting(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-
-    @commands.command()
-    @is_tester()
-    async def version(self, ctx, masterserver: str = "rc"):
-        """Check all client versions for <masterserver>. Defaults to RCT masterserver."""
-
-        client_os = {
-            "ac": "ac",
-            "rc": f"rc-{config.HON_NAEU_RC_OS_PART}",
-            "tc": f"tc-{config.HON_NAEU_TC_OS_PART}",
-        }
-        client = await translate_masterserver(masterserver, short=False)
-
-        async with ctx.message.channel.typing():
-            w_query = {
-                "version": "0.0.0.0",
-                "os": f"w{client_os[masterserver]}",
-                "arch": "i686",
-            }
-            l_query = {
-                "version": "0.0.0.0",
-                "os": f"l{client_os[masterserver]}",
-                "arch": "x86-biarch",
-            }
-            m_query = {
-                "version": "0.0.0.0",
-                "os": f"m{client_os[masterserver]}",
-                "arch": "universal",
-            }
-
-            async with aiohttp.ClientSession() as session:
-                w_version = (
-                    await request(session, w_query, masterserver, "patcher/patcher.php")
-                )[0][b"version"].decode()
-                l_version = (
-                    await request(session, l_query, masterserver, "patcher/patcher.php")
-                )[0][b"version"].decode()
-                m_version = (
-                    await request(session, m_query, masterserver, "patcher/patcher.php")
-                )[0][b"version"].decode()
-
-            await ctx.send(
-                f"{client}\n\n**Windows:** {w_version}\n**Mac:** {m_version}\n**Linux:** {l_version}"
-            )
 
     @commands.command(name="sstats")
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
@@ -377,249 +277,48 @@ class MasterserverRelated(commands.Cog):
         if nickname is None:
             nickname = ctx.author.display_name
 
-        query = {"f": "show_simple_stats", "nickname": nickname.lower()}
-
         async with aiohttp.ClientSession() as session:
-            print(await request(session, query, masterserver=masterserver))
-
-    @commands.command()
-    @in_whitelist(config.DISCORD_WHITELIST_IDS)
-    async def readc(self, ctx):
-        await ctx.send(
-            f"ac: {config.HON_MASTERSERVER_INFO['ac']['cookie']},\nrc: {config.HON_MASTERSERVER_INFO['rc']['cookie']},\ntc: {config.HON_MASTERSERVER_INFO['tc']['cookie']}"
-        )
-
-    @commands.command()
-    @in_whitelist(config.DISCORD_WHITELIST_IDS)
-    async def forcesrp(self, ctx):
-        await authenticate_and_update_info("ac")
-        await authenticate_and_update_info("rc")
-        await authenticate_and_update_info("tc")
-        await ctx.send(
-            f"ac: {config.HON_MASTERSERVER_INFO['ac']['cookie']},\nrc: {config.HON_MASTERSERVER_INFO['rc']['cookie']},\ntc: {config.HON_MASTERSERVER_INFO['tc']['cookie']}"
-        )
+            print(
+                await Masterserver(masterserver, session=session).show_simple_stats(
+                    nickname.lower()
+                )
+            )
 
     @commands.command(name="mstq")
-    @is_authenticated()
+    # @is_authenticated()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def get_match_stats(self, ctx, matchid: str, masterserver: str = "ac"):
         async with aiohttp.ClientSession() as session:
-            match = await request(
-                session,
-                {"f": "get_match_stats", "match_id[]": matchid},
-                masterserver=masterserver,
-                cookie=True,
-            )
+            match = await Masterserver(masterserver, session).get_match_stats(matchid)
             print(match)
-            # await ctx.send(match)
-
-    @commands.command(aliases=["lu", "lup", "lkp", "lkup"])
-    @is_senior()
-    @is_authenticated()
-    async def lookup(
-        self, ctx, player: str, masterserver: str = "ac", upgrades: str = "False"
-    ):
-        """lookup <nickname or account ID> <masterserver> [-u|--upgrades]"""
-
-        if player.isdigit():
-            result = await id2nick(player, masterserver=masterserver)
-            if result is not None and not isinstance(
-                result, dict
-            ):  # Till id2nick returns nick
-                player = result.decode().lower()
-            else:
-                return await ctx.send("Account does not exist.")
-        else:
-            player = player.lower()
-
-        def to_bool(upgrades):
-            return upgrades.lower() in ("true", "1", "yes", "-u", "--upgrades")
-
-        upgrades = to_bool(upgrades)
-
-        async with aiohttp.ClientSession() as session:
-            query = {"f": "show_stats", "nickname": player, "table": "ranked"}
-            data = await request(session, query, masterserver=masterserver, cookie=True)
-
-            try:
-                account_id = data[b"account_id"].decode()
-            except:
-                return await ctx.send("Account does not exist.")
-
-            if upgrades:
-                query_ss = {"f": "show_simple_stats", "nickname": player}
-                data_ss = await request(session, query_ss, masterserver=masterserver)
-
-                query["table"] = "mastery"
-                data_mu = await request(
-                    session, query, masterserver=masterserver, cookie=True
-                )
-
-                selected_upgrades = ", ".join(
-                    [
-                        v.decode()
-                        for v in data_mu[b"selected_upgrades"].values()
-                        if isinstance(v, bytes)
-                    ]
-                )
-                other_upgrades = ", ".join(
-                    [
-                        v.decode()
-                        for v in data[b"my_upgrades"].values()
-                        if isinstance(v, bytes)
-                    ]
-                )
-
-            if masterserver == "ac":
-                # account_icon_url = await get_avatar(account_id)
-                account_icon_url = "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
-            else:
-                account_icon_url = "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
-
-        # print(data)
-        # print(data_ss)
-
-        client = await translate_masterserver(masterserver, short=False)
-
-        try:
-            nickname = data[b"nickname"].decode().split("]")[1]
-        except:
-            nickname = data[b"nickname"].decode()
-
-        try:
-            clan_name = data[b"name"].decode()
-        except:
-            clan_name = "None"
-
-        if clan_name != "None":
-            clan_tag = data[b"nickname"].decode().split("]")[0] + "]"
-        else:
-            clan_tag = "None"
-
-        try:
-            clan_rank = data[b"rank"].decode()
-        except:
-            clan_rank = "None"
-
-        if clan_rank != "None" and clan_name == "None":  # Ah yes, the ghost clan.
-            clan_name = "\u2063"
-            clan_tag = "[]"
-            embed_nickname = f"{clan_tag}{nickname}"
-        elif clan_name != "None":
-            embed_nickname = f"{clan_tag}{nickname}"
-        else:
-            embed_nickname = nickname
-
-        try:
-            last_activity = data[b"last_activity"].decode()
-        except:
-            last_activity = "None"
-
-        try:
-            account_type = config.HON_TYPE_MAP[data[b"account_type"].decode()]
-        except:
-            account_type = "Unknown"
-
-        try:
-            standing = config.HON_STANDING_MAP[data[b"standing"].decode()]
-        except:
-            standing = "Unknown"
-
-        embed = discord.Embed(
-            title=client,
-            type="rich",
-            description="Account Information",
-            color=0xFF6600,
-            timestamp=ctx.message.created_at,
-        )
-        embed.set_author(
-            name=embed_nickname,
-            url=f"https://www.heroesofnewerth.com/playerstats/ranked/{nickname}",
-            icon_url=account_icon_url,
-        )
-
-        embed.add_field(name="Nickname", value=nickname, inline=True)
-        embed.add_field(name="Account ID", value=account_id, inline=True)
-        embed.add_field(name="Super ID", value=data[b"super_id"].decode(), inline=True)
-
-        embed.add_field(
-            name="Created", value=data[b"create_date"].decode(), inline=True
-        )
-        embed.add_field(name="Last Activity", value=last_activity, inline=True)
-
-        embed.add_field(name="Account Type", value=account_type, inline=True)
-        embed.add_field(name="Standing", value=standing, inline=True)
-
-        embed.add_field(name="Clan Tag", value=clan_tag, inline=True)
-        embed.add_field(name="Clan Name", value=clan_name, inline=True)
-        embed.add_field(name="Clan Rank", value=clan_rank, inline=True)
-
-        embed.add_field(name="Level", value=data[b"level"].decode(), inline=True)
-        embed.add_field(name="Level Experience", value=data[b"level_exp"], inline=True)
-
-        if upgrades:
-            embed.add_field(name="Avatars", value=data_ss[b"avatar_num"], inline=True)
-            embed.add_field(name="Selected", value=selected_upgrades, inline=True)
-            embed.add_field(name="Other", value=other_upgrades, inline=True)
-
-        embed.set_footer(
-            text="Requested by {0} ({1}#{2}). React with 🗑️ to delete, 💾 to keep this message.".format(
-                ctx.message.author.display_name,
-                ctx.message.author.name,
-                ctx.message.author.discriminator,
-            ),
-            icon_url="https://i.imgur.com/Ou1k4lD.png",
-        )
-        embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
-
-        message = await ctx.send(embed=embed)
-        await message.add_reaction("🗑️")
-        await message.add_reaction("💾")
-
-        try:
-            reaction, _ = await self.bot.wait_for(
-                "reaction_add",
-                check=lambda reaction, user: user == ctx.message.author
-                and reaction.emoji in ["🗑️", "💾"]
-                and reaction.message.id == message.id,
-                timeout=300.0,
-            )
-
-            if reaction.emoji == "🗑️":
-                await message.delete()
-
-        except asyncio.TimeoutError:
-            await message.delete()
 
     # dev
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def id2nick(self, ctx, account_id: str, masterserver: str = "ac"):
-        ms = MasterserverFunctions()
-        client = await ms.translate_masterserver(masterserver)
-        result = await ms.id2nick(account_id, masterserver=masterserver)
+        async with aiohttp.ClientSession() as session:
+            ms = Masterserver(session, masterserver)
+            result = await ms.id2nick(account_id)
         await ctx.send(
-            f'Client: {client}\nID: {account_id}\nNickname: **{result.decode() if result is not None and not isinstance(result, dict) else f"N/A {result}"}**'
+            f'Client: {ms.short_client_name}\nID: {account_id}\nNickname: **{result.decode() if result is not None and not isinstance(result, dict) else f"N/A {result}"}**'
         )  # This
 
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def nick2id(self, ctx, nickname: str, masterserver: str = "ac"):
-        client = await translate_masterserver(masterserver)
-        result = await nick2id(nickname, masterserver=masterserver)
+        async with aiohttp.ClientSession() as session:
+            ms = Masterserver(masterserver, session=session)
+            result = await ms.nick2id(nickname)
         await ctx.send(
-            f"Client: {client}\nNickname: {result['nickname']}\nID: **{result['account_id']}**"
+            f"Client: {ms.short_client_name}\nNickname: {result['nickname']}\nID: **{result['account_id']}**"
         )
 
 
 def setup(bot):
-    bot.add_cog(MasterserverRelated(bot))
-    bot.loop.create_task(authenticate_and_update_info("ac"))
-    bot.loop.create_task(authenticate_and_update_info("rc"))
-    bot.loop.create_task(authenticate_and_update_info("tc"))
+    bot.add_cog(MasterserverTesting(bot))
     core.perseverance.LOADED_EXTENSIONS.append(__loader__.name)
 
 
 def teardown(bot):
-    bot.remove_cog(MasterserverRelated(bot))
+    # bot.remove_cog(MasterserverTesting(bot))
     core.perseverance.LOADED_EXTENSIONS.remove(__loader__.name)

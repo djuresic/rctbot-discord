@@ -11,8 +11,9 @@ import core.perseverance
 import core.config as config
 from core.checks import is_senior, is_tester
 import core.spreadsheet as spreadsheet
+
 import hon.acp as acp
-from hon.masterserver import nick2id
+from hon.masterserver import Masterserver
 
 
 class Administration(commands.Cog):
@@ -103,9 +104,10 @@ class Administration(commands.Cog):
 
             join_date = date.today().strftime("%m/%d/%Y")
 
-            ac_account_id = (await nick2id(names[index], masterserver="ac"))[
-                "account_id"
-            ]
+            async with aiohttp.ClientSession() as session:
+                ac_account_id = (
+                    await Masterserver("ac", session=session).nick2id(names[index])
+                )["account_id"]
 
             await ws.append_row(
                 (
@@ -335,6 +337,180 @@ class Administration(commands.Cog):
             await ctx.author.send(
                 f"Changed password for {discord.utils.escape_markdown(nickname)}"
             )
+
+    @commands.command(aliases=["lu", "lup", "lkp", "lkup"])
+    @is_senior()
+    async def lookup(
+        self, ctx, player: str, masterserver: str = "ac", upgrades: str = "False"
+    ):
+        """lookup <nickname or account ID> <masterserver> [-u|--upgrades]"""
+        session = aiohttp.ClientSession()
+        ms = Masterserver(masterserver, session=session)
+        if player.isdigit():
+            result = await ms.id2nick(player)
+            if result is not None and not isinstance(
+                result, dict
+            ):  # Till id2nick returns nick
+                player = result.decode().lower()
+            else:
+                return await ctx.send("Account does not exist.")
+        else:
+            player = player.lower()
+
+        def to_bool(upgrades):
+            return upgrades.lower() in ("true", "1", "yes", "-u", "--upgrades")
+
+        upgrades = to_bool(upgrades)
+
+        data = await ms.show_stats(player, "ranked")
+
+        try:
+            account_id = data[b"account_id"].decode()
+        except:
+            return await ctx.send("Account does not exist.")
+
+        if upgrades:
+            data_ss = await ms.show_simple_stats(player)
+            data_mu = await ms.show_stats(player, "mastery")
+
+            selected_upgrades = ", ".join(
+                [
+                    v.decode()
+                    for v in data_mu[b"selected_upgrades"].values()
+                    if isinstance(v, bytes)
+                ]
+            )
+            other_upgrades = ", ".join(
+                [
+                    v.decode()
+                    for v in data[b"my_upgrades"].values()
+                    if isinstance(v, bytes)
+                ]
+            )
+        await session.close()
+
+        if masterserver == "ac":
+            # account_icon_url = await get_avatar(account_id)
+            account_icon_url = (
+                "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
+            )
+        else:
+            account_icon_url = (
+                "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
+            )
+
+        # print(data)
+        # print(data_ss)
+
+        try:
+            nickname = data[b"nickname"].decode().split("]")[1]
+        except:
+            nickname = data[b"nickname"].decode()
+
+        try:
+            clan_name = data[b"name"].decode()
+        except:
+            clan_name = "None"
+
+        if clan_name != "None":
+            clan_tag = data[b"nickname"].decode().split("]")[0] + "]"
+        else:
+            clan_tag = "None"
+
+        try:
+            clan_rank = data[b"rank"].decode()
+        except:
+            clan_rank = "None"
+
+        if clan_rank != "None" and clan_name == "None":  # Ah yes, the ghost clan.
+            clan_name = "\u2063"
+            clan_tag = "[]"
+            embed_nickname = f"{clan_tag}{nickname}"
+        elif clan_name != "None":
+            embed_nickname = f"{clan_tag}{nickname}"
+        else:
+            embed_nickname = nickname
+
+        try:
+            last_activity = data[b"last_activity"].decode()
+        except:
+            last_activity = "None"
+
+        try:
+            account_type = config.HON_TYPE_MAP[data[b"account_type"].decode()]
+        except:
+            account_type = "Unknown"
+
+        try:
+            standing = config.HON_STANDING_MAP[data[b"standing"].decode()]
+        except:
+            standing = "Unknown"
+
+        embed = discord.Embed(
+            title=ms.client_name,
+            type="rich",
+            description="Account Information",
+            color=ms.color,
+            timestamp=ctx.message.created_at,
+        )
+        embed.set_author(
+            name=embed_nickname,
+            url=f"https://www.heroesofnewerth.com/playerstats/ranked/{nickname}",
+            icon_url=account_icon_url,
+        )
+
+        embed.add_field(name="Nickname", value=nickname, inline=True)
+        embed.add_field(name="Account ID", value=account_id, inline=True)
+        embed.add_field(name="Super ID", value=data[b"super_id"].decode(), inline=True)
+
+        embed.add_field(
+            name="Created", value=data[b"create_date"].decode(), inline=True
+        )
+        embed.add_field(name="Last Activity", value=last_activity, inline=True)
+
+        embed.add_field(name="Account Type", value=account_type, inline=True)
+        embed.add_field(name="Standing", value=standing, inline=True)
+
+        embed.add_field(name="Clan Tag", value=clan_tag, inline=True)
+        embed.add_field(name="Clan Name", value=clan_name, inline=True)
+        embed.add_field(name="Clan Rank", value=clan_rank, inline=True)
+
+        embed.add_field(name="Level", value=data[b"level"].decode(), inline=True)
+        embed.add_field(name="Level Experience", value=data[b"level_exp"], inline=True)
+
+        if upgrades:
+            embed.add_field(name="Avatars", value=data_ss[b"avatar_num"], inline=True)
+            embed.add_field(name="Selected", value=selected_upgrades, inline=True)
+            embed.add_field(name="Other", value=other_upgrades, inline=True)
+
+        embed.set_footer(
+            text="Requested by {0} ({1}#{2}). React with 🗑️ to delete, 💾 to keep this message.".format(
+                ctx.message.author.display_name,
+                ctx.message.author.name,
+                ctx.message.author.discriminator,
+            ),
+            icon_url="https://i.imgur.com/Ou1k4lD.png",
+        )
+        embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
+
+        message = await ctx.send(embed=embed)
+        await message.add_reaction("🗑️")
+        await message.add_reaction("💾")
+
+        try:
+            reaction, _ = await self.bot.wait_for(
+                "reaction_add",
+                check=lambda reaction, user: user == ctx.message.author
+                and reaction.emoji in ["🗑️", "💾"]
+                and reaction.message.id == message.id,
+                timeout=300.0,
+            )
+
+            if reaction.emoji == "🗑️":
+                await message.delete()
+
+        except asyncio.TimeoutError:
+            await message.delete()
 
 
 def setup(bot):

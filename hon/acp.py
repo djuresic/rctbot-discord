@@ -7,12 +7,12 @@ import aiohttp
 from aiohttp_socks import ProxyConnector
 from discord.utils import escape_markdown
 
-from hon.avatar import get_avatar
-
 import core.perseverance
 import core.config as config
-from hon.masterserver import nick2id
 from core.webhooks import webhook_embed
+
+from hon.avatar import get_avatar
+from hon.masterserver import Masterserver
 
 # Switch from nick2id to config and spreadsheet.
 
@@ -58,7 +58,7 @@ async def add_member(session, nickname, admin, masterserver="ac"):
         clan_id = "106824"
     url, ssl = await get_url_ssl(masterserver)
     url = url + config.HON_ACP_CLAN
-    result = await nick2id(nickname, masterserver=masterserver)
+    result = await Masterserver(masterserver, session=session).nick2id(nickname)
     nickname = result["nickname"]
     account_id = result["account_id"]
     query = {"f": "modify", "cid": clan_id}
@@ -98,7 +98,7 @@ async def remove_member(session, nickname, admin, masterserver="ac"):
         clan_id = "106824"
     url, ssl = await get_url_ssl(masterserver)
     url = url + config.HON_ACP_CLAN
-    result = await nick2id(nickname, masterserver=masterserver)
+    result = await Masterserver(masterserver, session=session).nick2id(nickname)
     nickname = result["nickname"]
     account_id = result["account_id"]
     query = {"f": "modify", "cid": clan_id}
@@ -138,7 +138,7 @@ async def promote_member(session, nickname, admin, masterserver="ac"):
         clan_id = "106824"
     url, ssl = await get_url_ssl(masterserver)
     url = url + config.HON_ACP_CLAN
-    result = await nick2id(nickname, masterserver=masterserver)
+    result = await Masterserver(masterserver, session=session).nick2id(nickname)
     nickname = result["nickname"]
     account_id = result["account_id"]
     query = {"f": "modify", "cid": clan_id}
@@ -174,7 +174,7 @@ async def demote_member(session, nickname, admin, masterserver="ac"):
         clan_id = "106824"
     url, ssl = await get_url_ssl(masterserver)
     url = url + config.HON_ACP_CLAN
-    result = await nick2id(nickname, masterserver=masterserver)
+    result = await Masterserver(masterserver, session=session).nick2id(nickname)
     nickname = result["nickname"]
     account_id = result["account_id"]
     query = {"f": "modify", "cid": clan_id}
@@ -204,9 +204,10 @@ async def demote_member(session, nickname, admin, masterserver="ac"):
 # Must have temp prevention of use for the same nick per command to avoid duplicates of items.
 async def add_perks(session, nickname, admin):
     "Adds RCT chat symbol and chat color to account."
+    masterserver = "ac"
     url, ssl = await get_url_ssl()
     url = url + config.HON_ACP_PROFILE
-    result = await nick2id(nickname)
+    result = await Masterserver(masterserver, session=session).nick2id(nickname)
     nickname = result["nickname"]
     account_id = result["account_id"]
     query = {"f": "modify", "aid": account_id}
@@ -250,7 +251,7 @@ async def change_password(session, nickname, password, admin):
     url, ssl = await get_url_ssl(masterserver)
     url = url + config.HON_ACP_PROFILE
     print(url, ssl)
-    result = await nick2id(nickname, masterserver=masterserver)
+    result = await Masterserver(masterserver, session=session).nick2id(nickname)
     print(result)
     nickname = result["nickname"]
     account_id = result["account_id"]
