@@ -546,10 +546,22 @@ class Stats(commands.Cog):
                 discord_message = []
                 for i in range(0, len(played_by_o)):
                     if i == (len(played_by_o) - 1):
-                        temp = "\n" + played_by_o[i] + ": **" + nb_plays_c[i] + "**"
+                        temp = (
+                            "\n"
+                            + discord.utils.escape_markdown(played_by_o[i])
+                            + ": **"
+                            + nb_plays_c[i]
+                            + "**"
+                        )
                         discord_message.append(temp)
                     else:
-                        temp = "\n" + played_by_o[i] + ": **" + nb_plays_c[i] + "**"
+                        temp = (
+                            "\n"
+                            + discord.utils.escape_markdown(played_by_o[i])
+                            + ": **"
+                            + nb_plays_c[i]
+                            + "**"
+                        )
                         discord_message.append(temp)
                 discord_message.sort()
                 length = len(discord_message)
@@ -622,16 +634,28 @@ class Stats(commands.Cog):
                 lastHero.sort()
                 length = len(lastHero)
                 if length <= 50:
-                    await ctx.send("Hero picks for **{0}**:".format(playerName))
+                    await ctx.send(
+                        "Hero picks for **{0}**:".format(
+                            discord.utils.escape_markdown(playerName)
+                        )
+                    )
                     # await asyncio.sleep(0.25)
                     await ctx.send("".join(lastHero[0:length]))
                 elif length <= 100:
-                    await ctx.send("Hero picks for **{0}**:".format(playerName))
+                    await ctx.send(
+                        "Hero picks for **{0}**:".format(
+                            discord.utils.escape_markdown(playerName)
+                        )
+                    )
                     # await asyncio.sleep(0.25)
                     await ctx.send("".join(lastHero[0:50]))
                     await ctx.send("".join(lastHero[50:length]))
                 else:
-                    await ctx.send("Hero picks for **{0}**:".format(playerName))
+                    await ctx.send(
+                        "Hero picks for **{0}**:".format(
+                            discord.utils.escape_markdown(playerName)
+                        )
+                    )
                     # await asyncio.sleep(0.25)
                     await ctx.send("".join(lastHero[0:50]))
                     await ctx.send("".join(lastHero[50:100]))
