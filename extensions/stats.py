@@ -11,6 +11,7 @@ import core.config as config
 from core.checks import database_ready, is_senior
 
 from hon.avatar import get_avatar
+from hon.masterserver import Client
 
 # TO DO: timeout wait_for reaction
 
@@ -64,6 +65,17 @@ class Stats(commands.Cog):
 
         nick = row_values[1]
         nick_lower = nick.lower()
+        try:
+            async with aiohttp.ClientSession() as session:
+                simple_stats = await Client("ac", session=session).show_simple_stats(
+                    nick
+                )
+                if simple_stats and b"nickname" in simple_stats:
+                    nick_with_clan_tag = simple_stats[b"nickname"].decode()
+                else:
+                    nick_with_clan_tag = nick
+        except:
+            nick_with_clan_tag = nick
 
         # Check trivia spreadsheet for points.
         try:
@@ -165,6 +177,26 @@ class Stats(commands.Cog):
             "Bronze": "https://i.imgur.com/svAUm00.png",
             "Warning": "https://i.imgur.com/svAUm00.png",
             "No rank": "https://i.imgur.com/ys2UBNW.png",
+        }
+        rank_icons_emoji = {
+            "Immortal": "<:Immortal:711744275339018323>",
+            "Legendary": "<:Legendary:711744131772186714>",
+            "Diamond": "<:Diamond:711744217654886480>",
+            "Gold": "<:Gold:711744184478072853>",
+            "Silver": "<:Silver:711744335846047744>",
+            "Bronze": "<:Bronze:711744364367577158>",
+            "Warning": "<:Bronze:711744364367577158>",
+            "No rank": "<:Norank:711744503228399616>",
+        }
+        rank_chests_emoji = {
+            "Immortal": "<:ImmortalChest:711926778540589126>",
+            "Legendary": "<:LegendaryChest:711926778477936682>",
+            "Diamond": "<:DiamondChest:711926778368884739>",
+            "Gold": "<:GoldChest:711926778654097458>",
+            "Silver": "<:SilverChest:711926778238861365>",
+            "Bronze": "<:BronzeChest:711926778339262507>",
+            "Warning": "<:BronzeChest:711926778339262507>",
+            "No rank": "<:UnrankedChest:711926778524074054>",
         }
 
         role_translations = {
@@ -296,7 +328,7 @@ class Stats(commands.Cog):
             timestamp=config.LAST_RETRIEVED,
         )
         embed.set_author(
-            name=nick_src,
+            name=nick_with_clan_tag,
             url=f"https://forums.heroesofnewerth.com/member.php?{_account_id}",
             icon_url=account_icon_url,
         )
@@ -340,8 +372,16 @@ class Stats(commands.Cog):
                 inline=True,
             )
             embed.add_field(name="Bonuses", value=bonus, inline=True)
-            embed.add_field(name="Activity rank", value=rank_name, inline=True)
-            embed.add_field(name="Multiplier", value=f"{row_values[12]}x", inline=True)
+            embed.add_field(
+                name="Activity rank",
+                value=f"{rank_icons_emoji[rank_name]} {'Unranked' if rank_name == 'No rank' else rank_name}",
+                inline=True,
+            )
+            embed.add_field(
+                name="Multiplier",
+                value=f"{rank_chests_emoji[rank_name]} {row_values[12]}x",
+                inline=True,
+            )
             embed.add_field(name="Perks", value=row_values[19], inline=True)
             embed.add_field(name="Absence", value=absence, inline=True)
         embed.add_field(name="Join date", value=row_values[20], inline=True)
@@ -367,6 +407,7 @@ class Stats(commands.Cog):
         # embed.set_footer(text="React with 🆗 to delete this message.", icon_url="https://i.imgur.com/Ou1k4lD.png")
         # embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
         embed.set_thumbnail(url=rank_icons[rank_name])
+        # embed.set_image(url="https://i.imgur.com/PlO2rtf.png") # Hmmm
         message = await ctx.send(embed=embed)
         stop = timeit.default_timer()
         print(stop - start)
@@ -664,6 +705,31 @@ class Stats(commands.Cog):
             return
         stop = timeit.default_timer()
         print(stop - start)
+
+    # change to .stats, rename current .stats command to .rct
+    @commands.command(aliases=["rstats"])
+    @is_senior()
+    @database_ready()
+    async def retail(self, ctx, nickname: str):
+        "retail simple stats"
+        async with aiohttp.ClientSession() as session:
+            client = Client("ac", session=session)
+            response = await client.show_simple_stats(nickname)
+            print(response)
+        embed = discord.Embed(
+            title=client.client_name,
+            type="rich",
+            description="Simple Stats",
+            url="https://forums.heroesofnewerth.com/forumdisplay.php?209-Retail-Candidate-Testers",
+            color=client.color,
+            timestamp=ctx.message.created_at,
+        )
+        embed.set_author(
+            name=response[b"nickname"].decode(),
+            url=f"https://forums.heroesofnewerth.com/member.php?{response[b'account_id'].decode()}",
+            icon_url=(await get_avatar(response[b"account_id"].decode())),
+        )
+        await ctx.send(embed=embed)
 
 
 def setup(bot):
