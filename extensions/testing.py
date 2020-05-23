@@ -8,7 +8,7 @@ import core.perseverance
 import core.config as config
 from core.checks import is_tester
 
-from hon.masterserver import Masterserver
+from hon.masterserver import Client
 
 
 async def game_hosted(bot, match_name, match_id):
@@ -58,7 +58,7 @@ class Testing(commands.Cog):
         async with ctx.message.channel.typing():
 
             async with aiohttp.ClientSession() as session:
-                ms = Masterserver(masterserver, session=session)
+                ms = Client(masterserver, session=session)
                 w_version = await ms.latest_client_version("windows")
                 m_version = await ms.latest_client_version("mac")
                 l_version = await ms.latest_client_version("linux")

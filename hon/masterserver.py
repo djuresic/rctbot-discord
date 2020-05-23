@@ -14,7 +14,7 @@ import core.config as config
 from core.checks import is_tester, is_senior, in_whitelist, is_authenticated
 
 
-class Masterserver:
+class Client:
     "Requires aiohttp.ClientSession()"
 
     usernames = {
@@ -279,7 +279,7 @@ class MasterserverTesting(commands.Cog):
 
         async with aiohttp.ClientSession() as session:
             print(
-                await Masterserver(masterserver, session=session).show_simple_stats(
+                await Client(masterserver, session=session).show_simple_stats(
                     nickname.lower()
                 )
             )
@@ -289,7 +289,7 @@ class MasterserverTesting(commands.Cog):
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def get_match_stats(self, ctx, matchid: str, masterserver: str = "ac"):
         async with aiohttp.ClientSession() as session:
-            match = await Masterserver(masterserver, session).get_match_stats(matchid)
+            match = await Client(masterserver, session).get_match_stats(matchid)
             print(match)
 
     # dev
@@ -297,7 +297,7 @@ class MasterserverTesting(commands.Cog):
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def id2nick(self, ctx, account_id: str, masterserver: str = "ac"):
         async with aiohttp.ClientSession() as session:
-            ms = Masterserver(session, masterserver)
+            ms = Client(masterserver, session=session)
             result = await ms.id2nick(account_id)
         await ctx.send(
             f'Client: {ms.short_client_name}\nID: {account_id}\nNickname: **{result.decode() if result is not None and not isinstance(result, dict) else f"N/A {result}"}**'
@@ -307,7 +307,7 @@ class MasterserverTesting(commands.Cog):
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def nick2id(self, ctx, nickname: str, masterserver: str = "ac"):
         async with aiohttp.ClientSession() as session:
-            ms = Masterserver(masterserver, session=session)
+            ms = Client(masterserver, session=session)
             result = await ms.nick2id(nickname)
         await ctx.send(
             f"Client: {ms.short_client_name}\nNickname: {result['nickname']}\nID: **{result['account_id']}**"

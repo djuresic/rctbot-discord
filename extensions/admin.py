@@ -13,7 +13,7 @@ from core.checks import is_senior, is_tester
 import core.spreadsheet as spreadsheet
 
 import hon.acp as acp
-from hon.masterserver import Masterserver
+from hon.masterserver import Client
 
 
 class Administration(commands.Cog):
@@ -106,7 +106,7 @@ class Administration(commands.Cog):
 
             async with aiohttp.ClientSession() as session:
                 ac_account_id = (
-                    await Masterserver("ac", session=session).nick2id(names[index])
+                    await Client("ac", session=session).nick2id(names[index])
                 )["account_id"]
 
             await ws.append_row(
@@ -345,7 +345,7 @@ class Administration(commands.Cog):
     ):
         """lookup <nickname or account ID> <masterserver> [-u|--upgrades]"""
         session = aiohttp.ClientSession()
-        ms = Masterserver(masterserver, session=session)
+        ms = Client(masterserver, session=session)
         if player.isdigit():
             result = await ms.id2nick(player)
             if result is not None and not isinstance(
