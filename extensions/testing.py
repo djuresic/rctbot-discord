@@ -606,13 +606,13 @@ class Testing(commands.Cog):
                     changed_items.append(item)
 
             # 250 is the character limit for chat messages in HoN.
-            hero_binds_num = math.ceil(len("".join(changed_heroes)) / 250)
-            item_binds_num = math.ceil(len("".join(changed_items)) / 250)
+            hero_binds_num = math.ceil(len(", ".join(changed_heroes)) / 250)
+            item_binds_num = math.ceil(len(", ".join(changed_items)) / 250)
 
             bind_heroes = []
             for num in range(hero_binds_num):
                 for hero in sorted(changed_heroes):
-                    if (len("".join(bind_heroes)) + len(hero)) > 250:
+                    if (len(", ".join(bind_heroes)) + 2 + len(hero)) > 250:
                         break
                     else:
                         changed_heroes.remove(hero)
@@ -627,7 +627,7 @@ class Testing(commands.Cog):
             bind_items = []
             for num in range(item_binds_num):
                 for item in sorted(changed_items):
-                    if (len("".join(bind_items)) + len(item)) > 250:
+                    if (len(", ".join(bind_items)) + 2 + len(item)) > 250:
                         break
                     else:
                         changed_items.remove(item)
