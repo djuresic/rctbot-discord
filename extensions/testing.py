@@ -1,3 +1,4 @@
+import math
 import timeit
 from collections import Counter
 from time import strftime, gmtime
@@ -574,6 +575,69 @@ class Testing(commands.Cog):
                     ", ".join(sorted(changed_items)),
                 )
             )
+
+    @commands.command(aliases=["binds", "bind"])
+    @is_senior()
+    async def bounds(self, ctx):
+        token_generator = f"https://{config.HON_ALT_DOMAIN}/site/create-access-token"
+        cat_query = {"discordId": self.bot.user.id, "password": config.HON_CAT_PASSWORD}
+
+        async with aiohttp.ClientSession() as session:
+
+            async with session.get(token_generator, params=cat_query) as resp:
+                token = await resp.text()
+
+            notes_url = f"https://{config.HON_ALT_DOMAIN}/{token}"
+
+            async with session.get(notes_url) as resp:
+                notes = await resp.text()
+
+            changed_heroes = []
+            for hero in ALL_HEROES:
+                if hero in notes and hero not in changed_heroes:
+                    changed_heroes.append(hero)
+
+            if "Chi" in changed_heroes:
+                changed_heroes.remove("Chi")
+
+            changed_items = []
+            for item in ALL_ITEMS:
+                if item in notes and item not in changed_items:
+                    changed_items.append(item)
+
+            # 250 is the character limit for chat messages in HoN.
+            hero_binds_num = math.ceil(len("".join(changed_heroes)) / 250)
+            item_binds_num = math.ceil(len("".join(changed_items)) / 250)
+
+            bind_heroes = []
+            for num in range(hero_binds_num):
+                for hero in sorted(changed_heroes):
+                    if (len("".join(bind_heroes)) + len(hero)) > 250:
+                        break
+                    else:
+                        changed_heroes.remove(hero)
+                        bind_heroes.append(hero)
+                await ctx.send(
+                    f"```\nBind NUM{num+1} ServerChatFromClient "
+                    + ", ".join(bind_heroes)
+                    + "\n```"
+                )
+                bind_heroes = []
+
+            bind_items = []
+            for num in range(item_binds_num):
+                for item in sorted(changed_items):
+                    if (len("".join(bind_items)) + len(item)) > 250:
+                        break
+                    else:
+                        changed_items.remove(item)
+                        bind_items.append(item)
+                await ctx.send(
+                    f"```\nBind NUM{num+1+hero_binds_num} ServerChatFromClient "
+                    + ", ".join(bind_items)
+                    + "\n```"
+                )
+                bind_items = []
 
     # TO DO: this needs to be prettier
     @commands.command(aliases=["hero", "herousage"])
