@@ -34,7 +34,7 @@ class Welcome(commands.Cog):
         )
 
         embed = discord.Embed(
-            title=f"Welcome {member.display_name} to the official Retail Candidate Testers Discord Server!",
+            title=f"Welcome {discord.utils.escape_markdown(member.display_name)} to the official Retail Candidate Testers Discord Server!",
             type="rich",
             description=f"""Please tell us your HoN username so that we can set it as your Discord nickname. Be respectful to every player and use common sense. If you have any questions, ask here on {channel.mention} or talk to a {moderator.mention} in private.
             
@@ -80,7 +80,7 @@ class Welcome(commands.Cog):
         )
 
         embed = discord.Embed(
-            title=f"Welcome {ctx.author.display_name} to the official Retail Candidate Testers Discord Server!",
+            title=f"Welcome {discord.utils.escape_markdown(ctx.author.display_name)} to the official Retail Candidate Testers Discord Server!",
             type="rich",
             description=f"""Please tell us your HoN username so that we can set it as your Discord nickname. Be respectful to every player and use common sense. If you have any questions, ask here on {ctx.channel.mention} or talk to a {moderator.mention} in private.
             
