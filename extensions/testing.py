@@ -538,7 +538,7 @@ class Testing(commands.Cog):
 
             await ctx.send(embed=embed)
 
-    @commands.command(aliases=["changed"])
+    @commands.group(aliases=["changed"], invoke_without_command=True)
     @is_senior()
     async def changes(self, ctx):
         token_generator = f"https://{config.HON_ALT_DOMAIN}/site/create-access-token"
@@ -576,7 +576,7 @@ class Testing(commands.Cog):
                 )
             )
 
-    @commands.command(aliases=["binds", "bind"])
+    @changes.command(aliases=["binds", "bind"])
     @is_senior()
     async def bounds(self, ctx):
         token_generator = f"https://{config.HON_ALT_DOMAIN}/site/create-access-token"
