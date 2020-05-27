@@ -7,6 +7,8 @@ from discord.ext import commands
 import core.perseverance
 import core.config as config
 from core.checks import in_whitelist
+
+from hon.masterserver import Client
 from extensions.testing import game_hosted, cc_detected
 
 
@@ -18,6 +20,21 @@ async def web_server(bot):
     @routes.get("/")
     async def _hello_world(request):
         return web.Response(text=f"Hello, World! {config.WEB_DOMAIN} - OK")
+
+    @routes.get("/hon/{nickname}/id")
+    async def _hon_id(request):
+        nickname = request.match_info["nickname"]
+        async with aiohttp.ClientSession() as session:
+            response = await Client("ac", session=session).show_stats(
+                nickname, "ranked"
+            )
+            if not response or b"account_id" not in response:
+                return web.Response(text="404: Not Found", status=404)
+            data = {
+                "aid": int(response[b"account_id"].decode()),
+                "sid": int(response[b"super_id"].decode()),
+            }
+        return web.json_response(data)
 
     @routes.post(config.WEB_GAME_LOBBY_PATH)
     async def _game_lobby(request):  # POST handler for game lobbies
