@@ -429,7 +429,7 @@ class Stats(commands.Cog):
         if row_values[19] == "Requested" and requester_name.lower() == nick_lower:
             embed.add_field(
                 name="Did you receive your RCT Chat Symbol and Name Color?",
-                value="React with ✅ if they are in your vault or with ❌ if they are not.",
+                value="React with <:yay:717806806889660416> if they are in your vault or with <:nay:717806831916810251> if they are not.",
                 inline=False,
             )
         if requester_discord_id is not None:
@@ -456,8 +456,8 @@ class Stats(commands.Cog):
         if perks_ready_to_claim and requester_name.lower() == nick_lower:
             await message.add_reaction("<:RCT:717710063657156688>")
         if row_values[19] == "Requested" and requester_name.lower() == nick_lower:
-            await message.add_reaction("✅")
-            await message.add_reaction("❌")
+            await message.add_reaction("<:yay:717806806889660416>")
+            await message.add_reaction("<:nay:717806831916810251>")
 
         async def set_perks_status(status):
             gs_client = await spreadsheet.set_client()
@@ -473,7 +473,13 @@ class Stats(commands.Cog):
                 "reaction_add",
                 check=lambda reaction, user: user == ctx.message.author
                 and str(reaction.emoji)
-                in ["🗑️", "💾", "<:RCT:717710063657156688>", "✅", "❌"]
+                in [
+                    "🗑️",
+                    "💾",
+                    "<:RCT:717710063657156688>",
+                    "<:yay:717806806889660416>",
+                    "<:nay:717806831916810251>",
+                ]
                 and reaction.message.id == message.id,
                 timeout=300.0,
             )
@@ -499,7 +505,7 @@ class Stats(commands.Cog):
                 )
 
             if (
-                reaction.emoji == "✅"
+                str(reaction.emoji) == "<:yay:717806806889660416>"
                 and row_values[19] == "Requested"
                 and requester_name.lower() == nick_lower
             ):
@@ -509,7 +515,7 @@ class Stats(commands.Cog):
                 )
 
             if (
-                reaction.emoji == "❌"
+                str(reaction.emoji) == "<:nay:717806831916810251>"
                 and row_values[19] == "Requested"
                 and requester_name.lower() == nick_lower
             ):
