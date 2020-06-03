@@ -8,6 +8,8 @@ from discord.ext import commands
 
 import core.perseverance
 import core.config as config
+import core.spreadsheet as spreadsheet
+import hon.acp as acp
 from core.checks import database_ready, is_senior
 
 from hon.avatar import get_avatar
@@ -19,6 +21,8 @@ from hon.masterserver import Client
 class Stats(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.spreadsheet_name = "RCT Spreadsheet"
+        self.rewards_worksheet_name = "RCT Players and Rewards"
 
     # TO DO: clean up branching, member to user, CAI
     @commands.command(aliases=["info", "sheet", "rank"])
@@ -72,10 +76,16 @@ class Stats(commands.Cog):
                 )
                 if simple_stats and b"nickname" in simple_stats:
                     nick_with_clan_tag = simple_stats[b"nickname"].decode()
+                    if "]" in nick_with_clan_tag:
+                        clan_tag = f"{nick_with_clan_tag.split(']')[0]}]"
+                    else:
+                        clan_tag = ""
                 else:
                     nick_with_clan_tag = nick
+                    clan_tag = None
         except:
             nick_with_clan_tag = nick
+            clan_tag = None
 
         # Check trivia spreadsheet for points.
         try:
@@ -392,6 +402,36 @@ class Stats(commands.Cog):
             )
         if row_values[31] != "":
             embed.add_field(name="Awards", value="\u2063" + row_values[31], inline=True)
+
+        if row_values[19] == "Pending":
+            if clan_tag is not None:
+                if clan_tag == "[RCT]":
+                    perks_message = "React with <:RCT:717710063657156688> to claim your rewards now! Note that it may take several minutes for them to show up in your vault. Please refrain from clicking on this reaction again (in new embedded messages) for the next two minutes."
+                    perks_ready_to_claim = True
+                elif clan_tag in ["[FB]", "[GM]"]:
+                    perks_message = "However, you likely own other volunteer or staff perks. Contact an SRCT if you don't want this message to show again."
+                    perks_ready_to_claim = False
+                else:
+                    perks_message = "Unfortunately, you are not in the RCT clan. Please contact an SRCT to join the clan if you wish to claim your rewards."
+                    perks_ready_to_claim = False
+            else:
+                perks_message = "Unfortunately, we could not retireve your clan tag. Please contact an SRCT if HoN servers are operational and you see this messsage."
+                perks_ready_to_claim = False
+
+            embed.add_field(
+                name="Congratulations! You are eligible for the RCT Chat Symbol and Name Color!",
+                value=perks_message,
+                inline=False,
+            )
+        else:
+            perks_ready_to_claim = False
+
+        if row_values[19] == "Requested":
+            embed.add_field(
+                name="Did you receive your RCT Chat Symbol and Name Color?",
+                value="React with ✅ if they are in your vault or with ❌ if they are not.",
+                inline=False,
+            )
         if requester_discord_id is not None:
             embed.set_footer(
                 text=f"Requested by {requester_name} (✓). Timestamp provided shows the time of last retrieval. React with 🗑️ to delete or with 💾 to preserve this message. No action results in deletion after 5 minutes.",
@@ -413,18 +453,61 @@ class Stats(commands.Cog):
         print(stop - start)
         await message.add_reaction("🗑️")
         await message.add_reaction("💾")
+        if perks_ready_to_claim:
+            await message.add_reaction("<:RCT:717710063657156688>")
+        if row_values[19] == "Requested":
+            await message.add_reaction("✅")
+            await message.add_reaction("❌")
+
+        async def set_perks_status(status):
+            gs_client = await spreadsheet.set_client()
+            ss = await gs_client.open(self.spreadsheet_name)
+            ws = await ss.worksheet(self.rewards_worksheet_name)
+            players_col = await ws.col_values(2)
+            players_col = [player_ent.lower() for player_ent in players_col]
+            player_row = players_col.index(nick_lower) + 1
+            return await ws.update_cell(player_row, 20, status)
 
         try:
             reaction, _ = await self.bot.wait_for(
                 "reaction_add",
                 check=lambda reaction, user: user == ctx.message.author
-                and reaction.emoji in ["🗑️", "💾"]
+                and str(reaction.emoji)
+                in ["🗑️", "💾", "<:RCT:717710063657156688>", "✅", "❌"]
                 and reaction.message.id == message.id,
                 timeout=300.0,
             )
 
             if reaction.emoji == "🗑️":
                 await message.delete()
+
+            if (
+                str(reaction.emoji) == "<:RCT:717710063657156688>"
+                and perks_ready_to_claim
+            ):
+                async with aiohttp.ClientSession(
+                    connector=(await acp.proxy_connector())
+                ) as session:
+                    status = await acp.authenticate(session)
+                    if status != 200:
+                        return await ctx.send(f"Uh oh, something went wrong. {status}")
+                    await acp.add_perks(session, nick_lower, ctx.author)
+                await set_perks_status("Requested")
+                await ctx.send(
+                    f"{ctx.author.mention} Done! Please use this command again in a few minutes to confirm whether you received the RCT Chat Symbol and Name Color."
+                )
+
+            if reaction.emoji == "✅" and row_values[19] == "Requested":
+                await set_perks_status("Yes")
+                await ctx.send(
+                    f"{ctx.author.mention} Awesome! Thanks for using RCTBot."
+                )
+
+            if reaction.emoji == "❌" and row_values[19] == "Requested":
+                await set_perks_status("Pending")
+                await ctx.send(
+                    f"{ctx.author.mention} Perks status set to Pending. You should be able to use the same command and request rewards again in a few minutes."
+                )
 
         except asyncio.TimeoutError:
             await message.delete()
