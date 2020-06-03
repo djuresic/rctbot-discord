@@ -453,9 +453,9 @@ class Stats(commands.Cog):
         print(stop - start)
         await message.add_reaction("🗑️")
         await message.add_reaction("💾")
-        if perks_ready_to_claim:
+        if perks_ready_to_claim and requester_name.lower() == nick_lower:
             await message.add_reaction("<:RCT:717710063657156688>")
-        if row_values[19] == "Requested":
+        if row_values[19] == "Requested" and requester_name.lower() == nick_lower:
             await message.add_reaction("✅")
             await message.add_reaction("❌")
 
@@ -484,6 +484,7 @@ class Stats(commands.Cog):
             if (
                 str(reaction.emoji) == "<:RCT:717710063657156688>"
                 and perks_ready_to_claim
+                and requester_name.lower() == nick_lower
             ):
                 async with aiohttp.ClientSession(
                     connector=(await acp.proxy_connector())
@@ -497,13 +498,21 @@ class Stats(commands.Cog):
                     f"{ctx.author.mention} Done! Please use this command again in a few minutes to confirm whether you received the RCT Chat Symbol and Name Color."
                 )
 
-            if reaction.emoji == "✅" and row_values[19] == "Requested":
+            if (
+                reaction.emoji == "✅"
+                and row_values[19] == "Requested"
+                and requester_name.lower() == nick_lower
+            ):
                 await set_perks_status("Yes")
                 await ctx.send(
                     f"{ctx.author.mention} Awesome! Thanks for using RCTBot."
                 )
 
-            if reaction.emoji == "❌" and row_values[19] == "Requested":
+            if (
+                reaction.emoji == "❌"
+                and row_values[19] == "Requested"
+                and requester_name.lower() == nick_lower
+            ):
                 await set_perks_status("Pending")
                 await ctx.send(
                     f"{ctx.author.mention} Perks status set to Pending. You should be able to use the same command and request rewards again in a few minutes."
