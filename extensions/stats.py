@@ -403,7 +403,7 @@ class Stats(commands.Cog):
         if row_values[31] != "":
             embed.add_field(name="Awards", value="\u2063" + row_values[31], inline=True)
 
-        if row_values[19] == "Pending":
+        if row_values[19] == "Pending" and requester_name.lower() == nick_lower:
             if clan_tag is not None:
                 if clan_tag == "[RCT]":
                     perks_message = "React with <:RCT:717710063657156688> to claim your rewards now! Note that it may take several minutes for them to show up in your vault. Please refrain from clicking on this reaction again (in new embedded messages) for the next two minutes."
@@ -426,7 +426,7 @@ class Stats(commands.Cog):
         else:
             perks_ready_to_claim = False
 
-        if row_values[19] == "Requested":
+        if row_values[19] == "Requested" and requester_name.lower() == nick_lower:
             embed.add_field(
                 name="Did you receive your RCT Chat Symbol and Name Color?",
                 value="React with ✅ if they are in your vault or with ❌ if they are not.",
