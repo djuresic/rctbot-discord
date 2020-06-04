@@ -14,6 +14,7 @@ from core.checks import database_ready, is_senior
 
 from hon.avatar import get_avatar
 from hon.masterserver import Client
+from hon.portal import VPClient
 
 # TO DO: timeout wait_for reaction
 
@@ -381,7 +382,17 @@ class Stats(commands.Cog):
                 value=f"{row_values[8]} ({rank_tc_tokens})",
                 inline=True,
             )
-            embed.add_field(name="Bonuses", value=bonus, inline=True)
+
+            if requester_name.lower() == nick_lower:
+                owned_tokens_message = (
+                    "React with <:gold:711938379587125340> to reveal."
+                )
+            else:
+                owned_tokens_message = f"Available when used by {nick} only!"
+            embed.add_field(
+                name="Tokens owned", value=owned_tokens_message, inline=True,
+            )
+
             embed.add_field(
                 name="Activity rank",
                 value=f"{rank_icons_emoji[rank_name]} {'Unranked' if rank_name == 'No rank' else rank_name}",
@@ -392,10 +403,12 @@ class Stats(commands.Cog):
                 value=f"{rank_chests_emoji[rank_name]} {row_values[12]}x",
                 inline=True,
             )
+            embed.add_field(name="Bonuses", value=bonus, inline=True)
+
             embed.add_field(name="Perks", value=row_values[19], inline=True)
             embed.add_field(name="Absence", value=absence, inline=True)
         embed.add_field(name="Join date", value=row_values[20], inline=True)
-        embed.add_field(name="Trivia points", value=trivia_points, inline=True)
+        # embed.add_field(name="Trivia points", value=trivia_points, inline=True)
         if not current_member and row_values[22] != "":
             embed.add_field(
                 name="Reason for removal", value=row_values[22], inline=False
@@ -453,6 +466,8 @@ class Stats(commands.Cog):
         print(stop - start)
         await message.add_reaction("🗑️")
         await message.add_reaction("💾")
+        if requester_name.lower() == nick_lower:
+            await message.add_reaction("<:gold:711938379587125340>")
         if perks_ready_to_claim and requester_name.lower() == nick_lower:
             await message.add_reaction("<:RCT:717710063657156688>")
         if row_values[19] == "Requested" and requester_name.lower() == nick_lower:
@@ -476,6 +491,7 @@ class Stats(commands.Cog):
                 in [
                     "🗑️",
                     "💾",
+                    "<:gold:711938379587125340>",
                     "<:RCT:717710063657156688>",
                     "<:yay:717806806889660416>",
                     "<:nay:717806831916810251>",
@@ -497,7 +513,9 @@ class Stats(commands.Cog):
                 ) as session:
                     status = await acp.authenticate(session)
                     if status != 200:
-                        return await ctx.send(f"Uh oh, something went wrong. {status}")
+                        return await ctx.send(
+                            f"{ctx.author.mention} Uh oh, something went wrong. {status}"
+                        )
                     await acp.add_perks(session, nick_lower, ctx.author)
                 await set_perks_status("Requested")
                 await ctx.send(
@@ -523,6 +541,35 @@ class Stats(commands.Cog):
                 await ctx.send(
                     f"{ctx.author.mention} Perks status set to Pending. You should be able to use the same command and request rewards again in a few minutes."
                 )
+
+            if (
+                str(reaction.emoji) == "<:gold:711938379587125340>"
+                and requester_name.lower() == nick_lower
+            ):
+                await message.clear_reactions()
+                async with VPClient() as portal:
+                    tokens = await portal.get_tokens(_account_id)
+                embed.set_field_at(
+                    index=8, name="Tokens owned", value=tokens, inline=True
+                )
+                await message.edit(embed=embed)
+                await message.add_reaction("🗑️")
+                await message.add_reaction("💾")
+
+                try:
+                    reaction, _ = await self.bot.wait_for(
+                        "reaction_add",
+                        check=lambda reaction, user: user == ctx.message.author
+                        and str(reaction.emoji) in ["🗑️", "💾"]
+                        and reaction.message.id == message.id,
+                        timeout=300.0,
+                    )
+
+                    if reaction.emoji == "🗑️":
+                        await message.delete()
+
+                except:
+                    await message.delete()
 
         except asyncio.TimeoutError:
             await message.delete()
