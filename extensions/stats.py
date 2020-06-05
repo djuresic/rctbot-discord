@@ -1,6 +1,7 @@
 import asyncio
 import timeit
 import collections
+from io import BytesIO
 
 import aiohttp
 import discord
@@ -10,7 +11,7 @@ import core.perseverance
 import core.config as config
 import core.spreadsheet as spreadsheet
 import hon.acp as acp
-from core.checks import database_ready, is_senior
+from core.checks import database_ready, is_senior, is_tester
 
 from hon.avatar import get_avatar
 from hon.masterserver import Client
@@ -461,6 +462,15 @@ class Stats(commands.Cog):
         # embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
         embed.set_thumbnail(url=rank_icons[rank_name])
         # embed.set_image(url="https://i.imgur.com/PlO2rtf.png") # Hmmm
+        if row_values[35] == "Yes":
+            if row_values[36] != "":
+                embed.set_image(url=row_values[36])
+            else:
+                embed.add_field(
+                    name="You own a Discord Embedded Signature!",
+                    value="Set it up using the `.signature` command to make Merrick even more jealous of you.",
+                    inline=False,
+                )
         message = await ctx.send(embed=embed)
         stop = timeit.default_timer()
         print(stop - start)
@@ -598,6 +608,157 @@ class Stats(commands.Cog):
             icon_url=(await get_avatar(response[b"account_id"].decode())),
         )
         await ctx.send(embed=embed)
+
+    @commands.command()
+    @is_tester()
+    @database_ready()
+    async def signature(self, ctx):
+        "Signature options"
+        price = 300
+        member_discord_id = str(ctx.author.id)
+        for row in config.LIST_OF_LISTS:
+            if row[32] == member_discord_id:
+                row_values = row
+
+        async def set_signature(url=None, purchase=False):
+            gs_client = await spreadsheet.set_client()
+            ss = await gs_client.open(self.spreadsheet_name)
+            ws = await ss.worksheet(self.rewards_worksheet_name)
+            players_col = await ws.col_values(2)
+            players_col = [player_ent.lower() for player_ent in players_col]
+            player_row = players_col.index(row_values[1].lower()) + 1
+            if purchase:
+                return await ws.update_cell(player_row, 36, "Yes")
+            if url is not None:
+                return await ws.update_cell(player_row, 37, url)
+
+        if row_values[35] == "Yes":
+            purchased = True
+        else:
+            purchased = False
+
+        if not purchased:
+            desc = "You do not own a Discord Embedded Signature.\n\nDue to it beings somewhat intrusive and breaking the layout of stats display in some cases, it costs 300 Volunteer Tokens. This is a one time purchase and it is purely cosmetic. It does not give any other benefits other than adding a personal touch to your RCT stats display."
+        else:
+            desc = "Options"
+
+        embed = discord.Embed(
+            title="Discord Embedded Signature",
+            type="rich",
+            description=desc,
+            color=0xFF6600,
+            timestamp=config.LAST_RETRIEVED,
+        )
+        embed.set_author(
+            name=discord.utils.escape_markdown(row_values[1]),
+            icon_url=ctx.author.avatar_url,
+        )
+
+        if purchased:
+            embed.add_field(name="Upload", value="⬆️", inline=True)
+            if row_values[36] != "":
+                embed.add_field(name="Clear", value="🗑️", inline=True)
+                embed.set_image(url=row_values[36])
+        else:
+            embed.add_field(name="Purchase", value="🛒", inline=True)
+
+        embed.add_field(name="Cancel", value="❌", inline=True)
+
+        message = await ctx.send(embed=embed)
+        if purchased:
+            await message.add_reaction("⬆️")
+            if row_values[36] != "":
+                await message.add_reaction("🗑️")
+        else:
+            await message.add_reaction("🛒")
+        await message.add_reaction("❌")
+
+        try:
+            reaction, _ = await self.bot.wait_for(
+                "reaction_add",
+                check=lambda reaction, user: user == ctx.message.author
+                and str(reaction.emoji) in ["❌", "🗑️", "⬆️", "🛒"]
+                and reaction.message.id == message.id,
+                timeout=120.0,
+            )
+            await message.delete()
+
+            if reaction.emoji == "🗑️" and row_values[36] != "":
+                await set_signature("")
+                await ctx.send(
+                    f"{ctx.message.author.mention} Signature cleared! It may take up to a minute for changes to apply.",
+                    delete_after=15.0,
+                )
+
+            if reaction.emoji == "🛒" and not purchased:
+                confirmation = (
+                    "I AM ABSOLUTELY SURE I WANT TO PURCHASE DISCORD EMBEDDED SIGNATURE"
+                )
+                purchase_prompt = await ctx.send(
+                    f"{ctx.message.author.mention} Are you **absolutely sure** you want to purchase **Discord Embedded Signature** for **{price} Volunteer Tokens**? This is irreversible and could leave you with negative tokens.\n\n Type `{confirmation}` to confirm this order, or anything else to cancel."
+                )
+                purchase_confirmation = await self.bot.wait_for(
+                    "message",
+                    check=lambda m: m.author.id == ctx.message.author.id
+                    and m.channel.id == ctx.channel.id,
+                )
+                await purchase_prompt.delete()
+                if purchase_confirmation.content != confirmation:
+                    await purchase_confirmation.delete()
+                    return await ctx.send(
+                        f"{ctx.message.author.mention} Order cancelled.",
+                        delete_after=15.0,
+                    )
+                await purchase_confirmation.delete()
+                try:
+                    async with VPClient() as portal:
+                        await portal.mod_tokens(f"{row_values[1]} -{price}")
+                    await set_signature(purchase=True)
+                    return await ctx.send(
+                        f"{ctx.message.author.mention} Successfully purchased Discord Embedded Signature! Note that it may take up to a minute for the command to reflect changes. Please refrain from attempting to purchase this again if your tokens have been deducted.",
+                        delete_after=30.0,
+                    )
+                except:
+                    return await ctx.send(
+                        f"{ctx.message.author.mention} Something went wrong, please try again.",
+                        delete_after=15.0,
+                    )
+
+            if reaction.emoji == "⬆️" and purchased:
+                do_it_now = await ctx.send(
+                    f"{ctx.message.author.mention} Upload your signature as a message attachment in your next Discord message here."
+                )
+                signature_message = await self.bot.wait_for(
+                    "message",
+                    check=lambda m: m.author.id == ctx.message.author.id
+                    and m.channel.id == ctx.channel.id,
+                )
+                await do_it_now.delete()
+                if len(signature_message.attachments) == 0:
+                    return await ctx.send(
+                        f"{ctx.message.author.mention} You did not attach an image. Use `.signature` to retry.",
+                        delete_after=15.0,
+                    )
+                attachment = signature_message.attachments[0]
+                print(attachment)
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(attachment.url) as resp:
+                        image = await resp.read()
+                sigantures_channel = self.bot.get_channel(718465776172138497)
+                uploaded_signature_message = await sigantures_channel.send(
+                    f"{discord.utils.escape_markdown(row_values[1])}",
+                    file=discord.File(BytesIO(image), filename=attachment.filename),
+                )
+                await signature_message.delete()
+                uploaded_signature_url = uploaded_signature_message.attachments[0].url
+                await set_signature(uploaded_signature_url)
+                await ctx.send(
+                    f"{ctx.message.author.mention} Signature set! It may take up to a minute for changes to apply.",
+                    delete_after=15.0,
+                )
+
+        except:
+            await message.delete()
 
 
 def setup(bot):

@@ -31,8 +31,7 @@ class VPClient:
     async def authenticate(self):
         status, response = await self.request("/auth", method="GET")
         right_part = response.split('name="_token" value="')[1]
-        token = right_part.split('">')[0]
-        self.token = token
+        self.token = right_part.split('">')[0]
 
         data = {
             "_token": self.token,
@@ -41,7 +40,7 @@ class VPClient:
         }
 
         status, response = await self.request("/auth/login", data=data)
-        if status == 200 and "RCTBot" in response:
+        if status == 200 and config.HON_FORUM_USER in response:
             return True
         else:
             return False
@@ -97,12 +96,18 @@ class VPClient:
         else:
             return 0
 
-    async def mod_tokens(self, input_list):
+    async def mod_tokens(self, mod_input):
+        "mod_input list or str"
         path = "/admin/tokens/mod/o/5"
+        if isinstance(mod_input, list):
+            input_list = mod_input
+        else:
+            input_list = [mod_input]
         data = {
             "_token": self.token,
             "modInput": "\n".join(input_list),
         }
+        # print(data)
         return await self.request(path, data=data)
 
 
