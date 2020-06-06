@@ -650,8 +650,7 @@ class Stats(commands.Cog):
             timestamp=config.LAST_RETRIEVED,
         )
         embed.set_author(
-            name=discord.utils.escape_markdown(row_values[1]),
-            icon_url=ctx.author.avatar_url,
+            name=row_values[1], icon_url=ctx.author.avatar_url,
         )
 
         if purchased:
