@@ -6,6 +6,7 @@ from io import BytesIO
 import aiohttp
 import discord
 from discord.ext import commands
+from PIL import Image
 
 import core.perseverance
 import core.config as config
@@ -662,6 +663,10 @@ class Stats(commands.Cog):
             embed.add_field(name="Purchase", value="🛒", inline=True)
 
         embed.add_field(name="Cancel", value="❌", inline=True)
+        embed.set_footer(
+            text="Unlike Custom Account Icons, you may reupload your Discord Embedded Signature at no additional cost. Supports images up to 900 x 150 pixels, which means you can use the same signature for (or from) the Heroes of Newerth forums.",
+            icon_url="https://i.imgur.com/q8KmQtw.png",
+        )
 
         message = await ctx.send(embed=embed)
         if purchased:
@@ -678,7 +683,7 @@ class Stats(commands.Cog):
                 check=lambda reaction, user: user == ctx.message.author
                 and str(reaction.emoji) in ["❌", "🗑️", "⬆️", "🛒"]
                 and reaction.message.id == message.id,
-                timeout=120.0,
+                timeout=300.0,
             )
             await message.delete()
 
@@ -727,6 +732,7 @@ class Stats(commands.Cog):
                 do_it_now = await ctx.send(
                     f"{ctx.message.author.mention} Upload your signature as a message attachment in your next Discord message here."
                 )
+                # Needs timeout
                 signature_message = await self.bot.wait_for(
                     "message",
                     check=lambda m: m.author.id == ctx.message.author.id
@@ -735,19 +741,38 @@ class Stats(commands.Cog):
                 await do_it_now.delete()
                 if len(signature_message.attachments) == 0:
                     return await ctx.send(
-                        f"{ctx.message.author.mention} You did not attach an image. Use `.signature` to retry.",
+                        f"{ctx.message.author.mention} You did not attach an image! Use `.signature` to retry.",
                         delete_after=15.0,
                     )
                 attachment = signature_message.attachments[0]
-                print(attachment)
+                # print(attachment)
                 async with aiohttp.ClientSession() as session:
                     async with session.get(attachment.url) as resp:
-                        image = await resp.read()
+                        image_b = await resp.read()
+                image_bio = BytesIO(image_b)
+                try:
+                    with Image.open(image_bio) as image_pil:
+                        width, height = image_pil.size
+                        # print(width, height)
+                        if width > 900 or height > 150:
+                            await signature_message.delete()
+                            return await ctx.send(
+                                f"{ctx.message.author.mention} Image exceeds maximum allowed dimensions of 900 x 150 pixels! Use `.signature` to retry.\n\nRecommended dimensions: `285 x 95 pixels`\nYour image dimensions: `{width} x {height} pixels`",
+                                delete_after=25.0,
+                            )
+                except:
+                    await signature_message.delete()
+                    return await ctx.send(
+                        f"{ctx.message.author.mention} Unsupported file type! Use `.signature` to retry.",
+                        delete_after=15.0,
+                    )
+                image_bio.seek(0)
                 sigantures_channel = self.bot.get_channel(718465776172138497)
                 uploaded_signature_message = await sigantures_channel.send(
                     f"{discord.utils.escape_markdown(row_values[1])}",
-                    file=discord.File(BytesIO(image), filename=attachment.filename),
+                    file=discord.File(image_bio, filename=attachment.filename),
                 )
+                image_bio.close()
                 await signature_message.delete()
                 uploaded_signature_url = uploaded_signature_message.attachments[0].url
                 await set_signature(uploaded_signature_url)
