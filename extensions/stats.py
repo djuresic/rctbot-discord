@@ -20,6 +20,69 @@ from hon.portal import VPClient
 
 # TO DO: timeout wait_for reaction
 
+# Move this... somewhere.
+async def get_name_color(masterserver_response):
+    selected_upgrades = [
+        v.decode()
+        for v in masterserver_response[b"selected_upgrades"].values()
+        if isinstance(v, bytes)
+    ]
+    chat_colors = {
+        "frostburnlogo": 0xFF0000,
+        "gmgold": 0xDD0040,
+        "gmshield": 0xDD0040,
+        "banhammer": 0xDD0040,
+        "techtinker": 0xDD0040,
+        "mentorwings": 0xFF6600,
+        "sbtsenior": 0x775033,
+        "sbtpremium": 0x0059FF,
+        "sbteye": 0x0059FF,
+        "championofnewerth": 0x6F22B6,
+        "limesoda": 0x66FF99,
+        "darkwitch": 0xDE33FF,
+        "darkpinkrose": 0xFF1493,
+        "pixelpower": 0x00C0FF,
+        "jackpot": 0xFFFF33,
+        "surpriseworldgingerbread": 0xFF0000,
+        "darkbloodyhalloween": 0xFF3000,
+        "candycane": 0xFF0000,
+        "strawberrybananacake": 0xFF6699,
+        "sweetmeat": 0xFFCCFF,  # This one could be changed.
+        "punkpower": 0xFFD200,
+        "naughtymisfit": 0xA0C063,
+        "docileplushie": 0xFF3D8F,
+        "highroller": 0xFBFF0C,
+        "cybercolor": 0xF8732C,
+        "paragonglow": 0x00CEFF,
+        "gcacolor": 0xFFBA00,
+        "soulharvest": 0xFF6C00,
+        "mudblood": 0xFF1A33,
+        "glowinggold": 0xCD9B1D,
+        "glowingpink": 0xFF007F,
+        "glowingursa": 0xD1F500,
+        "glowinghalloween": 0xF8732C,
+        "frostfieldssilver": 0xD3DDEB,
+        "stardustgreen": 0x42F02A,
+        "glowingwater": 0x4BFCFC,
+        "aquamarine": 0x00FDB2,
+        "emerald": 0x1CFC2F,
+        "tanzanite": 0x863EF0,
+        "pink": 0xFC65A5,
+        "diamond": 0x2AC1FA,
+        "goldshield": 0xDBBF4A,
+        "silvershield": 0x7C8DA7,
+        "white": 0xFFFFFF,
+    }
+    color = None
+    for upgrade in selected_upgrades:
+        if upgrade.startswith("cc."):
+            color = upgrade[3:]
+            break
+    if color is not None and color in chat_colors:
+        return chat_colors[color]
+    else:
+        return 0xFFFFFF
+
 
 class Stats(commands.Cog):
     def __init__(self, bot):
@@ -79,6 +142,7 @@ class Stats(commands.Cog):
                 )
                 if simple_stats and b"nickname" in simple_stats:
                     nick_with_clan_tag = simple_stats[b"nickname"].decode()
+                    name_color = await get_name_color(simple_stats)
                     if "]" in nick_with_clan_tag:
                         clan_tag = f"{nick_with_clan_tag.split(']')[0]}]"
                     else:
@@ -86,9 +150,11 @@ class Stats(commands.Cog):
                 else:
                     nick_with_clan_tag = nick
                     clan_tag = None
+                    name_color = 0xFFFFFF
         except:
             nick_with_clan_tag = nick
             clan_tag = None
+            name_color = 0xFFFFFF
 
         # Check trivia spreadsheet for points.
         try:
@@ -337,7 +403,7 @@ class Stats(commands.Cog):
             type="rich",
             description=f"Information for {role_translations[row_values[0]]} {nick}.",
             url="https://forums.heroesofnewerth.com/forumdisplay.php?209-Retail-Candidate-Testers",
-            color=0xFF6600,
+            color=name_color,
             timestamp=config.LAST_RETRIEVED,
         )
         embed.set_author(
