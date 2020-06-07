@@ -1,12 +1,12 @@
 import aiohttp
 import asyncio
+from bs4 import BeautifulSoup
 
 import core.perseverance
 import core.config as config
 
-# TO DO: Use Beautiful Soup
 
-
+# FIXME: Not singleton pattern.
 class VPClient:
     def __init__(self, session=None):
         self.url = config.HON_VP_URL
@@ -29,9 +29,16 @@ class VPClient:
         await self.session.close()
 
     async def authenticate(self):
-        status, response = await self.request("/auth", method="GET")
-        right_part = response.split('name="_token" value="')[1]
-        self.token = right_part.split('">')[0]
+        status, text = await self.request("/auth", method="GET")
+        if status != 200:
+            return False
+
+        def find_token(response_text):
+            soup = BeautifulSoup(response_text, "lxml")
+            return soup.find(attrs={"name": "_token"})["value"]
+
+        loop = asyncio.get_running_loop()
+        self.token = await loop.run_in_executor(None, find_token, text)
 
         data = {
             "_token": self.token,
@@ -39,10 +46,12 @@ class VPClient:
             "username": config.HON_FORUM_USER,
         }
 
-        status, response = await self.request("/auth/login", data=data)
-        if status == 200 and config.HON_FORUM_USER in response:
+        status, text = await self.request("/auth/login", data=data)
+        if status == 200 and config.HON_FORUM_USER in text:
+            print("logged in")
             return True
         else:
+            print("login failed")
             return False
 
     async def request(
@@ -55,23 +64,23 @@ class VPClient:
         read_until_eof=True,
     ):
 
-        status, response = await self._do_request(
+        status, text = await self._do_request(
             path, params, data, method, chunked, read_until_eof
         )
         if status in [401, 403, 500]:
             for attempt in range(5):
                 authenticated = await self.authenticate()
                 if authenticated:
-                    status, response = await self._do_request(
+                    status, text = await self._do_request(
                         path, params, data, method, chunked, read_until_eof
                     )
-                    return status, response
+                    return status, text
                 else:
                     print(f"Portal authentication attempt {attempt+1} failed")
                 await asyncio.sleep(attempt + 2)
-            return status, response
+            return status, text
         else:
-            return status, response
+            return status, text
 
     async def _do_request(self, path, params, data, method, chunked, read_until_eof):
         async with self.session.request(
@@ -81,20 +90,22 @@ class VPClient:
             data=data,
             chunked=chunked,
             read_until_eof=read_until_eof,
-        ) as resp:
-            return resp.status, (await resp.text())
+        ) as response:
+            return response.status, (await response.text())
 
     async def get_tokens(self, account_id):
         path = f"/admin/user/edit/o/5/u/{account_id}"
-        status, response = await self.request(path, method="GET")
+        status, text = await self.request(path, method="GET")
         if status == 200:
-            right_part = response.split(
-                'placeholder="Enter tokens" autocomplete="off" value="'
-            )[1]
-            tokens = right_part.split('">')[0]
-            return float(tokens)
+
+            def find_tokens_value(response_text):
+                soup = BeautifulSoup(response_text, "lxml")
+                return float(soup.find(attrs={"name": "tokens"})["value"])
+
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(None, find_tokens_value, text)
         else:
-            return 0
+            return 0.0
 
     async def mod_tokens(self, mod_input):
         "mod_input list or str"
@@ -107,8 +118,27 @@ class VPClient:
             "_token": self.token,
             "modInput": "\n".join(input_list),
         }
-        # print(data)
-        return await self.request(path, data=data)
+        status, text = await self.request(path, data=data)
+
+        def mod_tokens_result(response_text):
+            soup = BeautifulSoup(response_text, "lxml")
+            success = soup.find(attrs={"class": "alert-success"})
+            error = soup.find(attrs={"class": "alert-danger"})
+            # TODO: Extract list items in case of error.
+            if success is not None:
+                success = success.string
+            if error is not None:
+                error = error.string
+            return success, error
+
+        if status == 200:
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(None, mod_tokens_result, text)
+        else:
+            return (
+                None,
+                f"Failed to modify tokens. Status code: {status}",
+            )
 
 
 def setup(bot):
