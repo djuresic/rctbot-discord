@@ -4,3 +4,5 @@ oauth2client
 srp
 aiohttp_socks
 Pillow
+beautifulsoup4
+lxml
