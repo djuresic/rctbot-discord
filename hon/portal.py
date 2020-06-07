@@ -48,10 +48,8 @@ class VPClient:
 
         status, text = await self.request("/auth/login", data=data)
         if status == 200 and config.HON_FORUM_USER in text:
-            print("logged in")
             return True
         else:
-            print("login failed")
             return False
 
     async def request(
