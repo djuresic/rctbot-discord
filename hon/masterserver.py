@@ -243,12 +243,11 @@ class Client:
         return {"nickname": cs_nickname.decode(), "account_id": account_id.decode()}
 
     async def id2nick(self, account_id):
-        result = await self.request({"f": "id2nick", "account_id[]": account_id})
+        result = await self.request({"f": "id2nick", "account_id[]": str(account_id)})
         try:
-            nickname = result[int(account_id)]
+            return result[int(account_id)].decode()
         except:
-            nickname = result
-        return nickname
+            return result
 
     async def show_stats(self, nickname, table):
         query = {"f": "show_stats", "nickname": nickname.lower(), "table": table}
@@ -300,7 +299,7 @@ class MasterserverTesting(commands.Cog):
             ms = Client(masterserver, session=session)
             result = await ms.id2nick(account_id)
         await ctx.send(
-            f'Client: {ms.short_client_name}\nID: {account_id}\nNickname: **{result.decode() if result is not None and not isinstance(result, dict) else f"N/A {result}"}**'
+            f'Client: {ms.short_client_name}\nID: {account_id}\nNickname: **{result if result is not None and not isinstance(result, dict) else f"N/A {result}"}**'
         )  # This
 
     @commands.command()
