@@ -26,6 +26,7 @@ class VPClient:
         await self.close()
 
     async def close(self):
+        await self.request("/auth/logout", method="GET")
         await self.session.close()
 
     async def authenticate(self):
