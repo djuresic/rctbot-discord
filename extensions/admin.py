@@ -13,6 +13,8 @@ from core.checks import is_senior, is_tester
 import core.spreadsheet as spreadsheet
 
 import hon.acp as acp
+from hon.avatar import get_avatar
+from hon.acp2 import ACPClient
 from hon.masterserver import Client
 
 
@@ -340,9 +342,7 @@ class Administration(commands.Cog):
 
     @commands.command(aliases=["lu", "lup", "lkp", "lkup"])
     @is_senior()
-    async def lookup(
-        self, ctx, player: str, masterserver: str = "ac", upgrades: str = "False"
-    ):
+    async def lookup(self, ctx, player: str, masterserver: str = "ac", *args):
         """lookup <nickname or account ID> <masterserver> [-u|--upgrades]"""
         session = aiohttp.ClientSession()
         ms = Client(masterserver, session=session)
@@ -351,16 +351,26 @@ class Administration(commands.Cog):
             if result is not None and not isinstance(
                 result, dict
             ):  # Till id2nick returns nick
-                player = result.decode().lower()
+                player = result.lower()
             else:
                 return await ctx.send("Account does not exist.")
         else:
             player = player.lower()
 
-        def to_bool(upgrades):
-            return upgrades.lower() in ("true", "1", "yes", "-u", "--upgrades")
+        if "-u" in args or "--upgrades" in args:
+            upgrades = True
+        else:
+            upgrades = False
 
-        upgrades = to_bool(upgrades)
+        if "-s" in args or "--sub-accounts" in args:
+            subs = True
+        else:
+            subs = False
+
+        if "-a" in args or "--avatar" in args:
+            avatar = True
+        else:
+            avatar = False
 
         data = await ms.show_stats(player, "ranked")
 
@@ -389,11 +399,19 @@ class Administration(commands.Cog):
             )
         await session.close()
 
+        if subs:
+            async with ACPClient(masterserver=masterserver) as acp:
+                sub_accounts = await acp.get_sub_accounts(account_id)
+                fields = [
+                    {"name": "Fields", "value": "Sub-accounts", "inline": False},
+                ]
+                await acp.log_action(ctx, account_id, "viewed", fields)
+
         if masterserver == "ac":
-            # account_icon_url = await get_avatar(account_id)
-            account_icon_url = (
-                "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
-            )
+            if avatar:
+                account_icon_url = await get_avatar(account_id)
+            else:
+                account_icon_url = "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
         else:
             account_icon_url = (
                 "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
@@ -482,6 +500,14 @@ class Administration(commands.Cog):
             embed.add_field(name="Avatars", value=data_ss[b"avatar_num"], inline=True)
             embed.add_field(name="Selected", value=selected_upgrades, inline=True)
             embed.add_field(name="Other", value=other_upgrades, inline=True)
+
+        if subs:
+            account_names = [account[1] for account in sub_accounts]
+            embed.add_field(
+                name=f"Accounts ({len(account_names)})",
+                value=discord.utils.escape_markdown(", ".join(account_names)),
+                inline=True,
+            )
 
         embed.set_footer(
             text="Requested by {0} ({1}#{2}). React with 🗑️ to delete, 💾 to keep this message.".format(
