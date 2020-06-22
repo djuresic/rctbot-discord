@@ -17,6 +17,7 @@ from core.checks import database_ready, is_senior, is_tester
 from hon.avatar import get_avatar
 from hon.masterserver import Client
 from hon.portal import VPClient
+from hon.acp2 import ACPClient
 
 # TO DO: timeout wait_for reaction
 
@@ -93,7 +94,7 @@ class Stats(commands.Cog):
     # TO DO: clean up branching, member to user, CAI
     @commands.command(aliases=["info", "sheet", "rank"])
     @database_ready()
-    async def stats(self, ctx, member: str = ""):
+    async def rct(self, ctx, member: str = ""):
         """Gets user's RCT game info from the sheet."""
         start = timeit.default_timer()
         list_of_lists = config.LIST_OF_LISTS
@@ -136,6 +137,7 @@ class Stats(commands.Cog):
         nick = row_values[1]
         nick_lower = nick.lower()
         try:
+            # timeout = aiohttp.ClientTimeout(total=5)
             async with aiohttp.ClientSession() as session:
                 simple_stats = await Client("ac", session=session).show_simple_stats(
                     nick
@@ -652,29 +654,255 @@ class Stats(commands.Cog):
             await message.delete()
 
     # change to .stats, rename current .stats command to .rct
-    @commands.command(aliases=["rstats"])
-    @is_senior()
-    @database_ready()
-    async def retail(self, ctx, nickname: str):
-        "retail simple stats"
+    @commands.command(aliases=["rstats", "retail"])
+    async def stats(self, ctx, nickname: str):
+        "Retail player statistics."
         async with aiohttp.ClientSession() as session:
             client = Client("ac", session=session)
-            response = await client.show_simple_stats(nickname)
-            print(response)
+            simple = await client.show_simple_stats(nickname)
+            campaign = await client.show_stats(nickname, "campaign")
+            # print(campaign)
         embed = discord.Embed(
             title=client.client_name,
             type="rich",
-            description="Simple Stats",
-            url="https://forums.heroesofnewerth.com/forumdisplay.php?209-Retail-Candidate-Testers",
-            color=client.color,
+            description="Player Statistics",
+            url=f"http://www.heroesofnewerth.com/playerstats/ranked/{nickname}",
+            color=(await get_name_color(simple)),
             timestamp=ctx.message.created_at,
         )
+        # embed.add_field(
+        #    name="Test",
+        #    value="[Guide](https://discordjs.guide/ 'optional hovertext')",
+        #    inline=True,
+        # )
+        embed.add_field(
+            name="Level", value=campaign[b"level"].decode(), inline=True,
+        )
+        embed.add_field(
+            name="Account Created",
+            value=campaign[b"create_date"].decode(),
+            inline=True,
+        )
+        embed.add_field(
+            name="Last Activity",
+            value=campaign[b"last_activity"].decode()
+            if b"last_activity" in campaign
+            else "\u2063",
+            inline=True,
+        )
+        embed.add_field(
+            name="Standing",
+            value=config.HON_STANDING_MAP[campaign[b"standing"].decode()],
+            inline=True,
+        )
+        embed.add_field(
+            name="Clan Name",
+            value=campaign[b"name"].decode() if b"name" in campaign else "\u2063",
+            inline=True,
+        )
+        embed.add_field(
+            name="Clan Rank",
+            value=campaign[b"rank"].decode() if b"rank" in campaign else "\u2063",
+            inline=True,
+        )
+        if b"cam_games_played" in campaign:
+            con_total = int(campaign[b"cam_games_played"].decode())
+        else:
+            con_total = 0
+        if b"cam_wins" in campaign:
+            con_wins = int(campaign[b"cam_wins"].decode())
+        else:
+            con_wins = 0
+        if con_total > 0:
+            con_win_rate = round((con_wins / con_total) * 100)
+        else:
+            con_win_rate = 0
+        embed.add_field(
+            name="Total Games",
+            value=f'{campaign[b"total_games_played"]} ({campaign[b"total_discos"]} Disconnects)',
+            inline=True,
+        )
+        embed.add_field(
+            name="CoN Games",
+            value=f'{con_total} ({campaign[b"cam_discos"].decode() if b"cam_discos" in campaign else 0} Disconnects)',
+            inline=True,
+        )
+        embed.add_field(
+            name="Mid Wars Games",
+            value=f'{campaign[b"mid_games_played"].decode()} ({campaign[b"mid_discos"].decode()} Disconnects)',
+            inline=True,
+        )
+
+        con_rank = (
+            int(campaign[b"current_level"]) if b"current_level" in campaign else 0
+        )
+        con_rank_highest = (
+            int(campaign[b"highest_level_current"])
+            if b"highest_level_current" in campaign
+            else 0
+        )
+        con_rank_percent = (
+            round(campaign[b"level_percent"]) if b"level_percent" in campaign else 0
+        )
+        rank_data = {
+            20: {"name": "Immortal", "image": "https://i.imgur.com/em0NhHz.png"},
+            19: {"name": "Legendary I", "image": "https://i.imgur.com/OttPTfr.png"},
+            18: {"name": "Legendary II", "image": "https://i.imgur.com/0M6ht3c.png"},
+            17: {"name": "Diamond I", "image": "https://i.imgur.com/j3tcf3d.png"},
+            16: {"name": "Diamond II", "image": "https://i.imgur.com/gZGYIVa.png"},
+            15: {"name": "Diamond III", "image": "https://i.imgur.com/lt7m4zE.png"},
+            14: {"name": "Gold I", "image": "https://i.imgur.com/aMVvZ40.png"},
+            13: {"name": "Gold II", "image": "https://i.imgur.com/p3M9lFF.png"},
+            12: {"name": "Gold III", "image": "https://i.imgur.com/rfb0SAn.png"},
+            11: {"name": "Gold IV", "image": "https://i.imgur.com/5l7a5Vl.png"},
+            10: {"name": "Silver I", "image": "https://i.imgur.com/slkd8EJ.png"},
+            9: {"name": "Silver II", "image": "https://i.imgur.com/rcDllgP.png"},
+            8: {"name": "Silver III", "image": "https://i.imgur.com/nBTQSM3.png"},
+            7: {"name": "Silver IV", "image": "https://i.imgur.com/cx6YPn7.png"},
+            6: {"name": "Silver V", "image": "https://i.imgur.com/gGjhDIM.png"},
+            5: {"name": "Bronze I", "image": "https://i.imgur.com/3vTVsdC.png"},
+            4: {"name": "Bronze II", "image": "https://i.imgur.com/lH6LCnT.png"},
+            3: {"name": "Bronze III", "image": "https://i.imgur.com/Q4fHFT1.png"},
+            2: {"name": "Bronze IV", "image": "https://i.imgur.com/OfOolSK.png"},
+            1: {"name": "Bronze V", "image": "https://i.imgur.com/XW9tUlV.png"},
+            0: {"name": "Unranked", "image": "https://i.imgur.com/h0RcR5h.png"},
+        }
+        embed.add_field(
+            name="Rank", value=rank_data[con_rank]["name"], inline=True,
+        )
+        embed.set_thumbnail(url=rank_data[con_rank]["image"])
+        embed.add_field(
+            name="Highest Rank", value=rank_data[con_rank_highest]["name"], inline=True,
+        )
+        embed.add_field(
+            name="Rank Progress", value=f"{con_rank_percent}%", inline=True,
+        )
+
+        embed.add_field(
+            name="Wins", value=f"{con_wins}", inline=True,
+        )
+        if b"cam_losses" in campaign:
+            cam_losses = campaign[b"cam_losses"].decode()
+            cam_concedes = campaign[b"cam_concedes"].decode()
+        else:
+            cam_losses = 0
+            cam_concedes = 0
+        embed.add_field(
+            name="Losses", value=f"{cam_losses} ({cam_concedes} Conceded)", inline=True,
+        )
+        embed.add_field(
+            name="Win Rate", value=f"{con_win_rate}%", inline=True,
+        )
+
+        kills = (
+            int(campaign[b"cam_herokills"].decode())
+            if b"cam_herokills" in campaign
+            else 0
+        )
+        deaths = (
+            int(campaign[b"cam_deaths"].decode()) if b"cam_deaths" in campaign else 0
+        )
+        assists = (
+            int(campaign[b"cam_heroassists"].decode())
+            if b"cam_heroassists" in campaign
+            else 0
+        )
+        embed.add_field(
+            name="Kills", value=kills, inline=True,
+        )
+        embed.add_field(
+            name="Deaths", value=deaths, inline=True,
+        )
+        embed.add_field(
+            name="Assists", value=assists, inline=True,
+        )
+
+        lifetime = f"""K:D Ratio: {round(kills/deaths, 2) if deaths > 0 else 0}:1
+        K+A:D Ratio: {round((kills+assists)/deaths, 2) if deaths > 0 else 0}:1
+        Wards Placed: {campaign[b"cam_wards"].decode() if b"cam_wards" in campaign else 0}
+        Buildings Razed: {campaign[b"cam_razed"].decode() if b"cam_razed" in campaign else 0}
+        Consumables Used: {campaign[b"cam_consumables"].decode() if b"cam_consumables" in campaign else 0}
+        Buybacks: {campaign[b"cam_buybacks"].decode() if b"cam_buybacks" in campaign else 0}
+        Concede Votes: {campaign[b"cam_concedevotes"].decode() if b"cam_concedevotes" in campaign else 0}
+        """
+        average = f"""Game Length: {campaign[b"avgGameLength"] if b"avgGameLength" in campaign else 0}
+        K/D/A: {campaign[b"k_d_a"].decode() if b"k_d_a" in campaign else 0}
+        Creep Kills: {campaign[b"avgCreepKills"] if b"avgCreepKills" in campaign else 0}
+        Creep Denies: {campaign[b"avgDenies"] if b"avgDenies" in campaign else 0}
+        Neutral Kills: {campaign[b"avgNeutralKills"] if b"avgNeutralKills" in campaign else 0}
+        XPM: {campaign[b"avgXP_min"] if b"avgXP_min" in campaign else 0}
+        APM: {campaign[b"avgActions_min"] if b"avgActions_min" in campaign else 0}
+        Wards Placed: {campaign[b"avgWardsUsed"] if b"avgWardsUsed" in campaign else 0}
+        """
+
+        streaks = f"""Serial Killer (3): {campaign[b"cam_ks3"].decode() if b"cam_ks3" in campaign else 0}
+        Ultimate Warrior (4): {campaign[b"cam_ks4"].decode() if b"cam_ks4" in campaign else 0}
+        Legendary (5): {campaign[b"cam_ks5"].decode() if b"cam_ks5" in campaign else 0}
+        Onslaught (6): {campaign[b"cam_ks6"].decode() if b"cam_ks6" in campaign else 0}
+        Savage Sick (7): {campaign[b"cam_ks7"].decode() if b"cam_ks7" in campaign else 0}
+        Dominating (8): {campaign[b"cam_ks8"].decode() if b"cam_ks8" in campaign else 0}
+        Champion (9): {campaign[b"cam_ks9"].decode() if b"cam_ks9" in campaign else 0}
+        Bloodbath (10): {campaign[b"cam_ks10"].decode() if b"cam_ks10" in campaign else 0}
+        Immortal (15): {campaign[b"cam_ks15"].decode() if b"cam_ks15" in campaign else 0}
+        """
+        multikills = f"""Double Tap: {campaign[b"cam_doublekill"].decode() if b"cam_doublekill" in campaign else 0}
+        Hat-Trick: {campaign[b"cam_triplekill"].decode() if b"cam_triplekill" in campaign else 0}
+        Quad Kill: {campaign[b"cam_quadkill"].decode() if b"cam_quadkill" in campaign else 0}
+        Annihilation: {campaign[b"cam_annihilation"].decode() if b"cam_annihilation" in campaign else 0}
+        """
+        misc = f"""Bloodlust: {campaign[b"cam_bloodlust"].decode() if b"cam_bloodlust" in campaign else 0}
+        Smackdown: {campaign[b"cam_smackdown"].decode() if b"cam_smackdown" in campaign else 0}
+        Humiliation: {campaign[b"cam_humiliation"].decode() if b"cam_humiliation" in campaign else 0}
+        Nemesis: {campaign[b"cam_nemesis"].decode() if b"cam_nemesis" in campaign else 0}
+        Retribution: {campaign[b"cam_retribution"].decode() if b"cam_retribution" in campaign else 0}
+        """
+
+        heroes = []
+        for number in range(1, 6):
+            hero = campaign[f"favHero{number}_2".encode()].decode()
+            if hero != "":
+                heroes.append(f'{hero} ({campaign[f"favHero{number}Time".encode()]}%)')
+
+        embed.add_field(
+            name="Most Played Heroes",
+            value="\n".join(heroes) if len(heroes) > 0 else "\u2063",
+            inline=True,
+        )
+        embed.add_field(
+            name="Lifetime Statistics", value=lifetime, inline=True,
+        )
+        embed.add_field(
+            name="Average Statistics", value=average, inline=True,
+        )
+        embed.add_field(
+            name="Streaks", value=streaks, inline=True,
+        )
+        embed.add_field(
+            name="Multi-Kills", value=multikills, inline=True,
+        )
+        embed.add_field(
+            name="Miscellaneous", value=misc, inline=True,
+        )
         embed.set_author(
-            name=response[b"nickname"].decode(),
-            url=f"https://forums.heroesofnewerth.com/member.php?{response[b'account_id'].decode()}",
-            icon_url=(await get_avatar(response[b"account_id"].decode())),
+            name=simple[b"nickname"].decode(),
+            url=f"https://forums.heroesofnewerth.com/member.php?{simple[b'account_id'].decode()}",
+            icon_url=(await get_avatar(simple[b"account_id"].decode())),
+        )
+        embed.set_footer(
+            text="Displays detailed statistics for Champions of Newerth (Forests of Caldavar Campaign) only.",
+            icon_url="https://i.imgur.com/q8KmQtw.png",
         )
         await ctx.send(embed=embed)
+
+    @commands.command(aliases=["matchstats"])
+    @is_senior()
+    @database_ready()
+    async def mstats(self, ctx, matchid: int):
+        "retail match stats"
+        async with aiohttp.ClientSession() as session:
+            client = Client("ac", session=session)
+            response = await client.get_match_stats(matchid)
+            print(list(response[b"match_player_stats"][matchid].values())[2])
 
     @commands.command()
     @is_tester()
