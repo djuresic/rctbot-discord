@@ -372,12 +372,19 @@ class Administration(commands.Cog):
         else:
             avatar = False
 
+        if "-r" in args or "--rap" in args:
+            suspension = True
+        else:
+            suspension = False
+
         data = await ms.show_stats(player, "ranked")
 
         try:
             account_id = data[b"account_id"].decode()
         except:
             return await ctx.send("Account does not exist.")
+
+        super_id = data[b"super_id"].decode()
 
         if upgrades:
             data_ss = await ms.show_simple_stats(player)
@@ -399,11 +406,27 @@ class Administration(commands.Cog):
             )
         await session.close()
 
-        if subs:
+        if subs or suspension:
             async with ACPClient(masterserver=masterserver) as acp:
-                sub_accounts = await acp.get_sub_accounts(account_id)
+                fields_value = []
+                if subs:
+                    sub_accounts = await acp.get_sub_accounts(account_id)
+                    fields_value.append("Sub-accounts")
+                if suspension:
+                    active_suspension = await acp.check_suspension(super_id)
+                    active_suspension = (
+                        active_suspension.replace("<strong>", "")
+                        .replace("</strong>", "")
+                        .replace("<br />", "\n")
+                    )
+                    fields_value.append("Suspension")
+
                 fields = [
-                    {"name": "Fields", "value": "Sub-accounts", "inline": False},
+                    {
+                        "name": "Fields",
+                        "value": ", ".join(fields_value),
+                        "inline": False,
+                    },
                 ]
                 await acp.log_action(ctx, account_id, "viewed", fields)
 
@@ -479,7 +502,7 @@ class Administration(commands.Cog):
 
         embed.add_field(name="Nickname", value=nickname, inline=True)
         embed.add_field(name="Account ID", value=account_id, inline=True)
-        embed.add_field(name="Super ID", value=data[b"super_id"].decode(), inline=True)
+        embed.add_field(name="Super ID", value=super_id, inline=True)
 
         embed.add_field(
             name="Created", value=data[b"create_date"].decode(), inline=True
@@ -506,7 +529,14 @@ class Administration(commands.Cog):
             embed.add_field(
                 name=f"Accounts ({len(account_names)})",
                 value=discord.utils.escape_markdown(", ".join(account_names)),
-                inline=True,
+                inline=False,
+            )
+
+        if suspension:
+            embed.add_field(
+                name="Suspension",
+                value=discord.utils.escape_markdown(active_suspension),
+                inline=False,
             )
 
         embed.set_footer(

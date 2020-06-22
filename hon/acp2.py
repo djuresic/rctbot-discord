@@ -54,7 +54,7 @@ class ACPClient:
         # print(self.url, self.ssl)
 
     async def authenticate(self):
-        status, text = await self.request(
+        status, _, text = await self.request(
             config.HON_ACP_AUTH, data=config.HON_ACP_MAGIC, ssl=self.ssl
         )
         if status in [200, 302] and config.HON_FORUM_USER in text:
@@ -73,23 +73,23 @@ class ACPClient:
         ssl=True,
     ):
 
-        status, text = await self._do_request(
+        status, headers, text = await self._do_request(
             path, params, data, method, chunked, read_until_eof, ssl
         )
         if status in [401, 403, 500]:
             for attempt in range(5):
                 authenticated = await self.authenticate()
                 if authenticated:
-                    status, text = await self._do_request(
+                    status, headers, text = await self._do_request(
                         path, params, data, method, chunked, read_until_eof, ssl
                     )
-                    return status, text
+                    return status, headers, text
                 else:
                     print(f"ACP authentication attempt {attempt+1} failed")
                 await asyncio.sleep(attempt + 2)
-            return status, text
+            return status, headers, text
         else:
-            return status, text
+            return status, headers, text
 
     async def _do_request(
         self, path, params, data, method, chunked, read_until_eof, ssl
@@ -103,7 +103,7 @@ class ACPClient:
             read_until_eof=read_until_eof,
             ssl=ssl,
         ) as response:
-            return response.status, (await response.text())
+            return response.status, response.headers, (await response.text())
 
     # TODO: Better way of doing this.
     async def log_action(self, ctx, account_id, action_verb, fields):
@@ -126,7 +126,7 @@ class ACPClient:
     async def get_sub_accounts(self, account_id):
         path = config.HON_ACP_PROFILE
         query = {"f": "modify", "aid": account_id}
-        status, text = await self.request(
+        status, _, text = await self.request(
             path, params=query, method="GET", ssl=self.ssl
         )
         if status == 200:
@@ -142,6 +142,17 @@ class ACPClient:
 
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, find_accounts, text)
+        else:
+            return None
+
+    async def check_suspension(self, super_id):
+        path = config.HON_ACP_SUSPENSION
+        query = {"super_id": super_id}
+        status, _, text = await self.request(
+            path, params=query, method="GET", ssl=self.ssl
+        )
+        if status == 200:
+            return text
         else:
             return None
 
