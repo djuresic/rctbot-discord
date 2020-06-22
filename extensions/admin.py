@@ -344,6 +344,9 @@ class Administration(commands.Cog):
     @is_senior()
     async def lookup(self, ctx, player: str, masterserver: str = "ac", *args):
         """lookup <nickname or account ID> <masterserver> [-u|--upgrades]"""
+        if masterserver.startswith("-"):
+            args += (masterserver,)
+            masterserver = "ac"
         session = aiohttp.ClientSession()
         ms = Client(masterserver, session=session)
         if player.isdigit():
