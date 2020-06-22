@@ -165,7 +165,10 @@ class Client:
                 print("Something went wrong while querying masterserver")
                 return None  # False
             if deserialize:
-                return phpserialize.loads(data.encode())
+                loop = asyncio.get_running_loop()
+                return await loop.run_in_executor(
+                    None, phpserialize.loads, data.encode()
+                )
             else:
                 return data
 
@@ -258,7 +261,7 @@ class Client:
         return await self.ensure_request(query)
 
     async def get_match_stats(self, match_id):
-        query = {"f": "get_match_stats", "match_id[]": match_id}
+        query = {"f": "get_match_stats", "match_id[]": str(match_id)}
         return await self.ensure_request(query, cookie=True)
 
 
