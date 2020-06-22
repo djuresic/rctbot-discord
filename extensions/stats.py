@@ -817,15 +817,16 @@ class Stats(commands.Cog):
             name="Assists", value=assists, inline=True,
         )
 
-        lifetime = f"""K:D Ratio: {round(kills/deaths, 2) if deaths > 0 else 0}:1
-        K+A:D Ratio: {round((kills+assists)/deaths, 2) if deaths > 0 else 0}:1
+        lifetime = f"""K:D Ratio: {round(kills/deaths, 2) if deaths > 0 else kills}:{1 if deaths > 0 else 0}
+        K+A:D Ratio: {round((kills+assists)/deaths, 2) if deaths > 0 else kills + assists}:{1 if deaths > 0 else 0}
         Wards Placed: {campaign[b"cam_wards"].decode() if b"cam_wards" in campaign else 0}
         Buildings Razed: {campaign[b"cam_razed"].decode() if b"cam_razed" in campaign else 0}
         Consumables Used: {campaign[b"cam_consumables"].decode() if b"cam_consumables" in campaign else 0}
         Buybacks: {campaign[b"cam_buybacks"].decode() if b"cam_buybacks" in campaign else 0}
         Concede Votes: {campaign[b"cam_concedevotes"].decode() if b"cam_concedevotes" in campaign else 0}
         """
-        average = f"""Game Length: {campaign[b"avgGameLength"] if b"avgGameLength" in campaign else 0}
+
+        average = f"""Game Length: {"{:02d}:{:02d}".format(*divmod(round(campaign[b"avgGameLength"]), 60)) if b"avgGameLength" in campaign else "00:00"}
         K/D/A: {campaign[b"k_d_a"].decode() if b"k_d_a" in campaign else 0}
         Creep Kills: {campaign[b"avgCreepKills"] if b"avgCreepKills" in campaign else 0}
         Creep Denies: {campaign[b"avgDenies"] if b"avgDenies" in campaign else 0}
