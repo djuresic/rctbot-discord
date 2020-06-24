@@ -8,6 +8,11 @@ import core.config as config
 
 # FIXME: Not singleton pattern.
 class VPClient:
+    """Class representing a HoN Volunteer Portal client.
+    
+    Asynchronous context manager if `async with` statement is used.
+    Creates a new session if one isn't provided."""
+
     def __init__(self, session=None):
         self.url = config.HON_VP_URL
         if session is None:
@@ -26,10 +31,12 @@ class VPClient:
         await self.close()
 
     async def close(self):
+        """Coroutine. Log out and close the session."""
         await self.request("/auth/logout", method="GET")
         await self.session.close()
 
     async def authenticate(self):
+        """Coroutine. Perform authentication. Returns authenticated status as bool."""
         status, text = await self.request("/auth", method="GET")
         if status != 200:
             return False
@@ -62,6 +69,9 @@ class VPClient:
         chunked=None,
         read_until_eof=True,
     ):
+        """Coroutine. Ensure the client is authenticated and perform a HTTP request.
+        
+        Return tuple (status, text) from HTTP response."""
 
         status, text = await self._do_request(
             path, params, data, method, chunked, read_until_eof
@@ -93,6 +103,7 @@ class VPClient:
             return response.status, (await response.text())
 
     async def get_tokens(self, account_id):
+        """Coroutine. Get tokens value for account ID."""
         path = f"/admin/user/edit/o/5/u/{account_id}"
         status, text = await self.request(path, method="GET")
         if status == 200:
@@ -107,7 +118,10 @@ class VPClient:
             return 0.0
 
     async def mod_tokens(self, mod_input):
-        "mod_input list or str"
+        """Coroutine. Perform modify tokens action.
+
+        Input can be a sigle string with a username, followed by how many tokens to take orgive, or a list of those
+        strings. e.g. Give Lightwalker 100 tokens and remove 50: ["Lightwalker 100", "Lightwalker -50"]"""
         path = "/admin/tokens/mod/o/5"
         if isinstance(mod_input, list):
             input_list = mod_input
