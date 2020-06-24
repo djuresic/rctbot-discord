@@ -1,16 +1,29 @@
 #!/usr/bin/env python
 
 """
-RCTBot
+RCTBot A simple Discord bot with some Heroes of Newerth integration.
+Copyright (C) 2020  Danijel Jurešić
 
-Copyright (c) 2020 Danijel Jurešić
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-Licensed under the MIT License.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+
+# TODO: Configuration variables for emojis and URLs.
 
 import os
 import platform
 from time import time, gmtime, strftime
+from datetime import datetime, timezone
 
 import asyncio
 import aiohttp
@@ -168,6 +181,44 @@ async def _unloaded(ctx):
     await ctx.send("\n".join(message))
 
 
+@bot.command(aliases=["info"])
+async def about(ctx):
+    repository_url = "https://github.com/djuresic/rctbot-discord"
+    description = (
+        "A simple Discord bot with some Heroes of Newerth integration. Primarily intended for"
+        " use by Retail Canididate Testers, Heroes of Newerth volunteer community position."
+        "\n\nCopyright © 2020 Danijel Jurešić"
+        "\n\nThis program is free software: you can redistribute it and/or modify"
+        " it under the terms of the GNU General Public License as published by"
+        " the Free Software Foundation, either version 3 of the License, or"
+        " (at your option) any later version."
+        "\n\nThis program is distributed in the hope that it will be useful,"
+        " but WITHOUT ANY WARRANTY; without even the implied warranty of"
+        " MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the"
+        " GNU General Public License for more details."
+        "\n\nYou should have received a copy of the GNU General Public License"
+        " along with this program. If not, see <https://www.gnu.org/licenses/>."
+    )
+    embed = discord.Embed(
+        title="RCTBot",
+        type="rich",
+        description=description,
+        color=0xFF6600,
+        timestamp=datetime.now(timezone.utc),
+    )
+    embed.set_author(name=bot.user.name, icon_url=bot.user.avatar_url)
+    resources = (
+        f"<:GitHub:725437431188291674> [GitHub]({repository_url} 'GitHub Repository')"
+    )
+    embed.add_field(name="Resources", value=resources, inline=True)
+
+    embed.set_footer(
+        text="placeholder", icon_url="https://i.imgur.com/q8KmQtw.png",
+    )
+    embed.set_thumbnail(url="https://www.gnu.org/graphics/gplv3-with-text-136x68.png")
+    await ctx.send(embed=embed)
+
+
 @bot.event
 async def on_ready():
     print(
@@ -226,6 +277,6 @@ async def on_message(message):  # Move to a cog
     await bot.process_commands(message)
 
 
-bot.remove_command("help")
+# bot.remove_command("help")
 
 bot.run(config.DISCORD_TOKEN)
