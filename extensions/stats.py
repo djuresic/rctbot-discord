@@ -92,7 +92,7 @@ class Stats(commands.Cog):
         self.rewards_worksheet_name = "RCT Players and Rewards"
 
     # TO DO: clean up branching, member to user, CAI
-    @commands.command(aliases=["info", "sheet", "rank"])
+    @commands.command(aliases=["rank", "sheet"])
     @database_ready()
     async def rct(self, ctx, member: str = ""):
         """Gets user's RCT game info from the sheet."""
@@ -781,12 +781,12 @@ class Stats(commands.Cog):
         embed.add_field(
             name="Wins", value=f"{con_wins}", inline=True,
         )
-        if b"cam_losses" in campaign:
-            cam_losses = campaign[b"cam_losses"].decode()
-            cam_concedes = campaign[b"cam_concedes"].decode()
-        else:
-            cam_losses = 0
-            cam_concedes = 0
+        cam_losses = (
+            campaign[b"cam_losses"].decode() if b"cam_losses" in campaign else 0
+        )
+        cam_concedes = (
+            campaign[b"cam_concedes"].decode() if b"cam_concedes" in campaign else 0
+        )
         embed.add_field(
             name="Losses", value=f"{cam_losses} ({cam_concedes} Conceded)", inline=True,
         )
