@@ -26,12 +26,15 @@ class HoNStats(commands.Cog):
     async def stats(self, ctx, nickname: str):
         "Retail player statistics."
         nickname = nickname.replace("\\", "")
-        print(nickname)
         async with aiohttp.ClientSession() as session:
             client = Client("ac", session=session)
             simple = await client.show_simple_stats(nickname)
             campaign = await client.show_stats(nickname, "campaign")
             # print(campaign)
+        if b"selected_upgrades" not in campaign:
+            return await ctx.send(
+                f"{ctx.author.mention} Nickname {discord.utils.escape_markdown(nickname)} does not exist!"
+            )
         embed = discord.Embed(
             title=client.client_name,
             type="rich",
