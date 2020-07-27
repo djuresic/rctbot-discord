@@ -297,7 +297,7 @@ class RCTStats(commands.Cog):
         ):
             if clan_tag is not None:
                 if clan_tag == "[RCT]":
-                    perks_message = f"React with {config.EMOJI_RCT} to claim your rewards now! Note that it may take several minutes for them to show up in your vault. Please refrain from clicking on this reaction again (in new embedded messages) for the next two minutes."
+                    perks_message = f"React with {config.EMOJI_RCT} to claim your rewards now! Note that it may take several minutes for them to show up in your vault."
                     perks_ready_to_claim = True
                 elif clan_tag in ["[FB]", "[GM]"]:
                     perks_message = "However, you likely own other volunteer or staff perks. Contact an SRCT if you don't want this message to show again."
@@ -406,7 +406,7 @@ class RCTStats(commands.Cog):
                         )
                 await set_perks_status("Requested")
                 await ctx.send(
-                    f"{ctx.author.mention} Done! Please use this command again in a few minutes to confirm whether you received the RCT Chat Symbol and Name Color."
+                    f"{ctx.author.mention} Done! Please use this command again to confirm whether you received the RCT Chat Symbol and Name Color after checking your in-game vault."
                 )
 
             if (
@@ -426,7 +426,7 @@ class RCTStats(commands.Cog):
             ):
                 await set_perks_status("Pending")
                 await ctx.send(
-                    f"{ctx.author.mention} Perks status set to Pending. You should be able to use the same command and request rewards again in a few minutes."
+                    f"{ctx.author.mention} Perks status set to Pending. You should be able to use the same command and request rewards again."
                 )
 
             if (
@@ -573,7 +573,7 @@ class RCTStats(commands.Cog):
                         await portal.mod_tokens(f'{user["nickname"]} -{price}')
                     await set_signature(purchase=True)
                     return await ctx.send(
-                        f"{ctx.author.mention} Successfully purchased Discord Embedded Signature! Note that it may take up to a minute for the command to reflect changes. Please refrain from attempting to purchase this again if your tokens have been deducted.",
+                        f"{ctx.author.mention} Successfully purchased Discord Embedded Signature! Note that it may take up to a minute for the command to reflect changes.",
                         delete_after=30.0,
                     )
                 except:
