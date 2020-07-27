@@ -4,6 +4,8 @@
 
 # Discord bot token, obtained from within your application. https://discord.com/developers/applications
 DISCORD_TOKEN = ""
+# Discord server (guild) ID of bot's main server.
+DISCORD_RCT_GUILD_ID = 0
 # Channel where testing notes log will be sent.
 DISCORD_NOTES_CHANNEL_ID = 0
 # Channel ID of your announcements channel.

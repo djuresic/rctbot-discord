@@ -19,7 +19,9 @@ class Welcome(commands.Cog):
     @commands.Cog.listener()
     async def on_member_join(self, member):
         guild = member.guild
-        channel = guild.get_channel(config.DISCORD_WELCOME_CHANNEL_ID)  # This
+        if guild.id != config.DISCORD_RCT_GUILD_ID:
+            return
+        channel = guild.get_channel(config.DISCORD_WELCOME_CHANNEL_ID)
         community = discord.utils.get(guild.roles, name="Community Member")
         tester = discord.utils.get(guild.roles, name="Tester")
         moderator = discord.utils.get(guild.roles, name="Community Moderator")
@@ -109,6 +111,7 @@ class Welcome(commands.Cog):
         await ctx.send(embed=embed)
 
 
+# pylint: disable=unused-argument
 def setup(bot):
     bot.add_cog(Welcome(bot))
     config.LOADED_EXTENSIONS.append(__loader__.name)
