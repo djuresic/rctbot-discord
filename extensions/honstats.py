@@ -25,6 +25,8 @@ class HoNStats(commands.Cog):
     @commands.max_concurrency(10, per=commands.BucketType.guild, wait=False)
     async def stats(self, ctx, nickname: str):
         "Retail player statistics."
+        nickname = nickname.replace("\\", "")
+        print(nickname)
         async with aiohttp.ClientSession() as session:
             client = Client("ac", session=session)
             simple = await client.show_simple_stats(nickname)
@@ -172,12 +174,14 @@ class HoNStats(commands.Cog):
         embed.add_field(
             name="Wins", value=f"{con_wins}", inline=True,
         )
-        if b"cam_losses" in campaign:
-            cam_losses = campaign[b"cam_losses"].decode()
-            cam_concedes = campaign[b"cam_concedes"].decode()
-        else:
-            cam_losses = 0
-            cam_concedes = 0
+
+        cam_losses = (
+            campaign[b"cam_losses"].decode() if b"cam_losses" in campaign else 0
+        )
+        cam_concedes = (
+            campaign[b"cam_concedes"].decode() if b"cam_concedes" in campaign else 0
+        )
+
         embed.add_field(
             name="Losses", value=f"{cam_losses} ({cam_concedes} Conceded)", inline=True,
         )
@@ -208,6 +212,10 @@ class HoNStats(commands.Cog):
             name="Assists", value=assists, inline=True,
         )
 
+        cam_gold = int(campaign[b"cam_gold"].decode()) if b"cam_gold" in campaign else 0
+        cam_secs = int(campaign[b"cam_secs"].decode()) if b"cam_secs" in campaign else 0
+        average_gpm = round((cam_gold / (cam_secs / 60)), 2) if cam_secs > 0 else 0
+
         lifetime = (
             f"K:D Ratio: {round(kills/deaths, 2) if deaths > 0 else kills}:{1 if deaths > 0 else 0}"
             f"\nK+A:D Ratio: {round((kills+assists)/deaths, 2) if deaths > 0 else kills + assists}:{1 if deaths > 0 else 0}"
@@ -224,6 +232,7 @@ class HoNStats(commands.Cog):
             f'\nCreep Kills: {campaign[b"avgCreepKills"] if b"avgCreepKills" in campaign else 0}'
             f'\nCreep Denies: {campaign[b"avgDenies"] if b"avgDenies" in campaign else 0}'
             f'\nNeutral Kills: {campaign[b"avgNeutralKills"] if b"avgNeutralKills" in campaign else 0}'
+            f"\nGPM: {average_gpm}"
             f'\nXPM: {campaign[b"avgXP_min"] if b"avgXP_min" in campaign else 0}'
             f'\nAPM: {campaign[b"avgActions_min"] if b"avgActions_min" in campaign else 0}'
             f'\nWards Placed: {campaign[b"avgWardsUsed"] if b"avgWardsUsed" in campaign else 0}'
