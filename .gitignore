@@ -1,0 +1,8 @@
+env
+config/development*
+config/production*
+.vs
+*.pyc
+__pycache__
+*.json
+*.html
