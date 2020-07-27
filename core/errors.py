@@ -23,7 +23,7 @@ class NotMasterserverAuthenticated(
     pass
 
 
-class GuildOnlyCommand(commands.CheckFailure):
+class NotRCTGuild(commands.CheckFailure):
     pass
 
 

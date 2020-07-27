@@ -38,13 +38,18 @@ def is_senior():
     return commands.check(is_senior_check)
 
 
-def guild_only():  # TODO: This already exists in discord.py
-    async def guild_only_check(ctx):
-        if ctx.message.guild is None:
-            raise core.errors.GuildOnlyCommand("Not allowed in Direct Message!")
+def guild_is_rct():
+    async def guild_is_rct_check(ctx):
+        if (
+            ctx.message.guild is None
+            or ctx.message.guild.id != config.DISCORD_RCT_GUILD_ID
+        ):
+            raise core.errors.NotRCTGuild(
+                "Not allowed outside the official RCT Discord!"
+            )
         return True
 
-    return commands.check(guild_only_check)
+    return commands.check(guild_is_rct_check)
 
 
 # pylint: disable=unused-argument
