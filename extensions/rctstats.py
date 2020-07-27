@@ -199,7 +199,7 @@ class RCTStats(commands.Cog):
         embed = discord.Embed(
             title="Retail Candidate Testers",
             type="rich",
-            description=f'Information for {user["role"]} {user["nickname"]}.',
+            description=f'Information for {user["role"]} {discord.utils.escape_markdown(user["nickname"])}.',
             url="https://forums.heroesofnewerth.com/forumdisplay.php?209-Retail-Candidate-Testers",
             color=name_color,
             timestamp=ctx.message.created_at,
@@ -258,9 +258,7 @@ class RCTStats(commands.Cog):
                     f"React with {config.EMOJI_GOLD_COINS} to reveal."
                 )
             else:
-                owned_tokens_message = (
-                    f'Available when used by {user["nickname"]} only!'
-                )
+                owned_tokens_message = f'Available when used by {discord.utils.escape_markdown(user["nickname"])} only!'
             embed.add_field(
                 name="Tokens owned", value=owned_tokens_message, inline=True,
             )
