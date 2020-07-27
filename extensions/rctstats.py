@@ -12,6 +12,7 @@ import config
 
 # from core.logging import record_usage NOTE: discord.py 1.4
 from core.mongodb import CLIENT
+from core.checks import guild_is_rct
 from hon.masterserver import Client
 from hon.portal import VPClient
 from hon.acp2 import ACPClient
@@ -28,6 +29,7 @@ class RCTStats(commands.Cog):
     # TODO: Match stats command.
 
     @commands.command(aliases=["rank", "sheet"])
+    @guild_is_rct()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.max_concurrency(10, per=commands.BucketType.guild, wait=False)
     async def rct(self, ctx, member: str = ""):
