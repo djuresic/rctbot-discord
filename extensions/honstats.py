@@ -33,7 +33,8 @@ class HoNStats(commands.Cog):
             # print(campaign)
         if b"selected_upgrades" not in campaign:
             return await ctx.send(
-                f"{ctx.author.mention} Nickname {discord.utils.escape_markdown(nickname)} does not exist!"
+                f"{ctx.author.mention} Nickname {discord.utils.escape_markdown(nickname)} does not exist!",
+                delete_after=10.0,
             )
         embed = discord.Embed(
             title=client.client_name,
