@@ -7,6 +7,7 @@ import config
 from core.mongodb import CLIENT
 
 from hon.masterserver import Client
+from hon.portal import VPClient
 
 # TODO: Typing. Remove copy pasta code.
 
@@ -321,11 +322,14 @@ class CycleManager:
             },
             "extra": 0,
         }
-        # TODO: values["bonuses_given"] = document calc
         async for document in self.testers.find({}):
             # TODO: Change this to account_id after fetching all IDs.
+            bonus_last_cycle = math.floor(
+                (document["total_games"] / 50) - document["bonuses_given"]
+            )
+            values["bonuses_given"] = document["bonuses_given"] + bonus_last_cycle
             await self.testers.update_one(
-                {"nickname": document["nickname"]}, {"$set": values},
+                {"nickname": document["nickname"]}, {"$set": values}
             )
 
     async def update_games_and_seconds(self):
@@ -425,7 +429,16 @@ class CycleManager:
             )
 
     async def distribute_tokens(self):
-        pass
+        "coro Modify tokens using the current values from DB and return tuple (success, error)."
+        mod_input = []
+        async for tester in self.testers.find(
+            {"enabled": True, "tokens": {"$gt": 0}},
+            {"nickname": 1, "tokens": 1},
+            sort=list({"tokens": -1}.items()),
+        ):
+            mod_input.append(f'{tester["nickname"]} {tester["tokens"]}')
+        async with VPClient() as portal:
+            return await portal.mod_tokens(mod_input)
 
 
 # pylint: disable=unused-argument
