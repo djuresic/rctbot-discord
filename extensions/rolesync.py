@@ -30,7 +30,7 @@ class RoleSynchronization(commands.Cog):
             {"_id": 0, "discord_id": 1},
         ):
             enabled_testers.append(tester["discord_id"])
-        for member in hon_guild.members:
+        async for member in hon_guild.fetch_members(limit=None):
             if member.id in enabled_testers and rct_role not in member.roles:
                 await member.add_roles(
                     [rct_acronym_role, rct_role], reason="Synchronized roles with RCT."
