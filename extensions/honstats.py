@@ -111,7 +111,7 @@ class HoNStats(commands.Cog):
             else 0
         )
         con_rank_percent = (
-            campaign[b"level_percent"] if b"level_percent" in campaign else 0
+            round(campaign[b"level_percent"], 2) if b"level_percent" in campaign else 0
         )
         rank_data = {
             20: {"name": "Immortal", "image": "https://i.imgur.com/em0NhHz.png"},
