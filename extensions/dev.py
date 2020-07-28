@@ -16,68 +16,33 @@ class Development(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def ci(self, ctx, nickname, clan_tag=None, masterserver="ac"):
-        async with ACPClient(admin="Lightwalker-AC", masterserver=masterserver) as acp:
-            await ctx.send(await acp.clan_invite(nickname, clan_tag))
-            await ctx.send("done")
-
-    @commands.command()
-    @commands.is_owner()
-    async def cr(self, ctx, nickname, masterserver="ac"):
-        async with ACPClient(admin="Lightwalker-AC", masterserver=masterserver) as acp:
-            await ctx.send(await acp.clan_remove(nickname))
-            await ctx.send("done")
-
-    @commands.command()
-    @commands.is_owner()
-    async def cp(self, ctx, nickname, masterserver="ac"):
-        async with ACPClient(admin="Lightwalker-AC", masterserver=masterserver) as acp:
-            await ctx.send(await acp.clan_promote(nickname))
-            await ctx.send("done")
-
-    @commands.command()
-    @commands.is_owner()
-    async def cd(self, ctx, nickname, masterserver="ac"):
-        async with ACPClient(admin="Lightwalker-AC", masterserver=masterserver) as acp:
-            await ctx.send(await acp.clan_demote(nickname))
-            await ctx.send("done")
-
-    @commands.command()
-    @commands.is_owner()
-    async def cc(self, ctx, nickname, masterserver="ac"):
-        async with ACPClient(admin="Lightwalker-AC", masterserver=masterserver) as acp:
-            await ctx.send(await acp.clan_crown(nickname))
-            await ctx.send("done")  # 8198846
-
-    @commands.command()
-    @commands.is_owner()
     async def ap(self, ctx, masterserver="ac"):
-        async with ACPClient(admin="Lightwalker-AC", masterserver=masterserver) as acp:
+        async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
             await ctx.send(await acp.add_perks(8198846))
 
     @commands.command()
     @commands.is_owner()
     async def rp(self, ctx, masterserver="ac"):
-        async with ACPClient(admin="Lightwalker-AC", masterserver=masterserver) as acp:
+        async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
             await ctx.send(await acp.remove_perks(8198846))
 
     @commands.command()
     @commands.is_owner()
     async def pw(self, ctx, masterserver="rc"):
-        async with ACPClient(admin="Lightwalker-AC", masterserver=masterserver) as acp:
+        async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
             await ctx.send(await acp.change_password("lightwalker", "dan787"))
 
     @commands.command()
     @commands.is_owner()
     async def ca(self, ctx, nickname, masterserver="rc"):
-        async with ACPClient(admin="Lightwalker-AC", masterserver=masterserver) as acp:
+        async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
             account_id, nickname, password = await acp.create_account(nickname)
             await ctx.send(f"Created {nickname} ({account_id}). Use: {password}")
 
     @commands.command()
     @commands.is_owner()
     async def ta(self, ctx, masterserver="ac"):
-        async with ACPClient(admin="Lightwalker-AC", masterserver=masterserver) as acp:
+        async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
             await ctx.send(await acp.user_test_access(8198846))
             await ctx.send(await acp.toggle_test_access(8198846))
             await ctx.send(await acp.user_test_access(8198846))

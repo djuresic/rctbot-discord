@@ -193,8 +193,9 @@ async def about(ctx):
     embed.add_field(name="Resources", value=resources, inline=True)
 
     embed.set_footer(
-        text="placeholder", icon_url="https://i.imgur.com/q8KmQtw.png",
+        text="<> with <3 by Lightwalker.", icon_url="https://i.imgur.com/z0auNqP.png",
     )
+    # https://i.imgur.com/q8KmQtw.png HoN logo
     embed.set_thumbnail(url="https://www.gnu.org/graphics/agplv3-with-text-162x68.png")
     await ctx.send(embed=embed)
 
