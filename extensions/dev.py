@@ -66,24 +66,6 @@ class Development(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def t2(self, ctx):
-        async with CycleManager() as cm:
-            await cm.update_games_and_seconds()
-
-    @commands.command()
-    @commands.is_owner()
-    async def t3(self, ctx):
-        async with CycleManager() as cm:
-            await cm.update_total()
-
-    @commands.command()
-    @commands.is_owner()
-    async def t4(self, ctx):
-        async with CycleManager() as cm:
-            await cm.update_tokens()
-
-    @commands.command()
-    @commands.is_owner()
     async def i_am_absolutely_sure_i_want_to_migrate_from_google_sheets(self, ctx):
         async with DatabaseManager() as dbm:
             await ctx.send(await dbm.migrate_spreadsheet_data())
@@ -94,12 +76,6 @@ class Development(commands.Cog):
     @commands.is_owner()
     async def t5(self, ctx):
         print(config.LIST_OF_LISTS)
-
-    @commands.command()
-    @commands.is_owner()
-    async def t6(self, ctx):
-        async with CycleManager() as cm:
-            await cm.new_cycle()
 
     @commands.command()
     @commands.is_owner()
