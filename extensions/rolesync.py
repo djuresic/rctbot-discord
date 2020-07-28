@@ -26,7 +26,8 @@ class RoleSynchronization(commands.Cog):
 
         enabled_testers = []
         async for tester in self.testers.find(
-            {"enabled": True}, {"_id": 0, "discord_id": 1, "role": {"$eq": "Tester"}}
+            {"enabled": True, "role": "Tester", "discord_id": {"$not": {"$eq": None}}},
+            {"_id": 0, "discord_id": 1},
         ):
             enabled_testers.append(tester["discord_id"])
         for member in hon_guild.members:
@@ -40,7 +41,7 @@ class RoleSynchronization(commands.Cog):
                 )
             else:
                 pass
-        await ctx.send("Synchronized roles with RCT!", delete_after=5.0)
+        await ctx.send("Synchronized roles with RCT!", delete_after=8.0)
 
 
 # pylint: disable=unused-argument
