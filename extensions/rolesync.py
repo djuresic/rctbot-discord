@@ -33,15 +33,17 @@ class RoleSynchronization(commands.Cog):
         async for member in hon_guild.fetch_members(limit=None):
             if member.id in enabled_testers and rct_role not in member.roles:
                 await member.add_roles(
-                    [rct_acronym_role, rct_role], reason="Synchronized roles with RCT."
+                    *[rct_acronym_role, rct_role], reason="Synchronized roles with RCT."
                 )
             elif member.id not in enabled_testers and rct_role in member.roles:
                 await member.remove_roles(
-                    [rct_acronym_role, rct_role], reason="Synchronized roles with RCT."
+                    *[rct_acronym_role, rct_role], reason="Synchronized roles with RCT."
                 )
             else:
                 pass
-        await ctx.send("Synchronized roles with RCT!", delete_after=8.0)
+        await ctx.send(
+            f"{ctx.author.mention} Synchronized roles with RCT!", delete_after=10.0
+        )
 
 
 # pylint: disable=unused-argument
