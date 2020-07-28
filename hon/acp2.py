@@ -9,6 +9,7 @@ from bs4 import BeautifulSoup
 
 import config
 from core.webhooks import webhook_embed
+from core.mongodb import CLIENT
 
 from hon.masterserver import Client
 from hon.utils import get_avatar
@@ -41,6 +42,8 @@ class ACPClient:
         self.ssl = bool(self.url.startswith("https://"))
         self.color = self.ACP_CONFIG[masterserver]["color"]
         self.admin = admin
+        self.db = CLIENT[config.MONGO_DATABASE_NAME]
+        self.testers = self.db[config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
 
     # async def __aenter__(self) -> "ACPClient":
     async def __aenter__(self):
@@ -81,12 +84,8 @@ class ACPClient:
         ssl=True,
         timeout=None,
     ):
-        print("before")
-        print(timeout)
         if not timeout:
             timeout = self.timeout
-        print("after")
-        print(timeout)
         status, headers, text = await self._do_request(
             path,
             params,
@@ -150,18 +149,18 @@ class ACPClient:
 
     # TODO: Better way of doing this.
     async def log_action(self, account_id, action_verb, fields):
-        admin = self.admin
+        admin = await self.testers.find_one({"discord_id": self.admin.id})
         masterserver = Client(self.masterserver, session=self.session)
         nickname = await masterserver.id2nick(account_id)
-        admin_icon = await get_avatar(8198846)
-        # 1 Admin nickname 2 Admin aid
-        action = f"{admin} ({admin}) {action_verb} {nickname} ({account_id})."
+        admin_icon = await get_avatar(admin["account_id"])
+        # 1 Admin nickname 2 Admin aid or did
+        action = f'{admin["nickname"]} ({admin["discord_id"]}) {action_verb} {nickname} ({account_id}).'
         await webhook_embed(
             config.DISCORD_LOG_WEBHOOKS,
             masterserver.client_name,
             action,
             fields,
-            admin,  # Admin nickname
+            admin["nickname"],  # Admin nickname
             admin_icon,
             color=self.color,
         )
@@ -214,7 +213,7 @@ class ACPClient:
                 "input", attrs={"name": "account_id", "value": str(account_id)}
             ).parent
             clan_rank = user_parent.find("option", selected=True)["value"]
-            print(clan_rank)
+            # print(clan_rank)
             return clan_tag, clan_name, clan_rank
 
         loop = asyncio.get_running_loop()
@@ -574,7 +573,7 @@ class ACPClient:
         else:
             path = None
         if path:
-            print(path)
+            # print(path)
             account_id = await self.user_path_to_aid(path)
             await self.log_action(account_id, "created", [])
             return account_id, nickname, account_info["password"]
