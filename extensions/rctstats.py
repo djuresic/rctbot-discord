@@ -45,6 +45,7 @@ class RCTStats(commands.Cog):
         if discord_id is not None:
             user = await self.testers.find_one({"discord_id": discord_id})
         else:
+            member = member.replace("\\", "")
             user = await self.testers.find_one(
                 {"nickname": member.lower()}, collation={"locale": "en", "strength": 1}
             )
@@ -399,7 +400,7 @@ class RCTStats(commands.Cog):
                 and perks_ready_to_claim
                 and requester_name.lower() == user["nickname"].lower()
             ):
-                async with ACPClient(admin=user["nickname"], masterserver="ac") as acp:
+                async with ACPClient(admin=ctx.author, masterserver="ac") as acp:
                     if not await acp.add_perks(user["account_id"]):
                         return await ctx.send(
                             f"{ctx.author.mention} Uh oh, something went wrong."
@@ -461,7 +462,6 @@ class RCTStats(commands.Cog):
         except asyncio.TimeoutError:
             await message.delete()
 
-    # TODO: cooldown, istester
     # FIXME: Command raised an exception: NotFound: 404 Not Found (error code: 10008): Unknown Message
     @commands.command()
     @commands.max_concurrency(1, per=commands.BucketType.user, wait=False)
@@ -472,8 +472,8 @@ class RCTStats(commands.Cog):
         user = await self.testers.find_one({"discord_id": ctx.author.id})
         if not user:
             return await ctx.send(
-                f"{ctx.author.mention} Signature is only available to past and current RCT members!",
-                delete_after=10.0,
+                f"{ctx.author.mention} Signature is only available to registered RCT volunteers.",
+                delete_after=7.5,
             )
 
         async def set_signature(url=None, purchase=False):
