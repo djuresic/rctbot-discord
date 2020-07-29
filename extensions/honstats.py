@@ -55,7 +55,7 @@ class HoNStats(commands.Cog):
         embed.add_field(
             name="Last Activity",
             value=campaign[b"last_activity"].decode()
-            if b"last_activity" in campaign
+            if b"last_activity" in campaign and campaign[b"last_activity"] is not None
             else "\u2063",
             inline=True,
         )
