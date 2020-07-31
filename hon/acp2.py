@@ -201,6 +201,14 @@ class ACPClient:
         else:
             return None
 
+    async def sid_to_aid(self, super_id):
+        """Return account_id from super_id. None if it doesn't exist."""
+        path = await self.find_user_path("super_id", super_id)
+        if path:
+            return await self.user_path_to_aid(path)
+        else:
+            return None
+
     async def user_clan_data(self, clan_path, account_id):
         """Return tuple (tag, name, rank)."""
         *_, text = await self.request(clan_path, method="GET", ssl=self.ssl)
@@ -225,6 +233,10 @@ class ACPClient:
         status, _, text = await self.request(
             path, params=query, method="GET", ssl=self.ssl
         )
+        fields = [
+            {"name": "Fields", "value": "Sub-accounts", "inline": False},
+        ]
+        await self.log_action(account_id, "viewed", fields)
         if status == 200:
 
             def find_accounts(response_text):
@@ -247,6 +259,10 @@ class ACPClient:
         status, _, text = await self.request(
             path, params=query, method="GET", ssl=self.ssl
         )
+        fields = [
+            {"name": "Fields", "value": "Suspension", "inline": False},
+        ]
+        await self.log_action(await self.sid_to_aid(super_id), "viewed", fields)
         if status == 200:
             return text
         else:
