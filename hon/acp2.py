@@ -151,7 +151,11 @@ class ACPClient:
     async def log_action(self, account_id, action_verb, fields):
         admin = await self.testers.find_one({"discord_id": self.admin.id})
         masterserver = Client(self.masterserver, session=self.session)
-        nickname = await masterserver.id2nick(account_id)
+        if isinstance(account_id, str) and account_id.startswith("s"):
+            nickname = "Unknown Nickname"
+            account_id = account_id.replace("s", "Super ID ")
+        else:
+            nickname = await masterserver.id2nick(account_id)
         admin_icon = await get_avatar(admin["account_id"])
         # 1 Admin nickname 2 Admin aid or did
         action = f'{admin["nickname"]} ({admin["discord_id"]}) {action_verb} {nickname} ({account_id}).'
@@ -262,7 +266,8 @@ class ACPClient:
         fields = [
             {"name": "Fields", "value": "Suspension", "inline": False},
         ]
-        await self.log_action(await self.sid_to_aid(super_id), "viewed", fields)
+        # account_id = await self.sid_to_aid(super_id) FIXME: broken for some reason
+        await self.log_action(f"s{str(super_id)}", "viewed", fields)
         if status == 200:
             return text
         else:
