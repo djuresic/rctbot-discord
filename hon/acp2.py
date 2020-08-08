@@ -3,6 +3,7 @@ import string
 import secrets
 import re
 
+import discord
 import aiohttp
 from aiohttp_socks import ProxyConnector
 from bs4 import BeautifulSoup
@@ -158,7 +159,10 @@ class ACPClient:
             nickname = await masterserver.id2nick(account_id)
         admin_icon = await get_avatar(admin["account_id"])
         # 1 Admin nickname 2 Admin aid or did
-        action = f'{admin["nickname"]} ({admin["discord_id"]}) {action_verb} {nickname} ({account_id}).'
+        action = (
+            f'{discord.utils.escape_markdown(admin["nickname"])} ({admin["discord_id"]})'
+            f" {action_verb} {discord.utils.escape_markdown(nickname)} ({account_id})."
+        )
         await webhook_embed(
             config.DISCORD_LOG_WEBHOOKS,
             masterserver.client_name,
@@ -537,7 +541,12 @@ class ACPClient:
             "value"
         ]
         country_options = soup.find("select", attrs={"name": "country"})
-        account_info["country"] = country_options.find("option", selected=True)["value"]
+        try:
+            account_info["country"] = country_options.find("option", selected=True)[
+                "value"
+            ]
+        except TypeError:
+            account_info["country"] = "USA"
         return account_info
 
     # FIXME: Blocks... everything.
@@ -554,8 +563,10 @@ class ACPClient:
         loop = asyncio.get_running_loop()
         account_info = await loop.run_in_executor(None, self._get_account_info, text)
         account_info["password"] = password
-
-        account_info["note"] = f"RCTBot password change. Made by: {self.admin}"
+        admin = await self.testers.find_one({"discord_id": self.admin.id})
+        account_info[
+            "note"
+        ] = f'RCTBot password change. Made by: {admin["nickname"]} ({admin["discord_id"]})'
         await self.request(
             path, params=query, data=account_info, ssl=self.ssl, allow_redirects=False
         )

@@ -263,6 +263,18 @@ class Client:
         query = {"f": "get_match_stats", "match_id[]": str(match_id)}
         return await self.ensure_request(query, cookie=True)
 
+    async def match_history_overview(
+        self, nickname, table, number=100, current_season=0
+    ):
+        query = {
+            "f": "match_history_overview",
+            "nickname": nickname,
+            "table": table,
+            "num": number,
+            "current_season": current_season,
+        }
+        return await self.ensure_request(query, cookie=True)
+
 
 # pylint: disable=unused-argument
 def setup(bot):

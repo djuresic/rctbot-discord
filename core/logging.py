@@ -2,11 +2,9 @@
 
 import config
 
-# TODO: Activate in discord.py 1.4
 
-
-async def record_usage(ctx):
-    print(ctx.author, "used", ctx.command, "at", ctx.message.created_at)
+async def record_usage(origin_class, ctx):
+    print(ctx.author, ctx.author.id, "used", ctx.command, "at", ctx.message.created_at)
 
 
 # pylint: disable=unused-argument

@@ -4,7 +4,7 @@ from discord.ext import commands
 
 import config
 
-# from core.logging import record_usage NOTE: discord.py 1.4
+from core.logging import record_usage  # NOTE: discord.py 1.4
 from core.mongodb import CLIENT
 
 from hon.masterserver import Client
@@ -21,6 +21,7 @@ class HoNStats(commands.Cog):
 
     @commands.command(aliases=["rstats", "retail"])
     @commands.guild_only()
+    @commands.after_invoke(record_usage)
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.max_concurrency(10, per=commands.BucketType.guild, wait=False)
     async def stats(self, ctx, nickname: str):
@@ -318,6 +319,29 @@ class HoNStats(commands.Cog):
                     inline=False,
                 )
         await ctx.send(embed=embed)
+
+    @stats.error
+    async def stats_error(self, ctx, error):
+        if isinstance(error, commands.NoPrivateMessage):
+            await ctx.send(f"{ctx.author.mention} {error}", delete_after=8.0)
+        if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.send(
+                f"{ctx.author.mention} You must specify a nickname.", delete_after=8.0
+            )
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(
+                f"{ctx.author.mention} You are on cooldown! Try again in {round(error.retry_after, 2)} seconds.",
+                delete_after=8.0,
+            )
+        if isinstance(error, commands.MaxConcurrencyReached):
+            await ctx.send(
+                (
+                    f"{ctx.author.mention} Too many people are using this command!"
+                    f" It can only be used 10 times per Discord server concurrently."
+                ),
+                delete_after=8.0,
+            )
+        # raise error
 
 
 def setup(bot):

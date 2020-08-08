@@ -1,3 +1,5 @@
+import asyncio
+
 import aiohttp
 import discord
 from discord.ext import commands
@@ -6,31 +8,28 @@ import config
 
 from core.mongodb import CLIENT
 from core.rct import DatabaseManager, CycleManager, MatchManipulator
+from core.checks import is_tester
 from hon.acp2 import ACPClient
+from hon.masterserver import Client
 
 
 class Development(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db = CLIENT[config.MONGO_DATABASE_NAME]
+        self.testers = self.db[config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
 
     @commands.command()
     @commands.is_owner()
-    async def ap(self, ctx, masterserver="ac"):
+    async def ap(self, ctx, account_id, masterserver="ac"):
         async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
-            await ctx.send(await acp.add_perks(8198846))
+            await ctx.send(await acp.add_perks(account_id))
 
     @commands.command()
     @commands.is_owner()
-    async def rp(self, ctx, masterserver="ac"):
+    async def rp(self, ctx, account_id, masterserver="ac"):
         async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
-            await ctx.send(await acp.remove_perks(8198846))
-
-    @commands.command()
-    @commands.is_owner()
-    async def pw(self, ctx, masterserver="rc"):
-        async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
-            await ctx.send(await acp.change_password("lightwalker", "dan787"))
+            await ctx.send(await acp.remove_perks(account_id))
 
     @commands.command()
     @commands.is_owner()
@@ -82,6 +81,13 @@ class Development(commands.Cog):
     async def fixdid(self, ctx, member: discord.Member):
         async with DatabaseManager() as dbm:
             await dbm.fix_discord_id(member)
+
+    @commands.command()
+    @commands.is_owner()
+    async def mho(self, ctx, nickname: str = "Lightwalker", table: str = "other"):
+        async with aiohttp.ClientSession() as session:
+            gc = Client("ac", session=session)
+            print(await gc.match_history_overview(nickname, table))
 
 
 def setup(bot):
