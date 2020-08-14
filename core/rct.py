@@ -130,8 +130,8 @@ class TesterManager:
 
         result = await self.testers.insert_one(document)
         if result.acknowledged:
-            return f"Added {discord.utils.escape_markdown(nickname)} to DB."
-        return f"Failed to add {discord.utils.escape_markdown(nickname)} to DB!"
+            return f"Added {discord.utils.escape_markdown(nickname)} ({account_id}) to RCT."
+        return f"Failed to add {discord.utils.escape_markdown(nickname)} ({account_id}) to RCT!"
 
     async def reinstate_tester(self, nickname: str) -> str:
         """
@@ -140,7 +140,7 @@ class TesterManager:
 
         Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
         """
-        result = await self.testers.update_one(
+        result = await self.testers.find_one_and_update(
             {"nickname": nickname},
             {
                 "$set": {
@@ -149,11 +149,12 @@ class TesterManager:
                     "last_joined": datetime.utcnow(),
                 }
             },
+            projection={"_id": 0, "nickname": 1, "account_id": 1},
             collation={"locale": "en", "strength": 1},
         )
-        if result.acknowledged:
-            return f"Reinstated {discord.utils.escape_markdown(nickname)}."
-        return f"Failed to reinstate {discord.utils.escape_markdown(nickname)}!"
+        if result:
+            return f'Reinstated {discord.utils.escape_markdown(result["nickname"])} ({result["account_id"]}).'
+        return f"Reinstatement failed! Could not find {discord.utils.escape_markdown(nickname)} in DB."
 
     async def remove_tester(self, nickname: str) -> str:
         """
@@ -162,28 +163,33 @@ class TesterManager:
         
         Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
         """
-        result = await self.testers.update_one(
+        result = await self.testers.find_one_and_update(
             {"nickname": nickname},
             {"$set": {"enabled": False}},
+            projection={"_id": 0, "nickname": 1, "account_id": 1},
             collation={"locale": "en", "strength": 1},
         )
-        if result.acknowledged:
-            return f"Disabled {discord.utils.escape_markdown(nickname)}."
-        return f"Failed to disable {discord.utils.escape_markdown(nickname)}!"
+        if result:
+            return f'Removed {discord.utils.escape_markdown(result["nickname"])} ({result["account_id"]}) from RCT.'
+        return f"Removal failed! Could not find {discord.utils.escape_markdown(nickname)} in DB."
 
     async def link_discord(self, member: discord.Member) -> str:
         """
         Link member's Discord ID to a tester account with the same nickname as their display name. This intentionally
         overwrites any existing user ID, use with caution!
         """
-        result = await self.testers.update_one(
+        result = await self.testers.find_one_and_update(
             {"nickname": member.display_name},
             {"$set": {"discord_id": member.id}},
+            projection={"_id": 0, "nickname": 1, "account_id": 1},
             collation={"locale": "en", "strength": 1},
         )
-        if result.acknowledged:
-            return f"Linked {member.id} to {discord.utils.escape_markdown(member.display_name)}."
-        return f"Failed to link {member.id} to {discord.utils.escape_markdown(member.display_name)}!"
+        if result:
+            return (
+                f"Linked {member} ({member.id})"
+                f' to {discord.utils.escape_markdown(result["nickname"])} ({result["account_id"]}) by ID.'
+            )
+        return f"Linking failed! Could not find {member.display_name} in DB."
 
 
 class DatabaseManager:
