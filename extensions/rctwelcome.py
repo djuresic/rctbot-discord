@@ -10,7 +10,7 @@ import config
 from core.checks import is_senior
 
 
-class Welcome(commands.Cog):
+class RCTWelcome(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.code_len = 42
@@ -113,7 +113,7 @@ class Welcome(commands.Cog):
 
 # pylint: disable=unused-argument
 def setup(bot):
-    bot.add_cog(Welcome(bot))
+    bot.add_cog(RCTWelcome(bot))
     config.LOADED_EXTENSIONS.append(__loader__.name)
 
 

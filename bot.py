@@ -38,6 +38,13 @@ BOT_DESCRIPTION = """RCTBot"""
 # pylint: disable=invalid-name
 bot = commands.Bot(command_prefix=["!", "."], description=BOT_DESCRIPTION)
 
+# bot = commands.AutoShardedBot(
+#     command_prefix=["!", "."],
+#     description=BOT_DESCRIPTION,
+#     shard_count=3,
+#     shard_ids=[0, 1, 2],
+# )
+
 
 if __name__ == "__main__":
     for directory in config.EXTENSIONS_DIRECTORIES:
