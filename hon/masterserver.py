@@ -236,6 +236,8 @@ class Client:
 
     async def nick2id(self, nickname):
         result = await self.request({"f": "nick2id", "nickname[]": nickname.lower()})
+        if b"error" in result:
+            return None
         account_id = [
             value.lower() for value in result.values() if isinstance(value, bytes)
         ][
@@ -249,7 +251,7 @@ class Client:
         try:
             return result[int(account_id)].decode()
         except:
-            return result
+            return None
 
     async def show_stats(self, nickname, table):
         query = {"f": "show_stats", "nickname": nickname.lower(), "table": table}
