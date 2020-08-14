@@ -1,15 +1,189 @@
 import math
+from datetime import datetime
 
 import aiohttp
 import discord
 
 import config
 from core.mongodb import CLIENT
+from core.models import Role, ActivityRank
 
 from hon.masterserver import Client
 from hon.portal import VPClient
 
 # TODO: Typing. Remove copy pasta code.
+
+
+class TesterManager:
+    """
+    Interface for managing players in RCT. Not an asynchronous context manager.
+    """
+
+    # TODO: Return different dataclass instances instead of strings. TesterManagerActionResult
+
+    def __init__(self):
+        self.db = CLIENT[config.MONGO_DATABASE_NAME]
+        self.testers = self.db[config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
+
+    async def full_add(self, nickname: str):
+        """
+        Add the player to RCT. Modifies the DB, grants all permissions and accesses.
+
+        Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
+        """
+        raise NotImplementedError
+
+    async def full_remove(self, nickname: str):
+        """
+        Remove the player from RCT. Modifies the DB, revokes all permissions and accesses, and removes perks.
+
+        Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
+        """
+        raise NotImplementedError
+
+    async def add_tester(self, nickname: str) -> str:
+        """
+        Add the player to RCT. This modifies the DB only; client, forums, and portal access must be granted separately.
+
+        Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
+        """
+        async with aiohttp.ClientSession() as session:
+            ac_client = Client("ac", session=session)
+            ac_data = await ac_client.nick2id(nickname)
+            if not ac_data:
+                return "Invalid nickname."
+            nickname = ac_data["nickname"]
+            account_id = int(ac_data["account_id"])
+            # Super ID here.
+            super_id = int(
+                (await ac_client.show_stats(nickname, "campaign"))[b"super_id"].decode()
+            )
+
+            rc_client = Client("rc", session=session)
+            rc_data = await rc_client.nick2id(nickname)
+            if not rc_data:
+                testing_nickname = await rc_client.id2nick(account_id)
+                if not testing_nickname:
+                    return "Player does not exist in the test client DB. Create a new account or search by Super ID."
+                testing_account_id = account_id
+            else:
+                testing_nickname = rc_data["nickname"]
+                testing_account_id = int(rc_data["account_id"])
+            testing_super_id = int(
+                (await rc_client.show_stats(testing_nickname, "campaign"))[
+                    b"super_id"
+                ].decode()
+            )
+        # Super ID check.
+        tester = await self.testers.find_one(
+            {
+                "$or": [
+                    {"nickname": nickname},
+                    {"account_id": account_id},
+                    {"testing_account_id": testing_account_id},
+                    {"super_id": super_id},
+                    {"testing_super_id": testing_super_id},
+                ]
+            },
+            {"nickname": 1, "account_id": 1, "testing_account_id": 1},
+            collation={"locale": "en", "strength": 1},
+        )
+        if tester:
+            # TODO: Reinstate using tester["nickname"] or by passing the entire projection.
+            return (
+                f'Player {discord.utils.escape_markdown(tester["nickname"])}, retail Account ID {tester["account_id"]}'
+                f' and RCT Account ID {tester["testing_account_id"]} already exist in DB.'
+            )
+
+        document = {
+            "enabled": True,
+            "role": "Tester",
+            "role_id": Role.RCT_TESTER,
+            "nickname": nickname,
+            "games": 0,
+            "seconds": 0,
+            "bugs": 0,
+            "total_games": 0,
+            "total_seconds": 0,
+            "total_bugs": 0,
+            "tokens": 0,
+            "ladder": {
+                "games": 0,
+                "bugs": 0,
+                "total_games": 0,
+                "total_bugs": 0,
+                "tokens": 0,
+            },
+            "rank_id": ActivityRank.GOLD,
+            "bonuses_given": 0,
+            "extra": 0,
+            "perks": "No",  # TODO: Perks IntEnum
+            "signature": {"purchased": False, "url": ""},
+        }
+        document["joined"] = datetime.utcnow()
+        document["awards"] = []
+        document["discord_id"] = None
+        document["account_id"] = account_id
+        document["testing_account_id"] = testing_account_id
+        document["super_id"] = super_id
+        document["testing_super_id"] = testing_super_id
+
+        result = await self.testers.insert_one(document)
+        if result.acknowledged:
+            return f"Added {discord.utils.escape_markdown(nickname)} to DB."
+        return f"Failed to add {discord.utils.escape_markdown(nickname)} to DB!"
+
+    async def reinstate_tester(self, nickname: str) -> str:
+        """
+        Reinstate the player by re-enabling their account, restoring the activity rank to default, and setting a new
+        join date. This modifies the DB only; client, forums, and portal access must be granted separately.
+
+        Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
+        """
+        result = await self.testers.update_one(
+            {"nickname": nickname},
+            {
+                "$set": {
+                    "enabled": True,
+                    "rank_id": ActivityRank.GOLD,
+                    "last_joined": datetime.utcnow(),
+                }
+            },
+            collation={"locale": "en", "strength": 1},
+        )
+        if result.acknowledged:
+            return f"Reinstated {discord.utils.escape_markdown(nickname)}."
+        return f"Failed to reinstate {discord.utils.escape_markdown(nickname)}!"
+
+    async def remove_tester(self, nickname: str) -> str:
+        """
+        Remove the player from RCT by disabling their account. This modifies the DB only; client, forums, and
+        (optionally) portal access must be revoked separately.
+        
+        Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
+        """
+        result = await self.testers.update_one(
+            {"nickname": nickname},
+            {"$set": {"enabled": False}},
+            collation={"locale": "en", "strength": 1},
+        )
+        if result.acknowledged:
+            return f"Disabled {discord.utils.escape_markdown(nickname)}."
+        return f"Failed to disable {discord.utils.escape_markdown(nickname)}!"
+
+    async def link_discord(self, member: discord.Member) -> str:
+        """
+        Link member's Discord ID to a tester account with the same nickname as their display name. This intentionally
+        overwrites any existing user ID, use with caution!
+        """
+        result = await self.testers.update_one(
+            {"nickname": member.display_name},
+            {"$set": {"discord_id": member.id}},
+            collation={"locale": "en", "strength": 1},
+        )
+        if result.acknowledged:
+            return f"Linked {member.id} to {discord.utils.escape_markdown(member.display_name)}."
+        return f"Failed to link {member.id} to {discord.utils.escape_markdown(member.display_name)}!"
 
 
 class DatabaseManager:
@@ -361,7 +535,7 @@ class CycleManager:
 
     async def update_bugs(self):
         # TODO
-        pass
+        raise NotImplementedError
 
     async def update_total(self):
         async for document in self.testers.find({}):
@@ -378,11 +552,11 @@ class CycleManager:
             )
 
     async def delete_unretrieved(self):
-        pass
+        raise NotImplementedError
 
     async def update_cycle(self):
         # TODO
-        pass
+        raise NotImplementedError
 
     async def update_ranks(self):
         # TODO: Filter in query to return needed only.
