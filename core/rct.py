@@ -14,6 +14,14 @@ from hon.portal import VPClient
 # TODO: Typing. Remove copy pasta code.
 
 
+class TesterManagerResult:
+    """
+    Every TesterManager method should return an instance of this class.
+    """
+
+    pass
+
+
 class TesterManager:
     """
     Interface for managing players in RCT. Not an asynchronous context manager.
@@ -607,6 +615,20 @@ class CycleManager:
             await self.testers.update_one(
                 {"account_id": tester["account_id"]}, {"$set": {"tokens": tokens}},
             )
+
+    async def update_perks(self) -> str:
+        result = await self.testers.update_many(
+            {
+                "enabled": True,
+                "perks": "No",
+                "$or": [{"total_games": {"$gte": 25}}, {"total_bugs": {"$gte": 25}}],
+                "discord_id": {"$not": {"$eq": None}},
+            },
+            {"$set": {"perks": "Pending"}},
+        )
+        if result.acknowledged:
+            return f"Found {result.matched_count} and updated {result.modified_count} members' perks status."
+        return f"Could not update perks status!"
 
     async def distribute_tokens(self):
         "coro Modify tokens using the current values from DB and return tuple (success, error)."

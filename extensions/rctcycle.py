@@ -51,6 +51,11 @@ class RCTCycle(commands.Cog):
             await cm.update_tokens()
             await ctx.send("Updated **tokens** in DB.")
 
+    @update.command(name="perks")
+    async def _uperks(self, ctx):
+        async with CycleManager() as cm:
+            await ctx.send(await cm.update_perks())
+
     @commands.group()
     @commands.is_owner()
     async def distribute(self, ctx):
