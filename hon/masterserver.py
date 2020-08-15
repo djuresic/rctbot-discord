@@ -89,21 +89,11 @@ class Client:
             self.cookie = self.cookies[self.masterserver] = data[b"cookie"].decode()
             # self.cookie = data[b"cookie"].decode()
             self.ip = self.ips[self.masterserver] = data[b"ip"].decode()
-            self.auth_hash = self.auth_hashes[self.masterserver] = data[
-                b"auth_hash"
-            ].decode()
-            self.chat_url = self.chat_urls[self.masterserver] = data[
-                b"chat_url"
-            ].decode()
-            self.chat_port = self.chat_ports[self.masterserver] = int(
-                data[b"chat_port"].decode()
-            )
-            self.account_id = self.account_ids[self.masterserver] = int(
-                data[b"account_id"].decode()
-            )
-            self.nickname = self.nicknames[self.masterserver] = data[
-                b"nickname"
-            ].decode()
+            self.auth_hash = self.auth_hashes[self.masterserver] = data[b"auth_hash"].decode()
+            self.chat_url = self.chat_urls[self.masterserver] = data[b"chat_url"].decode()
+            self.chat_port = self.chat_ports[self.masterserver] = int(data[b"chat_port"].decode())
+            self.account_id = self.account_ids[self.masterserver] = int(data[b"account_id"].decode())
+            self.nickname = self.nicknames[self.masterserver] = data[b"nickname"].decode()
 
             self.authenticated = self.authentications[self.masterserver] = True
             # self.authenticated = True
@@ -119,17 +109,13 @@ class Client:
     async def ensure_request(self, query, path=None, cookie=False, deserialize=True):
         if not self.authenticated and cookie:
             await self.prepare()
-        response = await self.request(
-            query, path=path, cookie=cookie, deserialize=deserialize
-        )
+        response = await self.request(query, path=path, cookie=cookie, deserialize=deserialize)
         # if "cookie" in response[b"auth"].decode()
         if response and b"auth" in response and response[0] == False:
             for attempt in range(5):
                 prepared = await self.prepare()
                 if prepared:
-                    return await self.request(
-                        query, path=path, cookie=cookie, deserialize=deserialize
-                    )
+                    return await self.request(query, path=path, cookie=cookie, deserialize=deserialize)
                 else:
                     print(f"Preparation attempt {attempt+1} failed")
                 await asyncio.sleep(attempt + 2)
@@ -165,9 +151,7 @@ class Client:
                 return None  # False
             if deserialize:
                 loop = asyncio.get_running_loop()
-                return await loop.run_in_executor(
-                    None, phpserialize.loads, data.encode()
-                )
+                return await loop.run_in_executor(None, phpserialize.loads, data.encode())
             else:
                 return data
 
@@ -196,11 +180,7 @@ class Client:
         user.password = (
             sha256(
                 (
-                    md5(
-                        (md5(password.encode()).hexdigest()).encode()
-                        + salt2
-                        + config.HON_SRP_SS.encode()
-                    ).hexdigest()
+                    md5((md5(password.encode()).hexdigest()).encode() + salt2 + config.HON_SRP_SS.encode()).hexdigest()
                 ).encode()
                 + config.HON_SRP_SL.encode()
             ).hexdigest()
@@ -226,23 +206,15 @@ class Client:
         arch = {"w": "i686", "m": "universal", "l": "x86-biarch"}
         query = {"version": "0.0.0.0", "os": os_parameter, "arch": arch[client_os]}
         if include_zero:
-            return (await self.request(query, "patcher/patcher.php"))[
-                b"version"
-            ].decode()
+            return (await self.request(query, "patcher/patcher.php"))[b"version"].decode()
         else:
-            return (await self.request(query, "patcher/patcher.php"))[0][
-                b"version"
-            ].decode()
+            return (await self.request(query, "patcher/patcher.php"))[0][b"version"].decode()
 
     async def nick2id(self, nickname):
         result = await self.request({"f": "nick2id", "nickname[]": nickname.lower()})
         if b"error" in result:
             return None
-        account_id = [
-            value.lower() for value in result.values() if isinstance(value, bytes)
-        ][
-            0
-        ]  # Not great
+        account_id = [value.lower() for value in result.values() if isinstance(value, bytes)][0]  # Not great
         cs_nickname = [key for key, value in result.items() if value == account_id][0]
         return {"nickname": cs_nickname.decode(), "account_id": account_id.decode()}
 
@@ -265,9 +237,7 @@ class Client:
         query = {"f": "get_match_stats", "match_id[]": str(match_id)}
         return await self.ensure_request(query, cookie=True)
 
-    async def match_history_overview(
-        self, nickname, table, number=100, current_season=0
-    ):
+    async def match_history_overview(self, nickname, table, number=100, current_season=0):
         query = {
             "f": "match_history_overview",
             "nickname": nickname,

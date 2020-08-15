@@ -16,9 +16,9 @@ def in_whitelist(whitelist):
 
 def is_tester():
     async def is_tester_check(ctx):
-        user = await CLIENT[config.MONGO_DATABASE_NAME][
-            config.MONGO_TESTING_PLAYERS_COLLECTION_NAME
-        ].find_one({"discord_id": ctx.author.id}, {"enabled": 1, "role": 1})
+        user = await CLIENT[config.MONGO_DATABASE_NAME][config.MONGO_TESTING_PLAYERS_COLLECTION_NAME].find_one(
+            {"discord_id": ctx.author.id}, {"enabled": 1, "role": 1}
+        )
         if not user or not user["enabled"]:
             raise core.errors.NotATester("You are not a tester!")
         return user["role"].lower() in ("tester", "senior", "staff")
@@ -28,9 +28,9 @@ def is_tester():
 
 def is_senior():
     async def is_senior_check(ctx):
-        user = await CLIENT[config.MONGO_DATABASE_NAME][
-            config.MONGO_TESTING_PLAYERS_COLLECTION_NAME
-        ].find_one({"discord_id": ctx.author.id}, {"enabled": 1, "role": 1})
+        user = await CLIENT[config.MONGO_DATABASE_NAME][config.MONGO_TESTING_PLAYERS_COLLECTION_NAME].find_one(
+            {"discord_id": ctx.author.id}, {"enabled": 1, "role": 1}
+        )
         if not user or not user["enabled"]:
             raise core.errors.NotATester("You are not a tester!")
         return user["role"].lower() in ("senior", "staff")
@@ -40,13 +40,8 @@ def is_senior():
 
 def guild_is_rct():
     async def guild_is_rct_check(ctx):
-        if (
-            ctx.message.guild is None
-            or ctx.message.guild.id != config.DISCORD_RCT_GUILD_ID
-        ):
-            raise core.errors.NotRCTGuild(
-                "Not allowed outside the official RCT Discord!"
-            )
+        if ctx.message.guild is None or ctx.message.guild.id != config.DISCORD_RCT_GUILD_ID:
+            raise core.errors.NotRCTGuild("Not allowed outside the official RCT Discord!")
         return True
 
     return commands.check(guild_is_rct_check)

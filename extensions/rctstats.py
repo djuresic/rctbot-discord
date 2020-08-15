@@ -46,9 +46,7 @@ class RCTStats(commands.Cog):
             user = await self.testers.find_one({"discord_id": discord_id})
         else:
             member = member.replace("\\", "")
-            user = await self.testers.find_one(
-                {"nickname": member.lower()}, collation={"locale": "en", "strength": 1}
-            )
+            user = await self.testers.find_one({"nickname": member.lower()}, collation={"locale": "en", "strength": 1})
 
         requester_discord_id = ctx.author.id
         requester = await self.testers.find_one({"discord_id": requester_discord_id})
@@ -61,16 +59,13 @@ class RCTStats(commands.Cog):
         # print(user)
         if user is None:
             return await ctx.send(
-                f"{ctx.author.mention} That player is neither former nor past RCT member.",
-                delete_after=10.0,
+                f"{ctx.author.mention} That player is neither former nor past RCT member.", delete_after=10.0,
             )
 
         try:
             # timeout = aiohttp.ClientTimeout(total=5)
             async with aiohttp.ClientSession() as session:
-                simple_stats = await Client("ac", session=session).show_simple_stats(
-                    user["nickname"]
-                )
+                simple_stats = await Client("ac", session=session).show_simple_stats(user["nickname"])
                 if simple_stats and b"nickname" in simple_stats:
                     nick_with_clan_tag = simple_stats[b"nickname"].decode()
                     name_color = await get_name_color(simple_stats)
@@ -150,11 +145,7 @@ class RCTStats(commands.Cog):
 
         # Convert cardinal to ordinal.
         async def ordinal(n):
-            _suffix = (
-                "th"
-                if 4 <= n % 100 <= 20
-                else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-            )
+            _suffix = "th" if 4 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
             return f"{n}{_suffix}"
 
         # This cycle.
@@ -211,14 +202,10 @@ class RCTStats(commands.Cog):
             icon_url=(await get_avatar(user["account_id"])),
         )
         if enabled:
-            embed.add_field(
-                name="Unconfirmed games", value=unconfirmed_games, inline=True
-            )
+            embed.add_field(name="Unconfirmed games", value=unconfirmed_games, inline=True)
             # embed.add_field(name=u"\u2063", value=u"\u2063", inline=True)
             embed.add_field(
-                name="Games",
-                value=f'{user["games"]} ({await ordinal(user["ladder"]["games"])})',
-                inline=True,
+                name="Games", value=f'{user["games"]} ({await ordinal(user["ladder"]["games"])})', inline=True,
             )
         if enabled:
             embed.add_field(
@@ -233,9 +220,7 @@ class RCTStats(commands.Cog):
         embed.add_field(name="Total game time", value=gametime_total, inline=True)
         if enabled:
             embed.add_field(
-                name="Bug reports",
-                value=f'{user["bugs"]} ({await ordinal(user["ladder"]["bugs"])})',
-                inline=True,
+                name="Bug reports", value=f'{user["bugs"]} ({await ordinal(user["ladder"]["bugs"])})', inline=True,
             )
         if enabled:
             embed.add_field(
@@ -255,11 +240,11 @@ class RCTStats(commands.Cog):
             )
 
             if requester_name.lower() == user["nickname"].lower():
-                owned_tokens_message = (
-                    f"React with {config.EMOJI_GOLD_COINS} to reveal."
-                )
+                owned_tokens_message = f"React with {config.EMOJI_GOLD_COINS} to reveal."
             else:
-                owned_tokens_message = f'Available when used by {discord.utils.escape_markdown(user["nickname"])} only!'
+                owned_tokens_message = (
+                    f'Available when used by {discord.utils.escape_markdown(user["nickname"])} only!'
+                )
             embed.add_field(
                 name="Tokens owned", value=owned_tokens_message, inline=True,
             )
@@ -278,24 +263,15 @@ class RCTStats(commands.Cog):
             embed.add_field(name="Bonuses", value=bonus, inline=True)
 
             embed.add_field(name="Perks", value=user["perks"], inline=True)
-            embed.add_field(
-                name="Absence", value="Yes" if "absence" in user else "No", inline=True
-            )
+            embed.add_field(name="Absence", value="Yes" if "absence" in user else "No", inline=True)
         embed.add_field(name="Join date", value=user["joined"], inline=True)
         # embed.add_field(name="Trivia points", value=trivia_points, inline=True)
         if not enabled and "removal_reason" in user:
-            embed.add_field(
-                name="Reason for removal", value=user["removal_reason"], inline=False
-            )
+            embed.add_field(name="Reason for removal", value=user["removal_reason"], inline=False)
         if len(user["awards"]) > 0:
-            embed.add_field(
-                name="Awards", value="\u2063" + " ".join(user["awards"]), inline=True
-            )
+            embed.add_field(name="Awards", value="\u2063" + " ".join(user["awards"]), inline=True)
 
-        if (
-            user["perks"] == "Pending"
-            and requester_name.lower() == user["nickname"].lower()
-        ):
+        if user["perks"] == "Pending" and requester_name.lower() == user["nickname"].lower():
             if clan_tag is not None:
                 if clan_tag == "[RCT]":
                     perks_message = f"React with {config.EMOJI_RCT} to claim your rewards now! Note that it may take several minutes for them to show up in your vault."
@@ -318,10 +294,7 @@ class RCTStats(commands.Cog):
         else:
             perks_ready_to_claim = False
 
-        if (
-            user["perks"] == "Requested"
-            and requester_name.lower() == user["nickname"].lower()
-        ):
+        if user["perks"] == "Requested" and requester_name.lower() == user["nickname"].lower():
             embed.add_field(
                 name="Did you receive your RCT Chat Symbol and Name Color?",
                 value=f"React with {config.EMOJI_YAY} if they are in your vault or with {config.EMOJI_NAY} if they are not.",
@@ -361,18 +334,13 @@ class RCTStats(commands.Cog):
             await message.add_reaction(config.EMOJI_GOLD_COINS)
         if perks_ready_to_claim and requester_name.lower() == user["nickname"].lower():
             await message.add_reaction(config.EMOJI_RCT)
-        if (
-            user["perks"] == "Requested"
-            and requester_name.lower() == user["nickname"].lower()
-        ):
+        if user["perks"] == "Requested" and requester_name.lower() == user["nickname"].lower():
             await message.add_reaction(config.EMOJI_YAY)
             await message.add_reaction(config.EMOJI_NAY)
 
         async def set_perks_status(status):
             return await self.testers.update_one(
-                {"nickname": user["nickname"]},
-                {"$set": {"perks": status}},
-                collation={"locale": "en", "strength": 1},
+                {"nickname": user["nickname"]}, {"$set": {"perks": status}}, collation={"locale": "en", "strength": 1},
             )
 
         try:
@@ -380,14 +348,7 @@ class RCTStats(commands.Cog):
                 "reaction_add",
                 check=lambda reaction, user: user == ctx.author
                 and str(reaction.emoji)
-                in [
-                    "🗑️",
-                    "💾",
-                    config.EMOJI_GOLD_COINS,
-                    config.EMOJI_RCT,
-                    config.EMOJI_YAY,
-                    config.EMOJI_NAY,
-                ]
+                in ["🗑️", "💾", config.EMOJI_GOLD_COINS, config.EMOJI_RCT, config.EMOJI_YAY, config.EMOJI_NAY,]
                 and reaction.message.id == message.id,
                 timeout=300.0,
             )
@@ -402,9 +363,7 @@ class RCTStats(commands.Cog):
             ):
                 async with ACPClient(admin=ctx.author, masterserver="ac") as acp:
                     if not await acp.add_perks(user["account_id"]):
-                        return await ctx.send(
-                            f"{ctx.author.mention} Uh oh, something went wrong."
-                        )
+                        return await ctx.send(f"{ctx.author.mention} Uh oh, something went wrong.")
                 await set_perks_status("Requested")
                 await ctx.send(
                     f"{ctx.author.mention} Done! Please use this command again to confirm whether you received the RCT Chat Symbol and Name Color after checking your in-game vault."
@@ -416,9 +375,7 @@ class RCTStats(commands.Cog):
                 and requester_name.lower() == user["nickname"].lower()
             ):
                 await set_perks_status("Yes")
-                await ctx.send(
-                    f"{ctx.author.mention} Awesome! Thanks for using RCTBot."
-                )
+                await ctx.send(f"{ctx.author.mention} Awesome! Thanks for using RCTBot.")
 
             if (
                 str(reaction.emoji) == config.EMOJI_NAY
@@ -430,16 +387,11 @@ class RCTStats(commands.Cog):
                     f"{ctx.author.mention} Perks status set to Pending. You should be able to use the same command and request rewards again."
                 )
 
-            if (
-                str(reaction.emoji) == config.EMOJI_GOLD_COINS
-                and requester_name.lower() == user["nickname"].lower()
-            ):
+            if str(reaction.emoji) == config.EMOJI_GOLD_COINS and requester_name.lower() == user["nickname"].lower():
                 await message.clear_reactions()
                 async with VPClient() as portal:
                     tokens = await portal.get_tokens(user["account_id"])
-                embed.set_field_at(
-                    index=8, name="Tokens owned", value=tokens, inline=True
-                )
+                embed.set_field_at(index=8, name="Tokens owned", value=tokens, inline=True)
                 await message.edit(embed=embed)
                 await message.add_reaction("🗑️")
                 await message.add_reaction("💾")
@@ -472,8 +424,7 @@ class RCTStats(commands.Cog):
         user = await self.testers.find_one({"discord_id": ctx.author.id})
         if not user:
             return await ctx.send(
-                f"{ctx.author.mention} Signature is only available to registered RCT volunteers.",
-                delete_after=7.5,
+                f"{ctx.author.mention} Signature is only available to registered RCT volunteers.", delete_after=7.5,
             )
 
         async def set_signature(url=None, purchase=False):
@@ -550,23 +501,17 @@ class RCTStats(commands.Cog):
                 )
 
             if reaction.emoji == "🛒" and not purchased:
-                confirmation = (
-                    "I AM ABSOLUTELY SURE I WANT TO PURCHASE DISCORD EMBEDDED SIGNATURE"
-                )
+                confirmation = "I AM ABSOLUTELY SURE I WANT TO PURCHASE DISCORD EMBEDDED SIGNATURE"
                 purchase_prompt = await ctx.send(
                     f"{ctx.author.mention} Are you **absolutely sure** you want to purchase **Discord Embedded Signature** for **{price} Volunteer Tokens**? This is irreversible and could leave you with negative tokens.\n\n Type `{confirmation}` to confirm this order, or anything else to cancel."
                 )
                 purchase_confirmation = await self.bot.wait_for(
-                    "message",
-                    check=lambda m: m.author.id == ctx.author.id
-                    and m.channel.id == ctx.channel.id,
+                    "message", check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id,
                 )
                 await purchase_prompt.delete()
                 if purchase_confirmation.content != confirmation:
                     await purchase_confirmation.delete()
-                    return await ctx.send(
-                        f"{ctx.author.mention} Order cancelled.", delete_after=15.0,
-                    )
+                    return await ctx.send(f"{ctx.author.mention} Order cancelled.", delete_after=15.0,)
                 await purchase_confirmation.delete()
                 try:
                     async with VPClient() as portal:
@@ -578,8 +523,7 @@ class RCTStats(commands.Cog):
                     )
                 except:
                     return await ctx.send(
-                        f"{ctx.author.mention} Something went wrong, please try again.",
-                        delete_after=15.0,
+                        f"{ctx.author.mention} Something went wrong, please try again.", delete_after=15.0,
                     )
 
             if reaction.emoji == "⬆️" and purchased:
@@ -588,9 +532,7 @@ class RCTStats(commands.Cog):
                 )
                 # Needs timeout
                 signature_message = await self.bot.wait_for(
-                    "message",
-                    check=lambda m: m.author.id == ctx.author.id
-                    and m.channel.id == ctx.channel.id,
+                    "message", check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id,
                 )
                 await do_it_now.delete()
                 if len(signature_message.attachments) == 0:
@@ -622,8 +564,7 @@ class RCTStats(commands.Cog):
                 except:
                     await signature_message.delete()
                     return await ctx.send(
-                        f"{ctx.author.mention} Unsupported file type! Use `.signature` to retry.",
-                        delete_after=15.0,
+                        f"{ctx.author.mention} Unsupported file type! Use `.signature` to retry.", delete_after=15.0,
                     )
                 image_bio.seek(0)
                 sigantures_channel = self.bot.get_channel(718465776172138497)

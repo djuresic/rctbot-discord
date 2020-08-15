@@ -35,9 +35,7 @@ class RCTCycle(commands.Cog):
     async def _utotal(self, ctx):
         async with CycleManager() as cm:
             await cm.update_total()
-            await ctx.send(
-                "Updated **total games**, **total seconds** and **total bugs** in DB."
-            )
+            await ctx.send("Updated **total games**, **total seconds** and **total bugs** in DB.")
 
     @update.command(name="ranks")
     async def _uranks(self, ctx):

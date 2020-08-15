@@ -54,9 +54,7 @@ class Playtesting(commands.Cog):
                 color=ms.color,
                 timestamp=ctx.message.created_at,
             )
-            embed.set_author(
-                name=ctx.author.display_name, icon_url=ctx.author.avatar_url
-            )
+            embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
             embed.add_field(name="Windows", value=w_version, inline=True)
             embed.add_field(name="macOS", value=m_version, inline=True)
             embed.add_field(name="Linux", value=l_version, inline=True)

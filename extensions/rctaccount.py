@@ -23,9 +23,7 @@ class RCTAccount(commands.Cog):
     @commands.max_concurrency(1, per=commands.BucketType.default, wait=False)
     async def password(self, ctx):
         self.changing_pw = ctx.author
-        tester = await self.testers.find_one(
-            {"discord_id": ctx.author.id}, {"_id": 0, "nickname": 1}
-        )
+        tester = await self.testers.find_one({"discord_id": ctx.author.id}, {"_id": 0, "nickname": 1})
         self.changing_pw = tester["nickname"]
         if not tester:
             return await ctx.send("You are not a tester!")
@@ -35,28 +33,21 @@ class RCTAccount(commands.Cog):
         try:
             password = await self.bot.wait_for(
                 "message",
-                check=lambda m: m.author.id == ctx.author.id
-                and m.channel.id == ctx.channel.id,
+                check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id,
                 timeout=45.0,
             )
         except:
-            return await ctx.send(
-                "You took too long. Please use the command again if you wish to continue."
-            )
+            return await ctx.send("You took too long. Please use the command again if you wish to continue.")
         async with ACPClient(admin=ctx.author, masterserver="rc") as acp:
             await ctx.send(
-                discord.utils.escape_markdown(
-                    await acp.change_password(tester["nickname"], password.content)
-                )
+                discord.utils.escape_markdown(await acp.change_password(tester["nickname"], password.content))
             )
 
     # TODO: Handle PrivateMessageOnly globally.
     @password.error
     async def password_error(self, ctx, error):
         if isinstance(error, NotATester):
-            await ctx.send(
-                f"{ctx.author.mention} You are not a tester!", delete_after=8.0
-            )
+            await ctx.send(f"{ctx.author.mention} You are not a tester!", delete_after=8.0)
         if isinstance(error, commands.PrivateMessageOnly):
             await ctx.send(f"{ctx.author.mention} {error}", delete_after=8.0)
         if isinstance(error, commands.MaxConcurrencyReached):

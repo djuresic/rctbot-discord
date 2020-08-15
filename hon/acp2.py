@@ -30,14 +30,10 @@ class ACPClient:
 
     def __init__(self, admin, masterserver="ac", session=None):
         if session is None:
-            self.session = aiohttp.ClientSession(
-                connector=ProxyConnector.from_url(config.HON_ACP_PROXY_URL)
-            )
+            self.session = aiohttp.ClientSession(connector=ProxyConnector.from_url(config.HON_ACP_PROXY_URL))
         else:
             self.session = session
-        self.timeout = aiohttp.ClientTimeout(
-            total=5 * 60, connect=None, sock_connect=None, sock_read=None
-        )
+        self.timeout = aiohttp.ClientTimeout(total=5 * 60, connect=None, sock_connect=None, sock_read=None)
         self.masterserver = masterserver
         self.url = self.ACP_CONFIG[masterserver]["base_url"]
         self.ssl = bool(self.url.startswith("https://"))
@@ -65,9 +61,7 @@ class ACPClient:
         return ProxyConnector.from_url(config.HON_ACP_PROXY_URL)
 
     async def authenticate(self):
-        status, _, text = await self.request(
-            config.HON_ACP_AUTH, data=config.HON_ACP_MAGIC, ssl=self.ssl
-        )
+        status, _, text = await self.request(config.HON_ACP_AUTH, data=config.HON_ACP_MAGIC, ssl=self.ssl)
         if status in [200, 301, 302] and config.HON_ACP_USER in text:
             return True
         else:
@@ -88,30 +82,14 @@ class ACPClient:
         if not timeout:
             timeout = self.timeout
         status, headers, text = await self._do_request(
-            path,
-            params,
-            data,
-            method,
-            allow_redirects,
-            chunked,
-            read_until_eof,
-            ssl,
-            timeout,
+            path, params, data, method, allow_redirects, chunked, read_until_eof, ssl, timeout,
         )
         if status in [401, 403, 500]:
             for attempt in range(5):
                 authenticated = await self.authenticate()
                 if authenticated:
                     status, headers, text = await self._do_request(
-                        path,
-                        params,
-                        data,
-                        method,
-                        allow_redirects,
-                        chunked,
-                        read_until_eof,
-                        ssl,
-                        timeout,
+                        path, params, data, method, allow_redirects, chunked, read_until_eof, ssl, timeout,
                     )
                     return status, headers, text
                 else:
@@ -122,16 +100,7 @@ class ACPClient:
             return status, headers, text
 
     async def _do_request(
-        self,
-        path,
-        params,
-        data,
-        method,
-        allow_redirects,
-        chunked,
-        read_until_eof,
-        ssl,
-        timeout,
+        self, path, params, data, method, allow_redirects, chunked, read_until_eof, ssl, timeout,
     ):
         # print(self.url, path, params, data, method, chunked, read_until_eof, ssl)
         async with self.session.request(
@@ -175,9 +144,7 @@ class ACPClient:
 
     async def _search(self, search_path, search_by, search_for):
         search_data = {"search_by": search_by, "search_for": search_for}
-        _, headers, _ = await self.request(
-            search_path, data=search_data, allow_redirects=False, ssl=self.ssl
-        )
+        _, headers, _ = await self.request(search_path, data=search_data, allow_redirects=False, ssl=self.ssl)
         # Could use status here.
         if "Location" in headers:
             if "index." not in headers["Location"]:
@@ -225,9 +192,7 @@ class ACPClient:
             soup = BeautifulSoup(response_text, features="lxml")
             clan_name = soup.find("input", attrs={"name": "clan_name"})["value"]
             clan_tag = soup.find("input", attrs={"name": "tag"})["value"]
-            user_parent = soup.find(
-                "input", attrs={"name": "account_id", "value": str(account_id)}
-            ).parent
+            user_parent = soup.find("input", attrs={"name": "account_id", "value": str(account_id)}).parent
             clan_rank = user_parent.find("option", selected=True)["value"]
             # print(clan_rank)
             return clan_tag, clan_name, clan_rank
@@ -238,9 +203,7 @@ class ACPClient:
     async def get_sub_accounts(self, account_id):
         path = config.HON_ACP_PROFILE
         query = {"f": "modify", "aid": account_id}
-        status, _, text = await self.request(
-            path, params=query, method="GET", ssl=self.ssl
-        )
+        status, _, text = await self.request(path, params=query, method="GET", ssl=self.ssl)
         fields = [
             {"name": "Fields", "value": "Sub-accounts", "inline": False},
         ]
@@ -264,9 +227,7 @@ class ACPClient:
     async def check_suspension(self, super_id):
         path = config.HON_ACP_SUSPENSION
         query = {"super_id": super_id}
-        status, _, text = await self.request(
-            path, params=query, method="GET", ssl=self.ssl
-        )
+        status, _, text = await self.request(path, params=query, method="GET", ssl=self.ssl)
         fields = [
             {"name": "Fields", "value": "Suspension", "inline": False},
         ]
@@ -292,25 +253,17 @@ class ACPClient:
             old_clan_tag, old_clan_name, old_clan_rank = 3 * (None,)
         else:
             old_clan_id = await self.clan_path_to_cid(old_clan_path)
-            old_clan_tag, old_clan_name, old_clan_rank = await self.user_clan_data(
-                old_clan_path, account_id
-            )
+            old_clan_tag, old_clan_name, old_clan_rank = await self.user_clan_data(old_clan_path, account_id)
         if old_clan_id == new_clan_id:
             return f"{nickname} ({account_id}) is already in {old_clan_name} ({new_clan_id})"
         member_data = {"nickname": nickname}
         # Add to the new clan.
         status, *_ = await self.request(new_clan_path, data=member_data, ssl=self.ssl)
         # Fetch new data to check if it worked and log this action.
-        new_clan_tag, new_clan_name, new_clan_rank = await self.user_clan_data(
-            new_clan_path, account_id
-        )
+        new_clan_tag, new_clan_name, new_clan_rank = await self.user_clan_data(new_clan_path, account_id)
         # Set embedded fields.
         fields = [
-            {
-                "name": "Change",
-                "value": f"Clan ({old_clan_id} -> {new_clan_id})",
-                "inline": False,
-            },
+            {"name": "Change", "value": f"Clan ({old_clan_id} -> {new_clan_id})", "inline": False,},
             {"name": "Old Tag", "value": old_clan_tag, "inline": True},
             {"name": "Old Name", "value": old_clan_name, "inline": True},
             {"name": "Old Rank", "value": old_clan_rank, "inline": True},
@@ -331,9 +284,7 @@ class ACPClient:
         if not old_clan_path:
             return f"{nickname} ({account_id}) is not in a clan!"
         old_clan_id = await self.clan_path_to_cid(old_clan_path)
-        old_clan_tag, old_clan_name, old_clan_rank = await self.user_clan_data(
-            old_clan_path, account_id
-        )
+        old_clan_tag, old_clan_name, old_clan_rank = await self.user_clan_data(old_clan_path, account_id)
         member_data = {"account_id": account_id, "rank": "Remove"}
         # Remove from clan.
         status, *_ = await self.request(old_clan_path, data=member_data, ssl=self.ssl)
@@ -344,11 +295,7 @@ class ACPClient:
             # In this case removal failed.
             return f"Failed to remove {nickname} ({account_id}) from {old_clan_name} ({old_clan_id})!"
         fields = [
-            {
-                "name": "Change",
-                "value": f"Clan ({old_clan_id} -> {None})",
-                "inline": False,
-            },
+            {"name": "Change", "value": f"Clan ({old_clan_id} -> {None})", "inline": False,},
             {"name": "Old Tag", "value": old_clan_tag, "inline": True},
             {"name": "Old Name", "value": old_clan_name, "inline": True},
             {"name": "Old Rank", "value": old_clan_rank, "inline": True},
@@ -383,9 +330,7 @@ class ACPClient:
         ]
         await self.log_action(account_id, "updated", fields)
         if status == 200 and new_rank == desired_rank:
-            return (
-                f"Successfully promoted {nickname} ({account_id}) to Clan {new_rank}!"
-            )
+            return f"Successfully promoted {nickname} ({account_id}) to Clan {new_rank}!"
         else:
             return None
 
@@ -433,9 +378,7 @@ class ACPClient:
         ]
         await self.log_action(account_id, "updated", fields)
         if status == 200 and new_rank == desired_rank:
-            return (
-                f"Successfully promoted {nickname} ({account_id}) to Clan {new_rank}!"
-            )
+            return f"Successfully promoted {nickname} ({account_id}) to Clan {new_rank}!"
         else:
             return None
 
@@ -444,9 +387,7 @@ class ACPClient:
         path = config.HON_ACP_PROFILE
         query = {"f": "modify", "aid": account_id}
         upgrades_data = {"give[product][]": ["2107", "918"], "upgradeya": "Add+Upgrade"}
-        status, *_ = await self.request(
-            path, params=query, data=upgrades_data, ssl=self.ssl
-        )
+        status, *_ = await self.request(path, params=query, data=upgrades_data, ssl=self.ssl)
         fields = [
             {"name": "Change", "value": "Upgrades", "inline": False},
             {"name": "Action", "value": "Add", "inline": True},
@@ -463,20 +404,14 @@ class ACPClient:
         # FIXME: Unstable AF.
         path = config.HON_ACP_PROFILE
         query = {"f": "modify", "aid": account_id}
-        status, _, text = await self.request(
-            path, params=query, method="GET", ssl=self.ssl
-        )
+        status, _, text = await self.request(path, params=query, method="GET", ssl=self.ssl)
         # This isn't good.
         if status == 200:
 
             def find_perks(response_text):
                 soup = BeautifulSoup(response_text, features="lxml")
-                chat_colors = soup.find_all(
-                    "tr", attrs={"class": "Chat_Color_transdiv"}
-                )
-                chat_symbols = soup.find_all(
-                    "tr", attrs={"class": "Chat_Symbol_transdiv"}
-                )
+                chat_colors = soup.find_all("tr", attrs={"class": "Chat_Color_transdiv"})
+                chat_symbols = soup.find_all("tr", attrs={"class": "Chat_Symbol_transdiv"})
 
                 def find_values(table_tr, product_id):
                     td_list = []
@@ -517,34 +452,20 @@ class ACPClient:
         """Return account infomation dictionary ready for further manipulation."""
         account_info = {}
         soup = BeautifulSoup(response_text, features="lxml")
-        account_info["nickname"] = soup.find("input", attrs={"name": "nickname"})[
-            "value"
-        ]
+        account_info["nickname"] = soup.find("input", attrs={"name": "nickname"})["value"]
         account_info["revert"] = ""
         account_info["password"] = ""
         account_info["email"] = soup.find("input", attrs={"name": "email"})["value"]
-        account_info["first_name"] = soup.find("input", attrs={"name": "first_name"})[
-            "value"
-        ]
-        account_info["last_name"] = soup.find("input", attrs={"name": "last_name"})[
-            "value"
-        ]
-        account_info["address_1"] = soup.find("input", attrs={"name": "address_1"})[
-            "value"
-        ]
-        account_info["address_2"] = soup.find("input", attrs={"name": "address_2"})[
-            "value"
-        ]
+        account_info["first_name"] = soup.find("input", attrs={"name": "first_name"})["value"]
+        account_info["last_name"] = soup.find("input", attrs={"name": "last_name"})["value"]
+        account_info["address_1"] = soup.find("input", attrs={"name": "address_1"})["value"]
+        account_info["address_2"] = soup.find("input", attrs={"name": "address_2"})["value"]
         account_info["city"] = soup.find("input", attrs={"name": "city"})["value"]
         account_info["region"] = soup.find("input", attrs={"name": "region"})["value"]
-        account_info["postalcode"] = soup.find("input", attrs={"name": "postalcode"})[
-            "value"
-        ]
+        account_info["postalcode"] = soup.find("input", attrs={"name": "postalcode"})["value"]
         country_options = soup.find("select", attrs={"name": "country"})
         try:
-            account_info["country"] = country_options.find("option", selected=True)[
-                "value"
-            ]
+            account_info["country"] = country_options.find("option", selected=True)["value"]
         except TypeError:
             account_info["country"] = "USA"
         return account_info
@@ -564,12 +485,8 @@ class ACPClient:
         account_info = await loop.run_in_executor(None, self._get_account_info, text)
         account_info["password"] = password
         admin = await self.testers.find_one({"discord_id": self.admin.id})
-        account_info[
-            "note"
-        ] = f'RCTBot password change. Made by: {admin["nickname"]} ({admin["discord_id"]})'
-        await self.request(
-            path, params=query, data=account_info, ssl=self.ssl, allow_redirects=False
-        )
+        account_info["note"] = f'RCTBot password change. Made by: {admin["nickname"]} ({admin["discord_id"]})'
+        await self.request(path, params=query, data=account_info, ssl=self.ssl, allow_redirects=False)
         fields = [
             {"name": "Change", "value": "Account Information", "inline": False},
             {"name": "Type", "value": "Password", "inline": True},
@@ -587,18 +504,12 @@ class ACPClient:
         alphabet = string.ascii_letters + string.digits
         account_info["password"] = "".join(secrets.choice(alphabet) for i in range(8))
         account_info["email"] = "{}@{}.com".format(
-            "".join(secrets.choice(alphabet) for i in range(16)),
-            "".join(secrets.choice(alphabet) for i in range(8)),
+            "".join(secrets.choice(alphabet) for i in range(16)), "".join(secrets.choice(alphabet) for i in range(8)),
         )
         # Status.
-        _, headers, _ = await self.request(
-            path, params=query, data=account_info, ssl=self.ssl, allow_redirects=False
-        )
+        _, headers, _ = await self.request(path, params=query, data=account_info, ssl=self.ssl, allow_redirects=False)
         if "Location" in headers:
-            if (
-                "index." not in headers["Location"]
-                and "error." not in headers["Location"]
-            ):
+            if "index." not in headers["Location"] and "error." not in headers["Location"]:
                 path = "/" + headers["Location"]
             else:
                 path = None
@@ -620,9 +531,7 @@ class ACPClient:
 
         def find_access(response_text):
             soup = BeautifulSoup(response_text, features="lxml")
-            return soup.find(
-                "a", attrs={"href": re.compile("test_access")}
-            ).parent.b.string
+            return soup.find("a", attrs={"href": re.compile("test_access")}).parent.b.string
 
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, find_access, text)
@@ -631,14 +540,9 @@ class ACPClient:
         """Toggle Test Access. Returns success bool."""
         path = config.HON_ACP_PROFILE
         query = {"f": "modify", "aid": account_id, "toggle": "test_access"}
-        _, headers, _ = await self.request(
-            path, params=query, ssl=self.ssl, allow_redirects=False
-        )
+        _, headers, _ = await self.request(path, params=query, ssl=self.ssl, allow_redirects=False)
         if "Location" in headers:
-            return bool(
-                "index." not in headers["Location"]
-                and "error." not in headers["Location"]
-            )
+            return bool("index." not in headers["Location"] and "error." not in headers["Location"])
         else:
             return False
 

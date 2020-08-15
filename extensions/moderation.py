@@ -43,11 +43,7 @@ class Moderation(commands.Cog):
                     messages.append(message_sent)
                     counter += 1
             await channel.delete_messages(messages)
-            message = await ctx.send(
-                "Deleted the last {0} messages from {1.mention}.".format(
-                    len(messages), offender
-                )
-            )
+            message = await ctx.send("Deleted the last {0} messages from {1.mention}.".format(len(messages), offender))
             await message.add_reaction("🆗")
             try:
                 await self.bot.wait_for(
@@ -63,12 +59,8 @@ class Moderation(commands.Cog):
 
         else:
             # messages = await channel.history(limit=number).flatten()
-            deleted = await channel.purge(
-                limit=number + 1
-            )  # Accounting for command invoking message
-            message = await ctx.send(
-                "Deleted the last {} messages.".format(len(deleted))
-            )
+            deleted = await channel.purge(limit=number + 1)  # Accounting for command invoking message
+            message = await ctx.send("Deleted the last {} messages.".format(len(deleted)))
             await message.add_reaction("🆗")
             try:
                 await self.bot.wait_for(
@@ -90,10 +82,7 @@ class Moderation(commands.Cog):
             ctx.send("Incorrect format. The correct format is: `.info <user>`")
             return
         embed = discord.Embed(
-            title="Discord Member Information",
-            type="rich",
-            color=0xFF6600,
-            timestamp=ctx.message.created_at,
+            title="Discord Member Information", type="rich", color=0xFF6600, timestamp=ctx.message.created_at,
         )
         embed.set_author(name=member.display_name, icon_url=member.avatar_url)
         embed.add_field(name="Status:", value=member.status, inline=False)

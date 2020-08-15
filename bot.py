@@ -62,13 +62,7 @@ if __name__ == "__main__":
             exc = "{}: {}".format(type(e).__name__, e)
             print(f"Failed to load {extension}\n{exc}")
 
-    print(
-        "Loaded modules: {}".format(
-            ", ".join(
-                [extension.split(".")[-1] for extension in config.LOADED_EXTENSIONS]
-            )
-        )
-    )
+    print("Loaded modules: {}".format(", ".join([extension.split(".")[-1] for extension in config.LOADED_EXTENSIONS])))
 
 
 @bot.command()
@@ -161,8 +155,7 @@ async def _unloaded(ctx):
                 [
                     extension.split(f"{directory}.")[1]
                     for extension in config.STARTUP_EXTENSIONS
-                    if extension not in config.LOADED_EXTENSIONS
-                    and f"{directory}." in extension
+                    if extension not in config.LOADED_EXTENSIONS and f"{directory}." in extension
                 ]
             )
         )
@@ -189,11 +182,7 @@ async def about(ctx):
         " along with this program. If not, see <https://www.gnu.org/licenses/>."
     )
     embed = discord.Embed(
-        title="RCTBot",
-        type="rich",
-        description=description,
-        color=0x663366,
-        timestamp=datetime.now(timezone.utc),
+        title="RCTBot", type="rich", description=description, color=0x663366, timestamp=datetime.now(timezone.utc),
     )
     embed.set_author(name=bot.user.name, icon_url=bot.user.avatar_url)
     resources = f"{config.EMOJI_GITHUB} [GitHub]({repository_url} 'GitHub Repository')"
@@ -214,9 +203,7 @@ async def on_ready():
             bot.user, platform.platform(), config.CONFIG_FILE
         )
     )
-    watching = discord.Activity(
-        name="Heroes of Newerth", type=discord.ActivityType.watching
-    )
+    watching = discord.Activity(name="Heroes of Newerth", type=discord.ActivityType.watching)
     # streaming = discord.Streaming(platform="Twitch", name="Heroes of Newerth", game="Heroes of Newerth", url="https://www.twitch.tv/", twitch_name="")
     await bot.change_presence(activity=watching, status=discord.Status.dnd, afk=False)
     print("------")

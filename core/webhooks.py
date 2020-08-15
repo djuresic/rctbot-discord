@@ -11,9 +11,7 @@ from core.checks import in_whitelist
 async def webhook_message(webhook_urls, message, username):
     async with aiohttp.ClientSession() as session:
         for webhook_url in webhook_urls:
-            webhook = discord.Webhook.from_url(
-                webhook_url, adapter=discord.AsyncWebhookAdapter(session)
-            )
+            webhook = discord.Webhook.from_url(webhook_url, adapter=discord.AsyncWebhookAdapter(session))
             await webhook.send(message, username=username)
 
 
@@ -31,22 +29,14 @@ async def webhook_embed(
     color=0xFF6600,
 ):
     embed = discord.Embed(
-        title=title,
-        type="rich",
-        description=description,
-        color=color,
-        timestamp=datetime.now(timezone.utc),
+        title=title, type="rich", description=description, color=color, timestamp=datetime.now(timezone.utc),
     )
     embed.set_author(
-        name=author_name,
-        url=f"https://www.heroesofnewerth.com/playerstats/ranked/",
-        icon_url=author_icon,
+        name=author_name, url=f"https://www.heroesofnewerth.com/playerstats/ranked/", icon_url=author_icon,
     )
 
     for field in fields:
-        embed.add_field(
-            name=field["name"], value=field["value"], inline=field["inline"]
-        )
+        embed.add_field(name=field["name"], value=field["value"], inline=field["inline"])
 
     embed.set_footer(
         text=footer_text, icon_url=footer_icon,
@@ -54,9 +44,7 @@ async def webhook_embed(
     # embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
     async with aiohttp.ClientSession() as session:
         for webhook_url in webhook_urls:
-            webhook = discord.Webhook.from_url(
-                webhook_url, adapter=discord.AsyncWebhookAdapter(session)
-            )
+            webhook = discord.Webhook.from_url(webhook_url, adapter=discord.AsyncWebhookAdapter(session))
             await webhook.send(username=username, avatar_url=avatar, embed=embed)
 
 
@@ -67,9 +55,7 @@ class WebhookTesting(commands.Cog):
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)
     async def wht(self, ctx, *, message: str):
-        await webhook_message(
-            config.DISCORD_LOG_WEBHOOKS, message, ctx.author.display_name
-        )
+        await webhook_message(config.DISCORD_LOG_WEBHOOKS, message, ctx.author.display_name)
 
     @commands.command()
     @in_whitelist(config.DISCORD_WHITELIST_IDS)

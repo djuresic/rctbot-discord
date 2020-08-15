@@ -17,9 +17,7 @@ class NotATester(commands.CheckFailure):  # TODO: special case in handler
     pass
 
 
-class NotMasterserverAuthenticated(
-    commands.CheckFailure
-):  # TODO: special case in handler
+class NotMasterserverAuthenticated(commands.CheckFailure):  # TODO: special case in handler
     pass
 
 
@@ -38,9 +36,7 @@ class ErrorHandler(commands.Cog):
 
         if isinstance(error, DatabaseNotReady):
             await ctx.send(
-                "{.mention} Slow down speedy, I just woke up. Try *me* again in a few seconds.".format(
-                    ctx.author
-                )
+                "{.mention} Slow down speedy, I just woke up. Try *me* again in a few seconds.".format(ctx.author)
             )
 
         if isinstance(error, NotMasterserverAuthenticated):

@@ -62,28 +62,18 @@ class VPClient:
             return False
 
     async def request(
-        self,
-        path,
-        params=None,
-        data=None,
-        method="POST",
-        chunked=None,
-        read_until_eof=True,
+        self, path, params=None, data=None, method="POST", chunked=None, read_until_eof=True,
     ):
         """Coroutine. Ensure the client is authenticated and perform a HTTP request.
         
         Return tuple (status, text) from HTTP response."""
 
-        status, text = await self._do_request(
-            path, params, data, method, chunked, read_until_eof
-        )
+        status, text = await self._do_request(path, params, data, method, chunked, read_until_eof)
         if status in [401, 403, 500]:
             for attempt in range(5):
                 authenticated = await self.authenticate()
                 if authenticated:
-                    status, text = await self._do_request(
-                        path, params, data, method, chunked, read_until_eof
-                    )
+                    status, text = await self._do_request(path, params, data, method, chunked, read_until_eof)
                     return status, text
                 else:
                     print(f"Portal authentication attempt {attempt+1} failed")

@@ -219,9 +219,7 @@ async def get_name_color(masterserver_response):
     """Return Chat (Name) Color as a hexadecimal integer from masterserever response
     which contains Chat Color information in selected_upgrades."""
     selected_upgrades = [
-        v.decode()
-        for v in masterserver_response[b"selected_upgrades"].values()
-        if isinstance(v, bytes)
+        v.decode() for v in masterserver_response[b"selected_upgrades"].values() if isinstance(v, bytes)
     ]
 
     color = None

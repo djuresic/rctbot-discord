@@ -19,9 +19,7 @@ class Lookup(commands.Cog):
 
     @commands.command(aliases=["lu", "lup", "lkp", "lkup"])
     @is_senior()
-    async def lookup(
-        self, ctx, player: Union[str, int], masterserver: str = "ac", *args
-    ):
+    async def lookup(self, ctx, player: Union[str, int], masterserver: str = "ac", *args):
         """Yes."""
         if masterserver.startswith("-"):
             args += (masterserver,)
@@ -30,9 +28,7 @@ class Lookup(commands.Cog):
         ms = Client(masterserver, session=session)
         if player.isdigit():
             result = await ms.id2nick(player)
-            if result is not None and not isinstance(
-                result, dict
-            ):  # Till id2nick returns nick
+            if result is not None and not isinstance(result, dict):  # Till id2nick returns nick
                 player = result.lower()
             else:
                 return await ctx.send(f"{ctx.author.mention} Account does not exist.")
@@ -56,19 +52,9 @@ class Lookup(commands.Cog):
             data_mu = await ms.show_stats(player, "mastery")
 
             selected_upgrades = ", ".join(
-                [
-                    v.decode()
-                    for v in data_mu[b"selected_upgrades"].values()
-                    if isinstance(v, bytes)
-                ]
+                [v.decode() for v in data_mu[b"selected_upgrades"].values() if isinstance(v, bytes)]
             )
-            other_upgrades = ", ".join(
-                [
-                    v.decode()
-                    for v in data[b"my_upgrades"].values()
-                    if isinstance(v, bytes)
-                ]
-            )
+            other_upgrades = ", ".join([v.decode() for v in data[b"my_upgrades"].values() if isinstance(v, bytes)])
         await session.close()
 
         if subs or suspension:
@@ -78,14 +64,10 @@ class Lookup(commands.Cog):
                 if suspension:
                     active_suspension = await acp.check_suspension(super_id)
                     active_suspension = (
-                        active_suspension.replace("<strong>", "")
-                        .replace("</strong>", "")
-                        .replace("<br />", "\n")
+                        active_suspension.replace("<strong>", "").replace("</strong>", "").replace("<br />", "\n")
                     )
 
-        default_avatar = (
-            "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
-        )
+        default_avatar = "https://s3.amazonaws.com/naeu-icb2/icons/default/account/default.png"
         if masterserver == "ac":
             if avatar:
                 account_icon_url = await get_avatar(account_id)
@@ -104,9 +86,7 @@ class Lookup(commands.Cog):
 
         clan_name = data[b"name"].decode() if b"name" in data else "\u2063"
         clan_rank = data[b"rank"].decode() if b"rank" in data else "\u2063"
-        if (
-            clan_rank != "\u2063" and clan_name == "\u2063" and clan_tag == "\u2063"
-        ):  # Ah yes, the ghost clan.
+        if clan_rank != "\u2063" and clan_name == "\u2063" and clan_tag == "\u2063":  # Ah yes, the ghost clan.
             clan_tag = "[]"
 
         embed_nickname = f"{clan_tag}{nickname}"
@@ -137,9 +117,7 @@ class Lookup(commands.Cog):
         embed.add_field(name="Account ID", value=account_id, inline=True)
         embed.add_field(name="Super ID", value=super_id, inline=True)
 
-        embed.add_field(
-            name="Created", value=data[b"create_date"].decode(), inline=True
-        )
+        embed.add_field(name="Created", value=data[b"create_date"].decode(), inline=True)
         embed.add_field(name="Last Activity", value=last_activity, inline=True)
 
         embed.add_field(name="Account Type", value=account_type, inline=True)
@@ -167,9 +145,7 @@ class Lookup(commands.Cog):
 
         if suspension:
             embed.add_field(
-                name="Suspension",
-                value=discord.utils.escape_markdown(active_suspension),
-                inline=False,
+                name="Suspension", value=discord.utils.escape_markdown(active_suspension), inline=False,
             )
 
         embed.set_footer(

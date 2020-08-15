@@ -97,9 +97,7 @@ class AsyncioGspreadWorksheetUpdated(gspread_asyncio.AsyncioGspreadWorksheet):
 
 def get_creds():
     """Returns Service Account credentials."""
-    return ServiceAccountCredentials.from_json_keyfile_name(
-        config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES
-    )
+    return ServiceAccountCredentials.from_json_keyfile_name(config.GOOGLE_CLIENT_SECRET_FILE, config.GOOGLE_SCOPES)
 
 
 # Do spreadsheet.client() instead of spreadsheet.CLIENT_MANAGER.authorize()

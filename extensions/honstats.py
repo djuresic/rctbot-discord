@@ -49,9 +49,7 @@ class HoNStats(commands.Cog):
             name="Level", value=campaign[b"level"].decode(), inline=True,
         )
         embed.add_field(
-            name="Account Created",
-            value=campaign[b"create_date"].decode(),
-            inline=True,
+            name="Account Created", value=campaign[b"create_date"].decode(), inline=True,
         )
         embed.add_field(
             name="Last Activity",
@@ -61,19 +59,13 @@ class HoNStats(commands.Cog):
             inline=True,
         )
         embed.add_field(
-            name="Standing",
-            value=config.HON_STANDING_MAP[campaign[b"standing"].decode()],
-            inline=True,
+            name="Standing", value=config.HON_STANDING_MAP[campaign[b"standing"].decode()], inline=True,
         )
         embed.add_field(
-            name="Clan Name",
-            value=campaign[b"name"].decode() if b"name" in campaign else "\u2063",
-            inline=True,
+            name="Clan Name", value=campaign[b"name"].decode() if b"name" in campaign else "\u2063", inline=True,
         )
         embed.add_field(
-            name="Clan Rank",
-            value=campaign[b"rank"].decode() if b"rank" in campaign else "\u2063",
-            inline=True,
+            name="Clan Rank", value=campaign[b"rank"].decode() if b"rank" in campaign else "\u2063", inline=True,
         )
         if b"cam_games_played" in campaign:
             con_total = int(campaign[b"cam_games_played"].decode())
@@ -103,17 +95,9 @@ class HoNStats(commands.Cog):
             inline=True,
         )
 
-        con_rank = (
-            int(campaign[b"current_level"]) if b"current_level" in campaign else 0
-        )
-        con_rank_highest = (
-            int(campaign[b"highest_level_current"])
-            if b"highest_level_current" in campaign
-            else 0
-        )
-        con_rank_percent = (
-            round(campaign[b"level_percent"], 2) if b"level_percent" in campaign else 0
-        )
+        con_rank = int(campaign[b"current_level"]) if b"current_level" in campaign else 0
+        con_rank_highest = int(campaign[b"highest_level_current"]) if b"highest_level_current" in campaign else 0
+        con_rank_percent = round(campaign[b"level_percent"], 2) if b"level_percent" in campaign else 0
         rank_data = {
             20: {"name": "Immortal", "image": "https://i.imgur.com/em0NhHz.png"},
             19: {"name": "Legendary I", "image": "https://i.imgur.com/OttPTfr.png"},
@@ -161,9 +145,7 @@ class HoNStats(commands.Cog):
             1950,
             2500,
         ]
-        mmr = mmr_list[con_rank] + (mmr_list[con_rank + 1] - mmr_list[con_rank]) * (
-            con_rank_percent / 100
-        )
+        mmr = mmr_list[con_rank] + (mmr_list[con_rank + 1] - mmr_list[con_rank]) * (con_rank_percent / 100)
         # embed.add_field(name="MMR", value=f"{mmr}", inline=True)
         embed.add_field(
             name="Rank", value=rank_data[con_rank]["name"], inline=True,
@@ -180,12 +162,8 @@ class HoNStats(commands.Cog):
             name="Wins", value=f"{con_wins}", inline=True,
         )
 
-        cam_losses = (
-            campaign[b"cam_losses"].decode() if b"cam_losses" in campaign else 0
-        )
-        cam_concedes = (
-            campaign[b"cam_concedes"].decode() if b"cam_concedes" in campaign else 0
-        )
+        cam_losses = campaign[b"cam_losses"].decode() if b"cam_losses" in campaign else 0
+        cam_concedes = campaign[b"cam_concedes"].decode() if b"cam_concedes" in campaign else 0
 
         embed.add_field(
             name="Losses", value=f"{cam_losses} ({cam_concedes} Conceded)", inline=True,
@@ -194,19 +172,9 @@ class HoNStats(commands.Cog):
             name="Win Rate", value=f"{con_win_rate}%", inline=True,
         )
 
-        kills = (
-            int(campaign[b"cam_herokills"].decode())
-            if b"cam_herokills" in campaign
-            else 0
-        )
-        deaths = (
-            int(campaign[b"cam_deaths"].decode()) if b"cam_deaths" in campaign else 0
-        )
-        assists = (
-            int(campaign[b"cam_heroassists"].decode())
-            if b"cam_heroassists" in campaign
-            else 0
-        )
+        kills = int(campaign[b"cam_herokills"].decode()) if b"cam_herokills" in campaign else 0
+        deaths = int(campaign[b"cam_deaths"].decode()) if b"cam_deaths" in campaign else 0
+        assists = int(campaign[b"cam_heroassists"].decode()) if b"cam_heroassists" in campaign else 0
         embed.add_field(
             name="Kills", value=kills, inline=True,
         )
@@ -278,9 +246,7 @@ class HoNStats(commands.Cog):
                 heroes.append(f'{hero} ({campaign[f"favHero{number}Time".encode()]}%)')
 
         embed.add_field(
-            name="Most Played Heroes",
-            value="\n".join(heroes) if len(heroes) > 0 else "\u2063",
-            inline=True,
+            name="Most Played Heroes", value="\n".join(heroes) if len(heroes) > 0 else "\u2063", inline=True,
         )
         embed.add_field(
             name="Lifetime Statistics", value=lifetime, inline=True,
@@ -306,9 +272,7 @@ class HoNStats(commands.Cog):
             text="Displays detailed statistics for Champions of Newerth (Forests of Caldavar Campaign) only.",
             icon_url="https://i.imgur.com/q8KmQtw.png",
         )
-        tester = await self.testers.find_one(
-            {"account_id": int(simple[b"account_id"].decode())}
-        )
+        tester = await self.testers.find_one({"account_id": int(simple[b"account_id"].decode())})
         if tester and tester["signature"]["purchased"]:
             if tester["signature"]["url"] != "":
                 embed.set_image(url=tester["signature"]["url"])
@@ -325,9 +289,7 @@ class HoNStats(commands.Cog):
         if isinstance(error, commands.NoPrivateMessage):
             await ctx.send(f"{ctx.author.mention} {error}", delete_after=8.0)
         if isinstance(error, commands.MissingRequiredArgument):
-            await ctx.send(
-                f"{ctx.author.mention} You must specify a nickname.", delete_after=8.0
-            )
+            await ctx.send(f"{ctx.author.mention} You must specify a nickname.", delete_after=8.0)
         if isinstance(error, commands.CommandOnCooldown):
             await ctx.send(
                 f"{ctx.author.mention} You are on cooldown! Try again in {round(error.retry_after, 2)} seconds.",

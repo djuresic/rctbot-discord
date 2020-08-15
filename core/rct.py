@@ -27,33 +27,39 @@ class TesterManager:
     Interface for managing players in RCT. Not an asynchronous context manager.
     """
 
-    # TODO: Return different dataclass instances instead of strings. TesterManagerActionResult
+    # TODO: Return different dataclass instances instead of strings.
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.db = CLIENT[config.MONGO_DATABASE_NAME]
         self.testers = self.db[config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
 
     async def full_add(self, nickname: str):
         """
-        Add the player to RCT. Modifies the DB, grants all permissions and accesses.
+        Add the player to RCT. Modifies the DB, grants all permissions and
+        accesses.
 
-        Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
+        Be sure to remove backslashes from the nick if it originates from
+        Discord and escapes markdown.
         """
         raise NotImplementedError
 
     async def full_remove(self, nickname: str):
         """
-        Remove the player from RCT. Modifies the DB, revokes all permissions and accesses, and removes perks.
+        Remove the player from RCT. Modifies the DB, revokes all permissions
+        and accesses, and removes perks.
 
-        Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
+        Be sure to remove backslashes from the nick if it originates from
+        Discord and escapes markdown.
         """
         raise NotImplementedError
 
     async def add_tester(self, nickname: str) -> str:
         """
-        Add the player to RCT. This modifies the DB only; client, forums, and portal access must be granted separately.
+        Add the player to RCT. This modifies the DB only; client, forums, and
+        portal access must be granted separately.
 
-        Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
+        Be sure to remove backslashes from the nick if it originates from
+        Discord and escapes markdown.
         """
         async with aiohttp.ClientSession() as session:
             ac_client = Client("ac", session=session)
@@ -63,9 +69,7 @@ class TesterManager:
             nickname = ac_data["nickname"]
             account_id = int(ac_data["account_id"])
             # Super ID here.
-            super_id = int(
-                (await ac_client.show_stats(nickname, "campaign"))[b"super_id"].decode()
-            )
+            super_id = int((await ac_client.show_stats(nickname, "campaign"))[b"super_id"].decode())
 
             rc_client = Client("rc", session=session)
             rc_data = await rc_client.nick2id(nickname)
@@ -77,11 +81,7 @@ class TesterManager:
             else:
                 testing_nickname = rc_data["nickname"]
                 testing_account_id = int(rc_data["account_id"])
-            testing_super_id = int(
-                (await rc_client.show_stats(testing_nickname, "campaign"))[
-                    b"super_id"
-                ].decode()
-            )
+            testing_super_id = int((await rc_client.show_stats(testing_nickname, "campaign"))[b"super_id"].decode())
         # Super ID check.
         tester = await self.testers.find_one(
             {
@@ -115,13 +115,7 @@ class TesterManager:
             "total_seconds": 0,
             "total_bugs": 0,
             "tokens": 0,
-            "ladder": {
-                "games": 0,
-                "bugs": 0,
-                "total_games": 0,
-                "total_bugs": 0,
-                "tokens": 0,
-            },
+            "ladder": {"games": 0, "bugs": 0, "total_games": 0, "total_bugs": 0, "tokens": 0,},
             "rank_id": ActivityRank.GOLD,
             "bonuses_given": 0,
             "extra": 0,
@@ -143,20 +137,17 @@ class TesterManager:
 
     async def reinstate_tester(self, nickname: str) -> str:
         """
-        Reinstate the player by re-enabling their account, restoring the activity rank to default, and setting a new
-        join date. This modifies the DB only; client, forums, and portal access must be granted separately.
+        Reinstate the player by re-enabling their account, restoring the
+        activity rank to default, and setting a new join date. This modifies
+        the DB only; client, forums, and portal access must be granted
+        separately.
 
-        Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
+        Be sure to remove backslashes from the nick if it originates from
+        Discord and escapes markdown.
         """
         result = await self.testers.find_one_and_update(
             {"nickname": nickname},
-            {
-                "$set": {
-                    "enabled": True,
-                    "rank_id": ActivityRank.GOLD,
-                    "last_joined": datetime.utcnow(),
-                }
-            },
+            {"$set": {"enabled": True, "rank_id": ActivityRank.GOLD, "last_joined": datetime.utcnow(),}},
             projection={"_id": 0, "nickname": 1, "account_id": 1},
             collation={"locale": "en", "strength": 1},
         )
@@ -166,10 +157,12 @@ class TesterManager:
 
     async def remove_tester(self, nickname: str) -> str:
         """
-        Remove the player from RCT by disabling their account. This modifies the DB only; client, forums, and
-        (optionally) portal access must be revoked separately.
+        Remove the player from RCT by disabling their account. This modifies
+        the DB only; client, forums, and (optionally) portal access must be
+        revoked separately.
         
-        Be sure to remove backslashes from the nick if it originates from Discord and escapes markdown.
+        Be sure to remove backslashes from the nick if it originates from
+        Discord and escapes markdown.
         """
         result = await self.testers.find_one_and_update(
             {"nickname": nickname},
@@ -183,8 +176,9 @@ class TesterManager:
 
     async def link_discord(self, member: discord.Member) -> str:
         """
-        Link member's Discord ID to a tester account with the same nickname as their display name. This intentionally
-        overwrites any existing user ID, use with caution!
+        Link member's Discord ID to a tester account with the same nickname as
+        their display name. This intentionally overwrites any existing user ID,
+        use with caution!
         """
         result = await self.testers.find_one_and_update(
             {"nickname": member.display_name},
@@ -259,13 +253,7 @@ class DatabaseManager:
                 "total_seconds": int(row[6]),
                 "total_bugs": int(row[7]),
                 "tokens": int(row[8]),
-                "ladder": {
-                    "games": 0,
-                    "bugs": 0,
-                    "total_games": 0,
-                    "total_bugs": 0,
-                    "tokens": 0,
-                },
+                "ladder": {"games": 0, "bugs": 0, "total_games": 0, "total_bugs": 0, "tokens": 0,},
                 "rank_id": ranks[row[10]],
                 "bonuses_given": int(row[15]),
                 "extra": int(row[18]),
@@ -305,18 +293,13 @@ class DatabaseManager:
             async with aiohttp.ClientSession() as session:
                 try:
                     testing_account_id = int(
-                        (
-                            await Client("rc", session=session).show_simple_stats(
-                                nickname
-                            )
-                        )[b"account_id"].decode()
+                        (await Client("rc", session=session).show_simple_stats(nickname))[b"account_id"].decode()
                     )
                 except:
                     testing_account_id = None
             print(testing_account_id, nickname)
             await self.testers.update_one(
-                {"nickname": nickname},
-                {"$set": {"testing_account_id": testing_account_id}},
+                {"nickname": nickname}, {"$set": {"testing_account_id": testing_account_id}},
             )
 
 
@@ -411,19 +394,12 @@ class MatchManipulator:
 
     @staticmethod
     async def insert_match(match_id):
-        collection = CLIENT[config.MONGO_DATABASE_NAME][
-            config.MONGO_TESTING_GAMES_COLLECTION_NAME
-        ]
+        collection = CLIENT[config.MONGO_DATABASE_NAME][config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         match_id = int(match_id)
         match = await collection.find_one({"match_id": match_id})
         if match is None:
             result = await collection.insert_one(
-                {
-                    "retrieved": False,
-                    "watched": False,
-                    "match_id": match_id,
-                    "match_name": "some generic name",
-                }
+                {"retrieved": False, "watched": False, "match_id": match_id, "match_name": "some generic name",}
             )
         else:
             result = f"{match_id} already exists"
@@ -436,16 +412,12 @@ class MatchManipulator:
         # TODO: This branch could probably go
         if "match_id" not in match_data or match_id != match_data["match_id"]:
             return "Match ID does not match match data! You are not allowed to change match ID."
-        collection = CLIENT[config.MONGO_DATABASE_NAME][
-            config.MONGO_TESTING_GAMES_COLLECTION_NAME
-        ]
+        collection = CLIENT[config.MONGO_DATABASE_NAME][config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         match = await collection.find_one({"match_id": match_id})
         if match is None:
             return print(f"{match_id} doesn't exist")
         else:
-            result = await collection.update_one(
-                {"match_id": match_id}, {"$set": match_data}
-            )
+            result = await collection.update_one({"match_id": match_id}, {"$set": match_data})
             return print(result)
 
 
@@ -501,24 +473,14 @@ class CycleManager:
             "seconds": 0,
             "bugs": 0,
             "tokens": 0,
-            "ladder": {
-                "games": 0,
-                "bugs": 0,
-                "total_games": 0,
-                "total_bugs": 0,
-                "tokens": 0,
-            },
+            "ladder": {"games": 0, "bugs": 0, "total_games": 0, "total_bugs": 0, "tokens": 0,},
             "extra": 0,
         }
         async for document in self.testers.find({}):
             # TODO: Change this to account_id after fetching all IDs.
-            bonus_last_cycle = math.floor(
-                (document["total_games"] / 50) - document["bonuses_given"]
-            )
+            bonus_last_cycle = math.floor((document["total_games"] / 50) - document["bonuses_given"])
             values["bonuses_given"] = document["bonuses_given"] + bonus_last_cycle
-            await self.testers.update_one(
-                {"nickname": document["nickname"]}, {"$set": values}
-            )
+            await self.testers.update_one({"nickname": document["nickname"]}, {"$set": values})
 
     async def update_games_and_seconds(self):
         # TODO: This should rely more on MongoDB rather than the application itself.
@@ -543,8 +505,7 @@ class CycleManager:
         # TODO: Remove players list and do update in the loop instead.
         for player in players:
             await self.testers.update_one(
-                {"testing_account_id": player[0]},
-                {"$set": {"games": player[1], "seconds": player[2]}},
+                {"testing_account_id": player[0]}, {"$set": {"games": player[1], "seconds": player[2]}},
             )
 
     async def update_bugs(self):
@@ -585,13 +546,9 @@ class CycleManager:
             if 0 < rank_id < 6:
                 if (games + bugs) >= self.advance[rank_id]:
                     # TODO: Change to account_id
-                    await self.testers.update_one(
-                        {"nickname": tester["nickname"]}, {"$inc": {"rank_id": 1}}
-                    )
+                    await self.testers.update_one({"nickname": tester["nickname"]}, {"$inc": {"rank_id": 1}})
                 elif (games + bugs) < self.keep[rank_id]:
-                    await self.testers.update_one(
-                        {"nickname": tester["nickname"]}, {"$inc": {"rank_id": -1}}
-                    )
+                    await self.testers.update_one({"nickname": tester["nickname"]}, {"$inc": {"rank_id": -1}})
                 else:
                     pass
 
@@ -631,12 +588,13 @@ class CycleManager:
         return f"Could not update perks status!"
 
     async def distribute_tokens(self):
-        "coro Modify tokens using the current values from DB and return tuple (success, error)."
+        """
+        coro Modify tokens using the current values from DB and return
+        tuple (success, error).
+        """
         mod_input = []
         async for tester in self.testers.find(
-            {"enabled": True, "tokens": {"$gt": 0}},
-            {"nickname": 1, "tokens": 1},
-            sort=list({"tokens": -1}.items()),
+            {"enabled": True, "tokens": {"$gt": 0}}, {"nickname": 1, "tokens": 1}, sort=list({"tokens": -1}.items()),
         ):
             mod_input.append(f'{tester["nickname"]} {tester["tokens"]}')
         async with VPClient() as portal:

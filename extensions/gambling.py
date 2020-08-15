@@ -12,11 +12,7 @@ class Gambling(commands.Cog):
     async def roll(self, ctx, low: int, high: int):
         """Let's roll the dice!"""
         result = random.randint(low, high)
-        await ctx.send(
-            "{0} rolled {1} {2} and got **{3}**.".format(
-                ctx.message.author.mention, low, high, result
-            )
-        )
+        await ctx.send("{0} rolled {1} {2} and got **{3}**.".format(ctx.message.author.mention, low, high, result))
 
 
 def setup(bot):

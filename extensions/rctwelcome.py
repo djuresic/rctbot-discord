@@ -31,9 +31,7 @@ class RCTWelcome(commands.Cog):
 
         # This is fucky due to guild, it's fine because only RCT will use it anyway.
         log_channel = guild.get_channel(config.DISCORD_BOT_LOG_CHANNEL_ID)
-        await log_channel.send(
-            f"[Verification] {member.mention}\n**ID:** {member.id}\n**Code:** {code}"
-        )
+        await log_channel.send(f"[Verification] {member.mention}\n**ID:** {member.id}\n**Code:** {code}")
 
         embed = discord.Embed(
             title=f"Welcome {discord.utils.escape_markdown(member.display_name)} to the official Retail Candidate Testers Discord Server!",
@@ -49,14 +47,10 @@ class RCTWelcome(commands.Cog):
         )
         embed.set_thumbnail(url="https://i.imgur.com/ys2UBNW.png")
         embed.add_field(
-            name="Application Form",
-            value="https://forums.heroesofnewerth.com/index.php?/application/",
-            inline=True,
+            name="Application Form", value="https://forums.heroesofnewerth.com/index.php?/application/", inline=True,
         )
         embed.add_field(
-            name="Clan Page",
-            value="http://clans.heroesofnewerth.com/clan/RCT",
-            inline=True,
+            name="Clan Page", value="http://clans.heroesofnewerth.com/clan/RCT", inline=True,
         )
 
         embed.set_footer(
@@ -77,9 +71,7 @@ class RCTWelcome(commands.Cog):
 
         # This is fucky due to guild, it's fine because only RCT will use it anyway.
         log_channel = guild.get_channel(config.DISCORD_BOT_LOG_CHANNEL_ID)
-        await log_channel.send(
-            f"[Verification] {ctx.author.mention}\n**ID:** {ctx.author.id}\n**Code:** {code}"
-        )
+        await log_channel.send(f"[Verification] {ctx.author.mention}\n**ID:** {ctx.author.id}\n**Code:** {code}")
 
         embed = discord.Embed(
             title=f"Welcome {discord.utils.escape_markdown(ctx.author.display_name)} to the official Retail Candidate Testers Discord Server!",
@@ -95,14 +87,10 @@ class RCTWelcome(commands.Cog):
         )
         embed.set_thumbnail(url="https://i.imgur.com/ys2UBNW.png")
         embed.add_field(
-            name="Application Form",
-            value="https://forums.heroesofnewerth.com/index.php?/application/",
-            inline=True,
+            name="Application Form", value="https://forums.heroesofnewerth.com/index.php?/application/", inline=True,
         )
         embed.add_field(
-            name="Clan Page",
-            value="http://clans.heroesofnewerth.com/clan/RCT",
-            inline=True,
+            name="Clan Page", value="http://clans.heroesofnewerth.com/clan/RCT", inline=True,
         )
 
         embed.set_footer(
