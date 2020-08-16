@@ -145,8 +145,8 @@ class RCTStats(commands.Cog):
 
         # Convert cardinal to ordinal.
         async def ordinal(n):
-            _suffix = "th" if 4 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-            return f"{n}{_suffix}"
+            suffix = "th" if 4 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+            return f"{n}{suffix}"
 
         # This cycle.
         seconds = user["seconds"]
@@ -302,12 +302,12 @@ class RCTStats(commands.Cog):
             )
         if requester_discord_id is not None:
             embed.set_footer(
-                text=f"Requested by {requester_name} (✓). Timestamp provided shows the time of last retrieval. React with 🗑️ to delete or with 💾 to preserve this message. No action results in deletion after 5 minutes.",
+                text=f"Requested by {requester_name} (✓). React with 🗑️ to delete or with 💾 to preserve this message. No action results in deletion after 5 minutes.",
                 icon_url="https://i.imgur.com/q8KmQtw.png",
             )
         else:
             embed.set_footer(
-                text="Requested by {.display_name} ({.name}#{.discriminator}). Timestamp provided shows the time of last retrieval. React with 🗑️ to delete or with 💾 to preserve this message. No action results in deletion after 5 minutes.".format(
+                text="Requested by {.display_name} ({.name}#{.discriminator}). React with 🗑️ to delete or with 💾 to preserve this message. No action results in deletion after 5 minutes.".format(
                     ctx.author
                 ),
                 icon_url="https://i.imgur.com/q8KmQtw.png",
