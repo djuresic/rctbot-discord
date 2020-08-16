@@ -73,6 +73,12 @@ class Development(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    async def i_want_to_standardize_join_dates(self, ctx):
+        async with DatabaseManager() as dbm:
+            await ctx.send(await dbm.standardize_joined())
+
+    @commands.command()
+    @commands.is_owner()
     async def t5(self, ctx):
         print(config.LIST_OF_LISTS)
 

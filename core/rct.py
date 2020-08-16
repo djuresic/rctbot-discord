@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import math
-from datetime import datetime
+import random
+from datetime import datetime, timezone
 from dataclasses import dataclass
 
 import aiohttp
@@ -98,7 +99,6 @@ class TesterManager:
                 )
             nickname = ac_data["nickname"]
             account_id = int(ac_data["account_id"])
-            # Super ID here.
             super_id = int((await ac_client.show_stats(nickname, "campaign"))[b"super_id"].decode())
 
             rc_client = Client("rc", session=session)
@@ -119,7 +119,7 @@ class TesterManager:
                 testing_nickname = rc_data["nickname"]
                 testing_account_id = int(rc_data["account_id"])
             testing_super_id = int((await rc_client.show_stats(testing_nickname, "campaign"))[b"super_id"].decode())
-        # Super ID check.
+
         tester = await self.testers.find_one(
             {
                 "$or": [
@@ -163,8 +163,8 @@ class TesterManager:
             "extra": 0,
             "perks": "No",  # TODO: Perks IntEnum
             "signature": {"purchased": False, "url": ""},
+            "joined": {"first": datetime.utcnow()},
         }
-        document["joined"] = datetime.utcnow()
         document["awards"] = []
         document["discord_id"] = None
         document["account_id"] = account_id
@@ -197,7 +197,7 @@ class TesterManager:
         """
         result = await self.testers.find_one_and_update(
             {"nickname": nickname},
-            {"$set": {"enabled": True, "rank_id": ActivityRank.GOLD, "last_joined": datetime.utcnow(),}},
+            {"$set": {"enabled": True, "rank_id": ActivityRank.GOLD, "joined.last": datetime.utcnow(),}},
             projection={"_id": 0, "nickname": 1, "account_id": 1},
             collation={"locale": "en", "strength": 1},
         )
@@ -375,6 +375,62 @@ class DatabaseManager:
             await self.testers.update_one(
                 {"nickname": nickname}, {"$set": {"testing_account_id": testing_account_id}},
             )
+
+    async def standardize_joined(self) -> str:
+        found = 0
+        acknowledged = 0
+        async for tester in self.testers.find({}):
+            found += 1
+            nickname = tester["nickname"]
+            join_date_string = tester["joined"]
+
+            def date_dBY_dbY(date_string):
+                try:
+                    return datetime.strptime(date_string, "%d %B %Y")
+                except ValueError:
+                    return datetime.strptime(date_string, "%d %b %Y")
+
+            if "/" in join_date_string:
+                date = datetime.strptime(join_date_string, "%m/%d/%Y")
+            elif "," in join_date_string:
+                date = datetime.strptime(join_date_string, "%B %d, %Y")
+            elif "st August " in join_date_string:
+                join_date_string = join_date_string.replace("st August ", " August ")
+                date = date_dBY_dbY(join_date_string)
+            elif "st " in join_date_string and "ust " not in join_date_string:
+                join_date_string = join_date_string.replace("st ", " ")
+                date = date_dBY_dbY(join_date_string)
+            elif "nd " in join_date_string:
+                join_date_string = join_date_string.replace("nd ", " ")
+                date = date_dBY_dbY(join_date_string)
+            elif "rd " in join_date_string:
+                join_date_string = join_date_string.replace("rd ", " ")
+                date = date_dBY_dbY(join_date_string)
+            elif "th " in join_date_string:
+                join_date_string = join_date_string.replace("th ", " ")
+                date = date_dBY_dbY(join_date_string)
+            elif "20" in join_date_string and "-" in join_date_string and "T" in join_date_string:
+                date = datetime.fromisoformat(join_date_string)
+            else:
+                date = datetime.fromisoformat("2016-06-30")
+
+            iso_date = datetime(
+                date.year,
+                date.month,
+                date.day,
+                hour=random.randint(8, 22),
+                minute=random.randint(0, 59),
+                second=random.randint(0, 59),
+                microsecond=random.randint(0, 999999),
+                tzinfo=timezone.utc,
+            )
+
+            # date = date.astimezone(tz=timezone.utc).isoformat() if not isinstance(date, str) else date
+            print(f"{nickname} {iso_date}")
+            result = await self.testers.update_one({"nickname": nickname}, {"$set": {"joined": {"first": iso_date}}})
+            if result.acknowledged:
+                acknowledged += 1
+        return f"Found {found} and updated {acknowledged}."
 
 
 # TODO: Change static methods.
