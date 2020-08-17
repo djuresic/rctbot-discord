@@ -1,7 +1,8 @@
 env
-config/development*
-config/production*
+rctbot/config/development*
+rctbot/config/production*
 .vs
+.vscode
 *.pyc
 __pycache__
 *.json

@@ -24,13 +24,11 @@ import os
 import platform
 from datetime import datetime, timezone
 
-import aiohttp
 import discord
 from discord.ext import commands
 
-
-import config
-from core.checks import in_whitelist
+import rctbot.config
+from rctbot.core.checks import in_whitelist
 
 # TODO: Move to config.
 BOT_DESCRIPTION = """RCTBot"""
@@ -47,35 +45,40 @@ bot = commands.Bot(command_prefix=["!", "."], description=BOT_DESCRIPTION)
 
 
 if __name__ == "__main__":
-    for directory in config.EXTENSIONS_DIRECTORIES:
-        with os.scandir(directory) as it:
+    for extension_directory in rctbot.config.EXTENSIONS_DIRECTORIES:
+        # TODO: Refactor this before versioning.
+        with os.scandir(extension_directory.replace(".", "/")) as it:
             for entry in it:
                 if entry.name.endswith(".py") and entry.is_file():
-                    module = entry.name[:-3]
-                    if module not in config.DISABLED_EXTENSIONS:
-                        config.STARTUP_EXTENSIONS.append(f"{directory}.{module}")
+                    bot_module = entry.name[:-3]
+                    if bot_module not in rctbot.config.DISABLED_EXTENSIONS:
+                        rctbot.config.STARTUP_EXTENSIONS.append(f"{extension_directory}.{bot_module}")
 
-    for extension in config.STARTUP_EXTENSIONS:
+    for bot_extension in rctbot.config.STARTUP_EXTENSIONS:
         try:
-            bot.load_extension(extension)
+            bot.load_extension(bot_extension)
         except Exception as e:
             exc = "{}: {}".format(type(e).__name__, e)
-            print(f"Failed to load {extension}\n{exc}")
+            print(f"Failed to load {bot_extension}\n{exc}")
 
-    print("Loaded modules: {}".format(", ".join([extension.split(".")[-1] for extension in config.LOADED_EXTENSIONS])))
+    print(
+        "Loaded modules: {}".format(
+            ", ".join([bot_extension.split(".")[-1] for bot_extension in rctbot.config.LOADED_EXTENSIONS])
+        )
+    )
 
 
 @bot.command()
-@in_whitelist(config.DISCORD_WHITELIST_IDS)
+@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
 async def dev_permission_test(ctx):
     await ctx.send("{.mention} You do have permission.".format(ctx.message.author))
 
 
 @bot.command(name="load", hidden=True)
-@in_whitelist(config.DISCORD_WHITELIST_IDS)
+@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
 async def _load(ctx, module: str):
     """Loads a module."""
-    for item in config.STARTUP_EXTENSIONS:
+    for item in rctbot.config.STARTUP_EXTENSIONS:
         if item.endswith(f".{module}"):
             extension = item
             break
@@ -90,10 +93,10 @@ async def _load(ctx, module: str):
 
 
 @bot.command(name="unload", hidden=True)
-@in_whitelist(config.DISCORD_WHITELIST_IDS)
+@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
 async def _unload(ctx, module: str):
     """Unloads a module."""
-    for item in config.STARTUP_EXTENSIONS:
+    for item in rctbot.config.STARTUP_EXTENSIONS:
         if item.endswith(f".{module}"):
             extension = item
             break
@@ -108,10 +111,10 @@ async def _unload(ctx, module: str):
 
 
 @bot.command(name="reload", hidden=True)
-@in_whitelist(config.DISCORD_WHITELIST_IDS)
+@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
 async def _reload(ctx, module: str):
     """Reloads a module."""
-    for item in config.STARTUP_EXTENSIONS:
+    for item in rctbot.config.STARTUP_EXTENSIONS:
         if item.endswith(f".{module}"):
             extension = item
             break
@@ -126,16 +129,16 @@ async def _reload(ctx, module: str):
 
 
 @bot.command(name="loaded", hidden=True)
-@in_whitelist(config.DISCORD_WHITELIST_IDS)
+@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
 async def _loaded(ctx):
     """Lists loaded modules."""
     message = []
-    for directory in config.EXTENSIONS_DIRECTORIES:
+    for directory in rctbot.config.EXTENSIONS_DIRECTORIES:
         loaded = ", ".join(
             sorted(
                 [
                     extension.split(f"{directory}.")[1]
-                    for extension in config.LOADED_EXTENSIONS
+                    for extension in rctbot.config.LOADED_EXTENSIONS
                     if f"{directory}." in extension
                 ]
             )
@@ -145,17 +148,17 @@ async def _loaded(ctx):
 
 
 @bot.command(name="unloaded", hidden=True)
-@in_whitelist(config.DISCORD_WHITELIST_IDS)
+@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
 async def _unloaded(ctx):
     """Lists unloaded modules."""
     message = []
-    for directory in config.EXTENSIONS_DIRECTORIES:
+    for directory in rctbot.config.EXTENSIONS_DIRECTORIES:
         unloaded = ", ".join(
             sorted(
                 [
                     extension.split(f"{directory}.")[1]
-                    for extension in config.STARTUP_EXTENSIONS
-                    if extension not in config.LOADED_EXTENSIONS and f"{directory}." in extension
+                    for extension in rctbot.config.STARTUP_EXTENSIONS
+                    if extension not in rctbot.config.LOADED_EXTENSIONS and f"{directory}." in extension
                 ]
             )
         )
@@ -185,7 +188,7 @@ async def about(ctx):
         title="RCTBot", type="rich", description=description, color=0x663366, timestamp=datetime.now(timezone.utc),
     )
     embed.set_author(name=bot.user.name, icon_url=bot.user.avatar_url)
-    resources = f"{config.EMOJI_GITHUB} [GitHub]({repository_url} 'GitHub Repository')"
+    resources = f"{rctbot.config.EMOJI_GITHUB} [GitHub]({repository_url} 'GitHub Repository')"
     embed.add_field(name="Resources", value=resources, inline=True)
 
     embed.set_footer(
@@ -200,7 +203,7 @@ async def about(ctx):
 async def on_ready():
     print(
         "{0} ({0.id}) reporting for duty from {1}! All shall respect the law that is my {2}!".format(
-            bot.user, platform.platform(), config.CONFIG_FILE
+            bot.user, platform.platform(), rctbot.config.CONFIG_FILE
         )
     )
     watching = discord.Activity(name="Heroes of Newerth", type=discord.ActivityType.watching)
@@ -215,7 +218,7 @@ async def on_message(message):  # TODO: Move to a cog.
 
     if message.guild is None and ctx.valid:  # TODO: with guild_only and dm_allowed
         # print([f.__name__ for f in ctx.command.checks])
-        if ctx.command.name not in config.DISCORD_DM_COMMANDS:
+        if ctx.command.name not in rctbot.config.DISCORD_DM_COMMANDS:
             print(
                 "{0.name}#{0.discriminator} ({0.id}) tried to invoke {1} in Direct Message: {2}".format(
                     message.author, ctx.command, message.content
@@ -229,4 +232,4 @@ async def on_message(message):  # TODO: Move to a cog.
 # TODO: Custom help.
 bot.remove_command("help")
 
-bot.run(config.DISCORD_TOKEN)
+bot.run(rctbot.config.DISCORD_TOKEN)
