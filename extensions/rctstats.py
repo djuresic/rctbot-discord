@@ -264,7 +264,11 @@ class RCTStats(commands.Cog):
 
             embed.add_field(name="Perks", value=user["perks"], inline=True)
             embed.add_field(name="Absence", value="Yes" if "absence" in user else "No", inline=True)
-        embed.add_field(name="Join date", value=user["joined"], inline=True)
+        embed.add_field(
+            name="Join date",
+            value=user["joined"].get("last", user["joined"]["first"]).strftime("%A, %B %d, %Y"),
+            inline=True,
+        )
         # embed.add_field(name="Trivia points", value=trivia_points, inline=True)
         if not enabled and "removal_reason" in user:
             embed.add_field(name="Reason for removal", value=user["removal_reason"], inline=False)
