@@ -10,6 +10,10 @@ import rctbot.config
 CLIENT = motor.motor_asyncio.AsyncIOMotorClient(rctbot.config.MONGO_HOST_PARAMETER)
 
 
+class DatabaseClient:
+    pass
+
+
 # pylint: disable=unused-argument
 def setup(bot):
     rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)

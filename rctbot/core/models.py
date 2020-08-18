@@ -1,9 +1,38 @@
+from __future__ import annotations
+
 from enum import Enum, IntEnum
 from dataclasses import dataclass
 
 import rctbot.config
 
 # TODO: Tester, Player dataclass.
+
+
+# TODO: namedtuple?
+@dataclass(init=False)
+class Tester:
+    def __init__(self, details: dict) -> None:
+        self.details = details
+        self.__set()
+
+    # Name mangle set.
+    def __set(self) -> None:
+        for k, v in self.details:
+            self.__setattr__(k, v)
+
+    @property
+    def signature_purchased(self) -> bool:
+        return self.details["signature"]["purchased"]
+
+    @property
+    def signature_url(self) -> str:
+        return self.details["signature"].get("url", "")
+
+    @classmethod
+    async def from_discord_id(cls) -> Tester:
+        # MongoDB
+        raise NotImplementedError
+
 
 # Base class for creating enumerated constants that are also subclasses of int.
 class Role(IntEnum):
@@ -44,6 +73,20 @@ class ActivityRank(IntEnum):
 
 class Perks(IntEnum):
     pass
+
+
+@dataclass(init=False)
+class CustomEmoji:
+    def __init__(self, emojis: list):
+        self.emojis = emojis
+        self.__set()
+
+    # Name mangle set.
+    def __set(self):
+        for emoji in self.emojis:
+            self.__setattr__(emoji.name, emoji)
+
+    # NOTE: Verify CustomEmoji([]).__dict__
 
 
 # pylint: disable=unused-argument
