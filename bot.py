@@ -20,21 +20,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # TODO: Configuration variables for emojis and URLs.
 
-import os
-import platform
 from datetime import datetime, timezone
 
 import discord
-from discord.ext import commands
 
-import rctbot.config
+import rctbot
 from rctbot.core.checks import in_whitelist
 
-# TODO: Move to config.
-BOT_DESCRIPTION = """RCTBot"""
-
-# pylint: disable=invalid-name
-bot = commands.Bot(command_prefix=["!", "."], description=BOT_DESCRIPTION)
 
 # bot = commands.AutoShardedBot(
 #     command_prefix=["!", "."],
@@ -45,191 +37,160 @@ bot = commands.Bot(command_prefix=["!", "."], description=BOT_DESCRIPTION)
 
 
 if __name__ == "__main__":
-    for extension_directory in rctbot.config.EXTENSIONS_DIRECTORIES:
-        # TODO: Refactor this before versioning.
-        with os.scandir(extension_directory.replace(".", "/")) as it:
-            for entry in it:
-                if entry.name.endswith(".py") and entry.is_file():
-                    bot_module = entry.name[:-3]
-                    if bot_module not in rctbot.config.DISABLED_EXTENSIONS:
-                        rctbot.config.STARTUP_EXTENSIONS.append(f"{extension_directory}.{bot_module}")
+    bot = rctbot.get_bot()
 
-    for bot_extension in rctbot.config.STARTUP_EXTENSIONS:
+    @bot.command()
+    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    async def dev_permission_test(ctx):
+        await ctx.send("{.mention} You do have permission.".format(ctx.message.author))
+
+    @bot.command(name="load", hidden=True)
+    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    async def _load(ctx, module: str):
+        """Loads a module."""
+        for item in rctbot.config.STARTUP_EXTENSIONS:
+            if item.endswith(f".{module}"):
+                extension = item
+                break
+            else:
+                extension = "youredoingitwrongagainsmh"
         try:
-            bot.load_extension(bot_extension)
+            bot.load_extension(extension)
         except Exception as e:
-            exc = "{}: {}".format(type(e).__name__, e)
-            print(f"Failed to load {bot_extension}\n{exc}")
-
-    print(
-        "Loaded modules: {}".format(
-            ", ".join([bot_extension.split(".")[-1] for bot_extension in rctbot.config.LOADED_EXTENSIONS])
-        )
-    )
-
-
-@bot.command()
-@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
-async def dev_permission_test(ctx):
-    await ctx.send("{.mention} You do have permission.".format(ctx.message.author))
-
-
-@bot.command(name="load", hidden=True)
-@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
-async def _load(ctx, module: str):
-    """Loads a module."""
-    for item in rctbot.config.STARTUP_EXTENSIONS:
-        if item.endswith(f".{module}"):
-            extension = item
-            break
+            await ctx.send("{}: {}".format(type(e).__name__, e))
         else:
-            extension = "youredoingitwrongagainsmh"
-    try:
-        bot.load_extension(extension)
-    except Exception as e:
-        await ctx.send("{}: {}".format(type(e).__name__, e))
-    else:
-        await ctx.send(f"Loaded {extension} \N{OK HAND SIGN}")
+            await ctx.send(f"Loaded {extension} \N{OK HAND SIGN}")
 
-
-@bot.command(name="unload", hidden=True)
-@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
-async def _unload(ctx, module: str):
-    """Unloads a module."""
-    for item in rctbot.config.STARTUP_EXTENSIONS:
-        if item.endswith(f".{module}"):
-            extension = item
-            break
+    @bot.command(name="unload", hidden=True)
+    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    async def _unload(ctx, module: str):
+        """Unloads a module."""
+        for item in rctbot.config.STARTUP_EXTENSIONS:
+            if item.endswith(f".{module}"):
+                extension = item
+                break
+            else:
+                extension = "youredoingitwrongagainsmh"
+        try:
+            bot.unload_extension(extension)
+        except Exception as e:
+            await ctx.send("{}: {}".format(type(e).__name__, e))
         else:
-            extension = "youredoingitwrongagainsmh"
-    try:
-        bot.unload_extension(extension)
-    except Exception as e:
-        await ctx.send("{}: {}".format(type(e).__name__, e))
-    else:
-        await ctx.send(f"Unloaded {extension} \N{OK HAND SIGN}")
+            await ctx.send(f"Unloaded {extension} \N{OK HAND SIGN}")
 
-
-@bot.command(name="reload", hidden=True)
-@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
-async def _reload(ctx, module: str):
-    """Reloads a module."""
-    for item in rctbot.config.STARTUP_EXTENSIONS:
-        if item.endswith(f".{module}"):
-            extension = item
-            break
+    @bot.command(name="reload", hidden=True)
+    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    async def _reload(ctx, module: str):
+        """Reloads a module."""
+        for item in rctbot.config.STARTUP_EXTENSIONS:
+            if item.endswith(f".{module}"):
+                extension = item
+                break
+            else:
+                extension = "youredoingitwrongagainsmh"
+        try:
+            bot.reload_extension(extension)
+        except Exception as e:
+            await ctx.send("{}: {}".format(type(e).__name__, e))
         else:
-            extension = "youredoingitwrongagainsmh"
-    try:
-        bot.reload_extension(extension)
-    except Exception as e:
-        await ctx.send("{}: {}".format(type(e).__name__, e))
-    else:
-        await ctx.send(f"Reloaded {extension} \N{OK HAND SIGN}")
+            await ctx.send(f"Reloaded {extension} \N{OK HAND SIGN}")
 
-
-@bot.command(name="loaded", hidden=True)
-@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
-async def _loaded(ctx):
-    """Lists loaded modules."""
-    message = []
-    for directory in rctbot.config.EXTENSIONS_DIRECTORIES:
-        loaded = ", ".join(
-            sorted(
-                [
-                    extension.split(f"{directory}.")[1]
-                    for extension in rctbot.config.LOADED_EXTENSIONS
-                    if f"{directory}." in extension
-                ]
-            )
-        )
-        message.append(f"Loaded modules from {directory}: {loaded}")
-    await ctx.send("\n".join(message))
-
-
-@bot.command(name="unloaded", hidden=True)
-@in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
-async def _unloaded(ctx):
-    """Lists unloaded modules."""
-    message = []
-    for directory in rctbot.config.EXTENSIONS_DIRECTORIES:
-        unloaded = ", ".join(
-            sorted(
-                [
-                    extension.split(f"{directory}.")[1]
-                    for extension in rctbot.config.STARTUP_EXTENSIONS
-                    if extension not in rctbot.config.LOADED_EXTENSIONS and f"{directory}." in extension
-                ]
-            )
-        )
-        message.append(f"Unloaded modules from {directory}: {unloaded}")
-    await ctx.send("\n".join(message))
-
-
-@bot.command(aliases=["info", "license"])
-async def about(ctx):
-    repository_url = "https://github.com/djuresic/rctbot-discord"
-    description = (
-        "A simple Discord bot with some Heroes of Newerth integration. Primarily intended for"
-        " use by Retail Canididate Testers, Heroes of Newerth volunteer community position."
-        "\n\nCopyright © 2020 Danijel Jurešić"
-        "\n\nThis program is free software: you can redistribute it and/or modify"
-        " it under the terms of the GNU Affero General Public License as published"
-        " by the Free Software Foundation, either version 3 of the License, or"
-        " (at your option) any later version."
-        "\n\nThis program is distributed in the hope that it will be useful,"
-        " but WITHOUT ANY WARRANTY; without even the implied warranty of"
-        " MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the"
-        " GNU Affero General Public License for more details."
-        "\n\nYou should have received a copy of the GNU Affero General Public License"
-        " along with this program. If not, see <https://www.gnu.org/licenses/>."
-    )
-    embed = discord.Embed(
-        title="RCTBot", type="rich", description=description, color=0x663366, timestamp=datetime.now(timezone.utc),
-    )
-    embed.set_author(name=bot.user.name, icon_url=bot.user.avatar_url)
-    resources = f"{rctbot.config.EMOJI_GITHUB} [GitHub]({repository_url} 'GitHub Repository')"
-    embed.add_field(name="Resources", value=resources, inline=True)
-
-    embed.set_footer(
-        text="<> with <3 by Lightwalker.", icon_url="https://i.imgur.com/z0auNqP.png",
-    )
-    # https://i.imgur.com/q8KmQtw.png HoN logo
-    embed.set_thumbnail(url="https://www.gnu.org/graphics/agplv3-with-text-162x68.png")
-    await ctx.send(embed=embed)
-
-
-@bot.event
-async def on_ready():
-    print(
-        "{0} ({0.id}) reporting for duty from {1}! All shall respect the law that is my {2}!".format(
-            bot.user, platform.platform(), rctbot.config.CONFIG_FILE
-        )
-    )
-    watching = discord.Activity(name="Heroes of Newerth", type=discord.ActivityType.watching)
-    # streaming = discord.Streaming(platform="Twitch", name="Heroes of Newerth", game="Heroes of Newerth", url="https://www.twitch.tv/", twitch_name="")
-    await bot.change_presence(activity=watching, status=discord.Status.dnd, afk=False)
-    print("------")
-
-
-@bot.event
-async def on_message(message):  # TODO: Move to a cog.
-    ctx = await bot.get_context(message)
-
-    if message.guild is None and ctx.valid:  # TODO: with guild_only and dm_allowed
-        # print([f.__name__ for f in ctx.command.checks])
-        if ctx.command.name not in rctbot.config.DISCORD_DM_COMMANDS:
-            print(
-                "{0.name}#{0.discriminator} ({0.id}) tried to invoke {1} in Direct Message: {2}".format(
-                    message.author, ctx.command, message.content
+    @bot.command(name="loaded", hidden=True)
+    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    async def _loaded(ctx):
+        """Lists loaded modules."""
+        message = []
+        for directory in rctbot.config.EXTENSIONS_DIRECTORIES:
+            loaded = ", ".join(
+                sorted(
+                    [
+                        extension.split(f"{directory}.")[1]
+                        for extension in rctbot.config.LOADED_EXTENSIONS
+                        if f"{directory}." in extension
+                    ]
                 )
             )
-            # return
+            message.append(f"Loaded modules from {directory}: {loaded}")
+        await ctx.send("\n".join(message))
 
-    await bot.process_commands(message)
+    @bot.command(name="unloaded", hidden=True)
+    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    async def _unloaded(ctx):
+        """Lists unloaded modules."""
+        message = []
+        for directory in rctbot.config.EXTENSIONS_DIRECTORIES:
+            unloaded = ", ".join(
+                sorted(
+                    [
+                        extension.split(f"{directory}.")[1]
+                        for extension in rctbot.config.STARTUP_EXTENSIONS
+                        if extension not in rctbot.config.LOADED_EXTENSIONS and f"{directory}." in extension
+                    ]
+                )
+            )
+            message.append(f"Unloaded modules from {directory}: {unloaded}")
+        await ctx.send("\n".join(message))
 
+    @bot.command(aliases=["info", "license"])
+    async def about(ctx):
+        repository_url = "https://github.com/djuresic/rctbot-discord"
+        description = (
+            "A simple Discord bot with some Heroes of Newerth integration. Primarily intended for"
+            " use by Retail Canididate Testers, Heroes of Newerth volunteer community position."
+            "\n\nCopyright © 2020 Danijel Jurešić"
+            "\n\nThis program is free software: you can redistribute it and/or modify"
+            " it under the terms of the GNU Affero General Public License as published"
+            " by the Free Software Foundation, either version 3 of the License, or"
+            " (at your option) any later version."
+            "\n\nThis program is distributed in the hope that it will be useful,"
+            " but WITHOUT ANY WARRANTY; without even the implied warranty of"
+            " MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the"
+            " GNU Affero General Public License for more details."
+            "\n\nYou should have received a copy of the GNU Affero General Public License"
+            " along with this program. If not, see <https://www.gnu.org/licenses/>."
+        )
+        embed = discord.Embed(
+            title="RCTBot", type="rich", description=description, color=0x663366, timestamp=datetime.now(timezone.utc),
+        )
+        embed.set_author(name=bot.user.name, icon_url=bot.user.avatar_url)
+        embed.add_field(name="Version", value=bot.version, inline=True)
+        resources = f"{rctbot.config.EMOJI_GITHUB} [GitHub]({repository_url} 'GitHub Repository')"
+        embed.add_field(name="Resources", value=resources, inline=True)
 
-# TODO: Custom help.
-bot.remove_command("help")
+        embed.set_footer(
+            text="<> with <3 by Lightwalker.", icon_url="https://i.imgur.com/z0auNqP.png",
+        )
+        # https://i.imgur.com/q8KmQtw.png HoN logo
+        embed.set_thumbnail(url="https://www.gnu.org/graphics/agplv3-with-text-162x68.png")
+        await ctx.send(embed=embed)
 
-bot.run(rctbot.config.DISCORD_TOKEN)
+    @bot.event
+    async def on_ready():
+        print(
+            "{0} ({0.id}) reporting for duty from {1}! All shall respect the law that is my {2}!".format(
+                bot.user, bot.platform, rctbot.config.CONFIG_FILE
+            )
+        )
+        watching = discord.Activity(name="Heroes of Newerth", type=discord.ActivityType.watching)
+        # streaming = discord.Streaming(platform="Twitch", name="Heroes of Newerth", game="Heroes of Newerth", url="https://www.twitch.tv/", twitch_name="")
+        await bot.change_presence(activity=watching, status=discord.Status.dnd, afk=False)
+        print("------")
+
+    @bot.event
+    async def on_message(message):  # TODO: Move to a cog.
+        ctx = await bot.get_context(message)
+
+        if message.guild is None and ctx.valid:  # TODO: with guild_only and dm_allowed
+            # print([f.__name__ for f in ctx.command.checks])
+            if ctx.command.name not in rctbot.config.DISCORD_DM_COMMANDS:
+                print(
+                    "{0.name}#{0.discriminator} ({0.id}) tried to invoke {1} in Direct Message: {2}".format(
+                        message.author, ctx.command, message.content
+                    )
+                )
+                # return
+
+        await bot.process_commands(message)
+
+    bot.run()
+
