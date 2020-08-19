@@ -2,7 +2,6 @@ import discord
 from discord.ext import commands
 
 import rctbot.config
-from rctbot.core.checks import is_senior
 from rctbot.core.rct import CycleManager
 
 
@@ -10,22 +9,30 @@ class RCTCycle(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    # TODO: Send CycleManagerResult().discord_message
     @commands.group()
     @commands.is_owner()
     async def update(self, ctx):
         pass
 
+    @update.command(name="archive")
+    async def _uarchive(self, ctx):
+        cm = CycleManager()
+        await cm.archive_cycle()
+        await ctx.send("**Archived** the past cycle in DB.")
+
     @update.command(name="cycle")
     async def _ucycle(self, ctx):
-        async with CycleManager() as cm:
-            await cm.new_cycle()
-            await ctx.send("***New cycle** set in DB.")
+        cm = CycleManager()
+        # TODO: Call archive_cycle() here?
+        await cm.new_cycle()
+        await ctx.send("***New cycle** set in DB.")
 
     @update.command(name="games")
     async def _ugames(self, ctx):
-        async with CycleManager() as cm:
-            await cm.update_games_and_seconds()
-            await ctx.send("Updated **games** and **seconds** in DB.")
+        cm = CycleManager()
+        await cm.update_games_and_seconds()
+        await ctx.send("Updated **games** and **seconds** in DB.")
 
     @update.command(name="bugs")
     async def _ubugs(self, ctx):
@@ -33,26 +40,26 @@ class RCTCycle(commands.Cog):
 
     @update.command(name="total")
     async def _utotal(self, ctx):
-        async with CycleManager() as cm:
-            await cm.update_total()
-            await ctx.send("Updated **total games**, **total seconds** and **total bugs** in DB.")
+        cm = CycleManager()
+        await cm.update_total()
+        await ctx.send("Updated **total games**, **total seconds** and **total bugs** in DB.")
 
     @update.command(name="ranks")
     async def _uranks(self, ctx):
-        async with CycleManager() as cm:
-            await cm.update_ranks()
-            await ctx.send("Updated **ranks** in DB.")
+        cm = CycleManager()
+        await cm.update_ranks()
+        await ctx.send("Updated **ranks** in DB.")
 
     @update.command(name="tokens")
     async def _utokens(self, ctx):
-        async with CycleManager() as cm:
-            await cm.update_tokens()
-            await ctx.send("Updated **tokens** in DB.")
+        cm = CycleManager()
+        await cm.update_tokens()
+        await ctx.send("Updated **tokens** in DB.")
 
     @update.command(name="perks")
     async def _uperks(self, ctx):
-        async with CycleManager() as cm:
-            await ctx.send(await cm.update_perks())
+        cm = CycleManager()
+        await ctx.send(await cm.update_perks())
 
     @commands.group()
     @commands.is_owner()
@@ -61,10 +68,11 @@ class RCTCycle(commands.Cog):
 
     @distribute.command(name="tokens")
     async def _dtokens(self, ctx):
-        async with CycleManager() as cm:
-            success, error = await cm.distribute_tokens()
-            await ctx.send(f"Passed:\n{discord.utils.escape_markdown(success)}")
-            await ctx.send(f"Failed:\n{discord.utils.escape_markdown(error)}")
+        cm = CycleManager()
+        success, error = await cm.distribute_tokens()
+        # TODO: Handle None.
+        await ctx.send(f"Passed:\n{discord.utils.escape_markdown(success)}")
+        await ctx.send(f"Failed:\n{discord.utils.escape_markdown(error)}")
 
 
 # pylint: disable=unused-argument

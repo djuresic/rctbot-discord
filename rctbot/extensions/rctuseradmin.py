@@ -1,9 +1,7 @@
-import aiohttp
 import discord
 from discord.ext import commands
 
 import rctbot.config
-from rctbot.core.checks import is_senior
 from rctbot.core.rct import TesterManager
 
 
@@ -20,19 +18,19 @@ class RCTUserAdmin(commands.Cog):
     async def _ua_add(self, ctx, nickname: str):
         nickname = nickname.replace("\\", "")
         manager = TesterManager()
-        await ctx.send((await manager.add_tester(nickname)).discord_message)
+        await ctx.send((await manager.add(nickname)).discord_message)
 
     @user_admin.command(name="reinstate")
     async def _ua_reinstate(self, ctx, nickname: str):
         nickname = nickname.replace("\\", "")
         manager = TesterManager()
-        await ctx.send((await manager.reinstate_tester(nickname)).discord_message)
+        await ctx.send((await manager.reinstate(nickname)).discord_message)
 
     @user_admin.command(name="remove")
     async def _ua_remove(self, ctx, nickname: str):
         nickname = nickname.replace("\\", "")
         manager = TesterManager()
-        await ctx.send((await manager.remove_tester(nickname)).discord_message)
+        await ctx.send((await manager.remove(nickname)).discord_message)
 
     @user_admin.command(name="link")
     async def _ua_link(self, ctx, member: discord.Member):

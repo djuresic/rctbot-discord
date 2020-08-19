@@ -1,3 +1,21 @@
+"""
+RCTBot A simple Discord bot with some Heroes of Newerth integration.
+Copyright (C) 2020  Danijel Jurešić
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as published
+by the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
 from __future__ import annotations
 
 import math
@@ -61,6 +79,15 @@ class TesterManager:
         Modifies the DB, grants all permissions and accesses. Be sure to remove
         backslashes from the nick if it originates from Discord and escapes
         markdown.
+
+        Args:
+            nickname (str): Nickname of the player to be added.
+
+        Raises:
+            NotImplementedError
+
+        Returns:
+            NotImplementedError
         """
         raise NotImplementedError
 
@@ -70,10 +97,19 @@ class TesterManager:
         Modifies the DB, revokes all permissions and accesses, and removes
         perks. Be sure to remove backslashes from the nick if it originates
         from Discord and escapes markdown.
+
+        Args:
+            nickname (str): Nickname of the player to be removed.
+
+        Raises:
+            NotImplementedError
+
+        Returns:
+            NotImplementedError
         """
         raise NotImplementedError
 
-    async def add_tester(self, nickname: str) -> TesterManagerResult:
+    async def add(self, nickname: str) -> TesterManagerResult:
         """Adds a player to RCT.
         
         This modifies the DB only; client, forums, and portal access must be
@@ -181,7 +217,7 @@ class TesterManager:
             False, f"**Addition failed!** Could not add **{discord.utils.escape_markdown(nickname)}** to RCT."
         )
 
-    async def reinstate_tester(self, nickname: str) -> TesterManagerResult:
+    async def reinstate(self, nickname: str) -> TesterManagerResult:
         """Reinstates a player as an RCT.
         
         Re-enables their account, restores the activity rank to default, and
@@ -209,7 +245,7 @@ class TesterManager:
             False, f"**Reinstatement failed!** Could not find **{discord.utils.escape_markdown(nickname)}** in DB."
         )
 
-    async def remove_tester(self, nickname: str) -> TesterManagerResult:
+    async def remove(self, nickname: str) -> TesterManagerResult:
         """Removes a player from RCT.
         
         Disables their account. This modifies the DB only; client, forums, and
@@ -266,6 +302,221 @@ class TesterManager:
                 ),
             )
         return TesterManagerResult(False, f"**Linking failed!** Could not find **{member.display_name}** in DB.")
+
+
+class CycleManagerResult:
+    pass
+
+
+# TODO: Handle only enabled accounts
+class CycleManager:
+    """
+    Interface for managing RCT testing cycles. Not an asynchronous context manager.
+    """
+
+    def __init__(self):
+        # Database
+        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
+        self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
+        self.testing_cycles = self.db[rctbot.config.MONGO_TESTING_CYCLES_COLLECTION_NAME]
+
+        # Tokens per activity:
+        self.game = 10
+        self.second = 0.003725
+        self.ten = 75
+        self.twenty = 225
+        self.fifty = 750
+        self.multiplier = (0.0, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5)
+        self.keep = (0, 1, 1, 3, 5, 7, 10, 0)
+        self.advance = (0, 3, 5, 8, 10, 12, 0, 0)
+        self.artificial = 3.5
+        self.bug = 100
+
+        # Match processor
+        # self.mp = MatchProcessor()
+
+    async def archive_cycle(self):
+        testers = await (
+            self.testers.find(
+                {"enabled": True, "tokens": {"$gt": 0}},
+                {
+                    "role": 1,
+                    "role_id": 1,
+                    "nickname": 1,
+                    "games": 1,
+                    "seconds": 1,
+                    "bugs": 1,
+                    "total_games": 1,
+                    "total_seconds": 1,
+                    "total_bugs": 1,
+                    "tokens": 1,
+                    "ladder": 1,
+                    "rank_id": 1,
+                    "bonuses_given": 1,
+                    "extra": 1,
+                    "perks": 1,
+                    "joined": 1,
+                    "awards": 1,
+                    "discord_id": 1,
+                    "account_id": 1,
+                    "testing_account_id": 1,
+                    "super_id": 1,
+                    "testing_super_id": 1,
+                },
+                sort=list({"tokens": -1}.items()),
+            )
+        ).to_list(length=None)
+        games = await (self.testing_games.find({"retrieved": True},)).to_list(length=None)
+        if len(games) == 0 or len(testers) == 0:
+            # TODO: Result
+            print("len games testers 0")
+            return False
+        start = datetime.fromtimestamp(games[0]["timestamp"])
+        if not (last_cycle := await self.testing_cycles.find_one({}, {"_id": 1}, sort=list({"_id": -1}.items()))):
+            id_ = 1
+        else:
+            id_ = last_cycle["_id"] + 1
+        result = await self.testing_cycles.insert_one(
+            {"_id": id_, "games": games, "participants": testers, "start": start, "end": datetime.now(timezone.utc)}
+        )
+        if not result.acknowledged:
+            return False
+        result = await self.testing_games.delete_many({})
+        return result.acknowledged
+
+    async def new_cycle(self):
+        values = {
+            "games": 0,
+            "seconds": 0,
+            "bugs": 0,
+            "tokens": 0,
+            "ladder": {"games": 0, "bugs": 0, "total_games": 0, "total_bugs": 0, "tokens": 0,},
+            "extra": 0,
+        }
+        async for document in self.testers.find({}):
+            # TODO: Change this to account_id after fetching all IDs.
+            bonus_last_cycle = math.floor((document["total_games"] / 50) - document["bonuses_given"])
+            values["bonuses_given"] = document["bonuses_given"] + bonus_last_cycle
+            await self.testers.update_one({"nickname": document["nickname"]}, {"$set": values})
+
+    async def update_games_and_seconds(self):
+        # TODO: This should rely more on MongoDB rather than the application itself.
+        participants = []
+        async for document in self.testing_games.find({"retrieved": True}):
+            participants.extend(document["participants"])
+
+        # TODO: collections.defaultdict
+
+        # Using set() to remove duplicates. Account ID is from the testing database.
+        account_ids = list(set([entry["account_id"] for entry in participants]))
+        players = []
+        for account_id in account_ids:
+            games = 0
+            seconds = 0
+            for entry in participants:
+                if entry["account_id"] == account_id:
+                    games += 1
+                    seconds += entry["seconds"]
+            players.append((account_id, games, seconds))
+        print(players)
+        # TODO: Remove players list and do update in the loop instead.
+        for player in players:
+            await self.testers.update_one(
+                {"testing_account_id": player[0]}, {"$set": {"games": player[1], "seconds": player[2]}},
+            )
+
+    async def update_bugs(self):
+        # TODO
+        raise NotImplementedError
+
+    async def update_total(self):
+        async for document in self.testers.find({}):
+            # TODO: Change this to account_id after fetching all IDs.
+            await self.testers.update_one(
+                {"nickname": document["nickname"]},
+                {
+                    "$inc": {
+                        "total_games": document["games"],
+                        "total_seconds": document["seconds"],
+                        "total_bugs": document["bugs"],
+                    }
+                },
+            )
+
+    async def delete_unretrieved(self):
+        raise NotImplementedError
+
+    async def update_cycle(self):
+        # TODO
+        raise NotImplementedError
+
+    async def update_ranks(self):
+        # TODO: Filter in query to return needed only.
+        async for tester in self.testers.find({"enabled": True}):
+            rank_id = tester["rank_id"]
+            games = tester["games"]
+            bugs = tester["bugs"]
+            # Ignore testers with absence field and Gold and below rank.
+            if "absence" in tester and rank_id <= 4:
+                pass
+            # Unranked < current rank < Legendary
+            if 0 < rank_id < 6:
+                if (games + bugs) >= self.advance[rank_id]:
+                    # TODO: Change to account_id
+                    await self.testers.update_one({"nickname": tester["nickname"]}, {"$inc": {"rank_id": 1}})
+                elif (games + bugs) < self.keep[rank_id]:
+                    await self.testers.update_one({"nickname": tester["nickname"]}, {"$inc": {"rank_id": -1}})
+                else:
+                    pass
+
+    async def update_tokens(self):
+        async for tester in self.testers.find({}):
+            games = tester["games"]
+            bonus = math.floor((tester["total_games"] / 50) - tester["bonuses_given"])
+
+            tokens = round(
+                (
+                    games * self.game
+                    + tester["seconds"] * self.second
+                    + (self.ten if games >= 10 else 0)
+                    + (self.twenty if games >= 20 else 0)
+                )
+                * (self.multiplier[tester["rank_id"]] + self.artificial)
+                + bonus * self.fifty
+                + tester["bugs"] * self.bug
+                + (tester["extra"])
+            )
+            await self.testers.update_one(
+                {"account_id": tester["account_id"]}, {"$set": {"tokens": tokens}},
+            )
+
+    async def update_perks(self) -> str:
+        result = await self.testers.update_many(
+            {
+                "enabled": True,
+                "perks": "No",
+                "$or": [{"total_games": {"$gte": 25}}, {"total_bugs": {"$gte": 25}}],
+                "discord_id": {"$not": {"$eq": None}},
+            },
+            {"$set": {"perks": "Pending"}},
+        )
+        if result.acknowledged:
+            return f"Found {result.matched_count} and updated {result.modified_count} members' perks status."
+        return f"Could not update perks status!"
+
+    async def distribute_tokens(self):
+        """
+        coro Modify tokens using the current values from DB and return
+        tuple (success, error).
+        """
+        mod_input = []
+        async for tester in self.testers.find(
+            {"enabled": True, "tokens": {"$gt": 0}}, {"nickname": 1, "tokens": 1}, sort=list({"tokens": -1}.items()),
+        ):
+            mod_input.append(f'{tester["nickname"]} {tester["tokens"]}')
+        async with VPClient() as portal:
+            return await portal.mod_tokens(mod_input)
 
 
 class DatabaseManager:
@@ -549,186 +800,6 @@ class MatchManipulator:
         else:
             result = await collection.update_one({"match_id": match_id}, {"$set": match_data})
             return print(result)
-
-
-# TODO: Handle only enabled accounts
-# Rename to Cycle
-class CycleManager:
-    "Interface for managing testing cycles."
-
-    def __init__(self, session=None):
-        self.url = rctbot.config.HON_VP_URL
-        if session is None:
-            self.session = aiohttp.ClientSession()
-        else:
-            self.session = session
-        self.token = None
-
-        # Database
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
-        self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
-        self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
-        self.testing_cycles = self.db[rctbot.config.MONGO_TESTING_CYCLES_COLLECTION_NAME]
-
-        # Tokens per activity:
-        self.game = 10
-        self.second = 0.003725
-        self.ten = 75
-        self.twenty = 225
-        self.fifty = 750
-        self.multiplier = (0.0, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5)
-        self.keep = (0, 1, 1, 3, 5, 7, 10, 0)
-        self.advance = (0, 3, 5, 8, 10, 12, 0, 0)
-        self.artificial = 3.5
-        self.bug = 100
-
-        # Match processor
-        # self.mp = MatchProcessor()
-
-    # async def __aenter__(self) -> "CycleManager":
-    async def __aenter__(self):
-        return self
-
-    # async def __aexit__(self, *_) -> None:
-    async def __aexit__(self, *_):
-        await self.close()
-
-    async def close(self):
-        """Coroutine. Close the session."""
-        await self.session.close()
-
-    async def new_cycle(self):
-        values = {
-            "games": 0,
-            "seconds": 0,
-            "bugs": 0,
-            "tokens": 0,
-            "ladder": {"games": 0, "bugs": 0, "total_games": 0, "total_bugs": 0, "tokens": 0,},
-            "extra": 0,
-        }
-        async for document in self.testers.find({}):
-            # TODO: Change this to account_id after fetching all IDs.
-            bonus_last_cycle = math.floor((document["total_games"] / 50) - document["bonuses_given"])
-            values["bonuses_given"] = document["bonuses_given"] + bonus_last_cycle
-            await self.testers.update_one({"nickname": document["nickname"]}, {"$set": values})
-
-    async def update_games_and_seconds(self):
-        # TODO: This should rely more on MongoDB rather than the application itself.
-        participants = []
-        async for document in self.testing_games.find({"retrieved": True}):
-            participants.extend(document["participants"])
-
-        # TODO: collections.defaultdict
-
-        # Using set() to remove duplicates. Account ID is from the testing database.
-        account_ids = list(set([entry["account_id"] for entry in participants]))
-        players = []
-        for account_id in account_ids:
-            games = 0
-            seconds = 0
-            for entry in participants:
-                if entry["account_id"] == account_id:
-                    games += 1
-                    seconds += entry["seconds"]
-            players.append((account_id, games, seconds))
-        print(players)
-        # TODO: Remove players list and do update in the loop instead.
-        for player in players:
-            await self.testers.update_one(
-                {"testing_account_id": player[0]}, {"$set": {"games": player[1], "seconds": player[2]}},
-            )
-
-    async def update_bugs(self):
-        # TODO
-        raise NotImplementedError
-
-    async def update_total(self):
-        async for document in self.testers.find({}):
-            # TODO: Change this to account_id after fetching all IDs.
-            await self.testers.update_one(
-                {"nickname": document["nickname"]},
-                {
-                    "$inc": {
-                        "total_games": document["games"],
-                        "total_seconds": document["seconds"],
-                        "total_bugs": document["bugs"],
-                    }
-                },
-            )
-
-    async def delete_unretrieved(self):
-        raise NotImplementedError
-
-    async def update_cycle(self):
-        # TODO
-        raise NotImplementedError
-
-    async def update_ranks(self):
-        # TODO: Filter in query to return needed only.
-        async for tester in self.testers.find({"enabled": True}):
-            rank_id = tester["rank_id"]
-            games = tester["games"]
-            bugs = tester["bugs"]
-            # Ignore testers with absence field and Gold and below rank.
-            if "absence" in tester and rank_id <= 4:
-                pass
-            # Unranked < current rank < Legendary
-            if 0 < rank_id < 6:
-                if (games + bugs) >= self.advance[rank_id]:
-                    # TODO: Change to account_id
-                    await self.testers.update_one({"nickname": tester["nickname"]}, {"$inc": {"rank_id": 1}})
-                elif (games + bugs) < self.keep[rank_id]:
-                    await self.testers.update_one({"nickname": tester["nickname"]}, {"$inc": {"rank_id": -1}})
-                else:
-                    pass
-
-    async def update_tokens(self):
-        async for tester in self.testers.find({}):
-            games = tester["games"]
-            bonus = math.floor((tester["total_games"] / 50) - tester["bonuses_given"])
-
-            tokens = round(
-                (
-                    games * self.game
-                    + tester["seconds"] * self.second
-                    + (self.ten if games >= 10 else 0)
-                    + (self.twenty if games >= 20 else 0)
-                )
-                * (self.multiplier[tester["rank_id"]] + self.artificial)
-                + bonus * self.fifty
-                + tester["bugs"] * self.bug
-                + (tester["extra"])
-            )
-            await self.testers.update_one(
-                {"account_id": tester["account_id"]}, {"$set": {"tokens": tokens}},
-            )
-
-    async def update_perks(self) -> str:
-        result = await self.testers.update_many(
-            {
-                "enabled": True,
-                "perks": "No",
-                "$or": [{"total_games": {"$gte": 25}}, {"total_bugs": {"$gte": 25}}],
-                "discord_id": {"$not": {"$eq": None}},
-            },
-            {"$set": {"perks": "Pending"}},
-        )
-        if result.acknowledged:
-            return f"Found {result.matched_count} and updated {result.modified_count} members' perks status."
-        return f"Could not update perks status!"
-
-    async def distribute_tokens(self):
-        """
-        coro Modify tokens using the current values from DB and return
-        tuple (success, error).
-        """
-        mod_input = []
-        async for tester in self.testers.find(
-            {"enabled": True, "tokens": {"$gt": 0}}, {"nickname": 1, "tokens": 1}, sort=list({"tokens": -1}.items()),
-        ):
-            mod_input.append(f'{tester["nickname"]} {tester["tokens"]}')
-        async with VPClient() as portal:
-            return await portal.mod_tokens(mod_input)
 
 
 # pylint: disable=unused-argument
