@@ -627,6 +627,33 @@ class DatabaseManager:
                 {"nickname": nickname}, {"$set": {"testing_account_id": testing_account_id}},
             )
 
+    async def set_super_id(self):
+        # trash but works
+        async def retrieve_super_id(session, account_id, masterserver):
+            client = Client(masterserver, session=session)
+            nickname = await client.id2nick(account_id)
+            return int((await client.show_stats(nickname, "ranked"))[b"super_id"].decode())
+
+        async for tester in self.testers.find(
+            {"$or": [{"super_id": None}, {"testing_super_id": None}]},
+            {"nickname": 1, "account_id": 1, "testing_account_id": 1},
+        ):
+            # print(tester)
+            async with aiohttp.ClientSession() as session:
+                try:
+                    super_id = await retrieve_super_id(session, tester["account_id"], "ac")
+                except AttributeError:
+                    super_id = None
+                try:
+                    testing_super_id = await retrieve_super_id(session, tester["testing_account_id"], "rc")
+                except AttributeError:
+                    testing_super_id = None
+            print(tester["nickname"], super_id, testing_super_id)
+            await self.testers.update_one(
+                {"account_id": tester["account_id"]},
+                {"$set": {"super_id": super_id, "testing_super_id": testing_super_id}},
+            )
+
     async def standardize_joined(self) -> str:
         found = 0
         acknowledged = 0

@@ -79,6 +79,13 @@ class Development(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    async def i_want_to_set_super_ids(self, ctx):
+        async with DatabaseManager() as dbm:
+            await dbm.set_super_id()
+            await ctx.send("super ids set")
+
+    @commands.command()
+    @commands.is_owner()
     async def t5(self, ctx):
         print(rctbot.config.LIST_OF_LISTS)
 
