@@ -367,7 +367,9 @@ class CycleManager:
                 sort=list({"tokens": -1}.items()),
             )
         ).to_list(length=None)
-        games = await (self.testing_games.find({"retrieved": True},)).to_list(length=None)
+        games = await (self.testing_games.find({"retrieved": True}, sort=list({"match_id": 1}.items()))).to_list(
+            length=None
+        )
         if len(games) == 0 or len(testers) == 0:
             # TODO: Result
             print("len games testers 0")
