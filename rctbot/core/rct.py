@@ -146,7 +146,7 @@ class TesterManager:
                         False,
                         (
                             f"**Addition failed!**"
-                            f" Neither **{discord.utils.escape_markdown(nickname)} nor **{account_id}** exist"
+                            f" Neither **{discord.utils.escape_markdown(nickname)}** nor **{account_id}** exist"
                             f" in the test client DB. Create a new account or search by Super ID."
                         ),
                     )
