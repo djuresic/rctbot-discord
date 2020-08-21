@@ -322,16 +322,16 @@ class CycleManager:
         self.testing_cycles = self.db[rctbot.config.MONGO_TESTING_CYCLES_COLLECTION_NAME]
 
         # Tokens per activity:
+        self.bug = 100
         self.game = 10
         self.second = 0.003725
         self.ten = 75
         self.twenty = 225
         self.fifty = 750
         self.multiplier = (0.0, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5)
+        self.artificial = 3.5
         self.keep = (0, 1, 1, 3, 5, 7, 10, 0)
         self.advance = (0, 3, 5, 8, 10, 12, 0, 0)
-        self.artificial = 3.5
-        self.bug = 100
 
         # Match processor
         # self.mp = MatchProcessor()
@@ -394,17 +394,19 @@ class CycleManager:
             "ladder": {"games": 0, "bugs": 0, "total_games": 0, "total_bugs": 0, "tokens": 0,},
             "extra": 0,
         }
-        async for document in self.testers.find({}):
+        async for document in self.testers.find({}, {"account_id": 1, "total_games": 1, "bonuses_given": 1}):
             # TODO: Change this to account_id after fetching all IDs.
             bonus_last_cycle = math.floor((document["total_games"] / 50) - document["bonuses_given"])
             values["bonuses_given"] = document["bonuses_given"] + bonus_last_cycle
-            await self.testers.update_one({"nickname": document["nickname"]}, {"$set": values})
+            await self.testers.update_one({"account_id": document["account_id"]}, {"$set": values})
 
     async def update_games_and_seconds(self):
         # TODO: This should rely more on MongoDB rather than the application itself.
         participants = []
+        retrieved = 0
         async for document in self.testing_games.find({"retrieved": True}):
             participants.extend(document["participants"])
+            retrieved += 1
 
         # TODO: collections.defaultdict
 
@@ -419,22 +421,28 @@ class CycleManager:
                     games += 1
                     seconds += entry["seconds"]
             players.append((account_id, games, seconds))
-        print(players)
+        # print(players)
         # TODO: Remove players list and do update in the loop instead.
+        acknowledged = 0
         for player in players:
-            await self.testers.update_one(
+            result = await self.testers.update_one(
                 {"testing_account_id": player[0]}, {"$set": {"games": player[1], "seconds": player[2]}},
             )
+            if result.acknowledged:
+                acknowledged += 1
 
     async def update_bugs(self):
         # TODO
         raise NotImplementedError
 
     async def update_total(self):
-        async for document in self.testers.find({}):
-            # TODO: Change this to account_id after fetching all IDs.
-            await self.testers.update_one(
-                {"nickname": document["nickname"]},
+        # NOTE: fine
+        found = 0
+        acknowledged = 0
+        async for document in self.testers.find({}, {"account_id": 1, "games": 1, "seconds": 1, "bugs": 1}):
+            found += 1
+            result = await self.testers.update_one(
+                {"account_id": document["account_id"]},
                 {
                     "$inc": {
                         "total_games": document["games"],
@@ -443,17 +451,15 @@ class CycleManager:
                     }
                 },
             )
-
-    async def delete_unretrieved(self):
-        raise NotImplementedError
-
-    async def update_cycle(self):
-        # TODO
-        raise NotImplementedError
+            if result.acknowledged:
+                acknowledged += 1
 
     async def update_ranks(self):
-        # TODO: Filter in query to return needed only.
-        async for tester in self.testers.find({"enabled": True}):
+        # NOTE: fine
+        found = 0  # TODO
+        async for tester in self.testers.find(
+            {"enabled": True}, {"account_id": 1, "rank_id": 1, "games": 1, "bugs": 1}
+        ):
             rank_id = tester["rank_id"]
             games = tester["games"]
             bugs = tester["bugs"]
@@ -463,10 +469,9 @@ class CycleManager:
             # Unranked < current rank < Legendary
             if 0 < rank_id < 6:
                 if (games + bugs) >= self.advance[rank_id]:
-                    # TODO: Change to account_id
-                    await self.testers.update_one({"nickname": tester["nickname"]}, {"$inc": {"rank_id": 1}})
+                    await self.testers.update_one({"account_id": tester["account_id"]}, {"$inc": {"rank_id": 1}})
                 elif (games + bugs) < self.keep[rank_id]:
-                    await self.testers.update_one({"nickname": tester["nickname"]}, {"$inc": {"rank_id": -1}})
+                    await self.testers.update_one({"account_id": tester["account_id"]}, {"$inc": {"rank_id": -1}})
                 else:
                     pass
 
@@ -739,7 +744,7 @@ class MatchManipulator:
         """Return basic match data dictionary for match ID."""
         match_id = int(match_id)
         match_stats = await self.client.get_match_stats(match_id)
-        print(match_stats)
+        # print(match_stats)
 
         summary = match_stats[b"match_summ"][match_id]
         if b"mname" not in summary:
@@ -751,7 +756,7 @@ class MatchManipulator:
         server_name = summary[b"name"].decode()
         version = summary[b"version"].decode()
         map_name = summary[b"map"].decode()
-        game_mode = summary[b"gamemode"].decode()
+        game_mode = summary[b"gamemode"].decode() if b"gamemode" in summary else None
         url = summary[b"url"].decode()
         s3_url = summary[b"s3_url"].decode()
         winning_team = summary[b"winning_team"] if b"winning_team" in summary else 0
@@ -763,6 +768,8 @@ class MatchManipulator:
         players = player_stats.values()
         participants = []
         for player in players:
+            if player is None:
+                continue
             nickname = (
                 (player[b"nickname"].decode()).split("]")[1]
                 if "]" in player[b"nickname"].decode()
@@ -804,29 +811,33 @@ class MatchManipulator:
     async def insert_match(match_id):
         collection = CLIENT[rctbot.config.MONGO_DATABASE_NAME][rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         match_id = int(match_id)
-        match = await collection.find_one({"match_id": match_id})
-        if match is None:
+        if (await collection.find_one({"match_id": match_id})) is None:
             result = await collection.insert_one(
-                {"retrieved": False, "watched": False, "match_id": match_id, "match_name": "some generic name",}
+                {"retrieved": False, "counted": False, "watched": False, "match_id": match_id}
             )
+            if result.acknowledged:
+                return f"Inserted {match_id}."
+            return f"Could not insert {match_id}."
         else:
-            result = f"{match_id} already exists"
-        return print(result)
+            return f"Match ID {match_id} already inserted!"
 
     @staticmethod
     async def update_match(match_id, match_data: dict):
         "Update match data for exisitng match ID."
         match_id = int(match_id)
         # TODO: This branch could probably go
-        if "match_id" not in match_data or match_id != match_data["match_id"]:
+        # print(match_id, match_data)
+        if not match_data or "match_id" not in match_data or match_id != match_data["match_id"]:
             return "Match ID does not match match data! You are not allowed to change match ID."
         collection = CLIENT[rctbot.config.MONGO_DATABASE_NAME][rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         match = await collection.find_one({"match_id": match_id})
         if match is None:
-            return print(f"{match_id} doesn't exist")
+            return f"{match_id} doesn't exist!"
         else:
             result = await collection.update_one({"match_id": match_id}, {"$set": match_data})
-            return print(result)
+            if result.acknowledged:
+                return f"Updated {match_id}."
+            return f"Failed to update {match_id}!"
 
 
 # pylint: disable=unused-argument
