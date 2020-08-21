@@ -9,6 +9,8 @@ class RCTCycle(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
+    # TODO: .cycle update x, .cycle distribute y
+
     # TODO: Send CycleManagerResult().discord_message
     @commands.group()
     @commands.is_owner()
