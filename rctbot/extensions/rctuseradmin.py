@@ -62,20 +62,33 @@ class RCTUserAdmin(commands.Cog):
             await ctx.send(f"Created **{nickname}** ({account_id}). Use: **{password}**")
 
     @testers.group(aliases=["a"], invoke_without_command=True)
-    async def access(self, ctx, nickname: str):
+    async def access(self, ctx, nickname: str, masterserver: str = "rc"):
+        nickname = nickname.replace("\\", "")
         translation = {"WTC": "SBT", "WRC": "RCT"}
-        async with ACPClient(ctx.author, masterserver="rc") as acp:
+        async with ACPClient(ctx.author, masterserver=masterserver) as acp:
             if account_id := await acp.nickname_to_aid(nickname):
                 current_access = await acp.user_test_access(account_id)
+        nickname = discord.utils.escape_markdown(nickname)
         current_access = translation[current_access] if current_access in translation else current_access
-        await ctx.send(f"{ctx.author.mention} {discord.utils.escape_markdown(nickname)}: {current_access}")
+        await ctx.send(f"Current access permissions for **{nickname}**: {current_access}")
+
+    @access.command(name="view", aliases=["check", "v", "c", "/"])
+    async def _testers_access_view(self, ctx, nickname: str, masterserver: str = "rc"):
+        nickname = nickname.replace("\\", "")
+        translation = {"WTC": "SBT", "WRC": "RCT"}
+        async with ACPClient(ctx.author, masterserver=masterserver) as acp:
+            if account_id := await acp.nickname_to_aid(nickname):
+                current_access = await acp.user_test_access(account_id)
+        nickname = discord.utils.escape_markdown(nickname)
+        current_access = translation[current_access] if current_access in translation else current_access
+        await ctx.send(f"Current access permissions for **{nickname}**: {current_access}")
 
     @access.command(name="grant", aliases=["give", "g", "+"])
-    async def _testers_access_grant(self, ctx, nickname: str):
+    async def _testers_access_grant(self, ctx, nickname: str, masterserver: str = "rc"):
         nickname = nickname.replace("\\", "")
         required_clicks = {"None": 2, "WTC": 1, "WRC": 0, "Both": 0}
         clicks_done = 0
-        async with ACPClient(ctx.author, masterserver="rc") as acp:
+        async with ACPClient(ctx.author, masterserver=masterserver) as acp:
             if account_id := await acp.nickname_to_aid(nickname):
                 current_access = await acp.user_test_access(account_id)
                 clicks = required_clicks[current_access]
@@ -91,11 +104,11 @@ class RCTUserAdmin(commands.Cog):
             await ctx.send(f"Could not grant **{nickname}** RCT access!")
 
     @access.command(name="deny", aliases=["remove", "d", "r", "-"])
-    async def _testers_access_deny(self, ctx, nickname: str):
+    async def _testers_access_deny(self, ctx, nickname: str, masterserver: str = "rc"):
         nickname = nickname.replace("\\", "")
         required_clicks = {"None": 0, "WTC": 0, "WRC": 2, "Both": 2}
         clicks_done = 0
-        async with ACPClient(ctx.author, masterserver="rc") as acp:
+        async with ACPClient(ctx.author, masterserver=masterserver) as acp:
             if account_id := await acp.nickname_to_aid(nickname):
                 current_access = await acp.user_test_access(account_id)
                 clicks = required_clicks[current_access]
