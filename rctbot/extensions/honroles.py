@@ -1,26 +1,46 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 import rctbot.config
+from rctbot.core.mongodb import CLIENT
 
-# NOTE: Most of it is hardcoded. It should be in MongoDB config collection instead.
 
 # {guild.id: {message.id: {emoji.name: role.name}}}
 REACTION_ROLES = {
-    740225660412362843: {742019802188611625: {"HoN": "Newerthian", "🇪🇺": "EU", "🇺🇸": "NA", "🇷🇺": "CIS", "🇦🇺": "AU",}}
+    740225660412362843: {
+        "742019802188611625": {"HoN": "Newerthian", "🇺🇸": "NA", "🇪🇺": "EU", "🇧🇷": "LAT", "🇷🇺": "CIS", "🇦🇺": "AUS"}
+    }
 }
 
 
 class HoNOfficialRoles(commands.Cog):
+
+    guild_id_dict = {}
+
     def __init__(self, bot):
         self.bot = bot
+        self.db_client = CLIENT
+        self.db = self.db_client["hon"]
+        self.config_collection = self.db["config"]
+        # self.guild_id_dict = {}
+        self.fetch.start()  # pylint: disable=no-member
+
+    def cog_unload(self):
+        self.fetch.cancel()  # pylint: disable=no-member
+
+    @tasks.loop(hours=12.0)
+    async def fetch(self):
+        config = await self.config_collection.find_one({})
+        # NOTE: All message ID keys are strings!
+        self.guild_id_dict = {config["guild_id"]: config["reaction_roles"]}
 
     @commands.Cog.listener("on_raw_reaction_add")
     async def reaction_roles(self, payload):
+        # NOTE: All message ID keys are strings!
         if (
-            payload.guild_id not in REACTION_ROLES
-            or payload.message_id not in REACTION_ROLES[payload.guild_id]
-            or payload.emoji.name not in REACTION_ROLES[payload.guild_id][payload.message_id]
+            payload.guild_id not in self.guild_id_dict
+            or str(payload.message_id) not in self.guild_id_dict[payload.guild_id]
+            or payload.emoji.name not in self.guild_id_dict[payload.guild_id][str(payload.message_id)]
         ):
             return
         guild = self.bot.get_guild(payload.guild_id)
@@ -28,7 +48,7 @@ class HoNOfficialRoles(commands.Cog):
         channel = guild.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
         role = discord.utils.get(
-            guild.roles, name=(REACTION_ROLES[payload.guild_id][payload.message_id][payload.emoji.name]),
+            guild.roles, name=(self.guild_id_dict[payload.guild_id][str(payload.message_id)][payload.emoji.name]),
         )
         if role not in payload.member.roles:
             await payload.member.add_roles(role, reason="Reaction")
