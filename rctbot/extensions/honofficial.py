@@ -406,8 +406,8 @@ class HoNOfficial(commands.Cog):
         self.db = self.db_client["hon"]
         self.config_collection = self.db["config"]
         # Default author and avatar.
-        self.webhook_author = "Hand of Sol"
-        self.webhook_avatar_url = "https://i.imgur.com/nsw8s2J.png"
+        self.webhook_author = "Merrick"
+        self.webhook_avatar_url = "https://i.imgur.com/874QFIb.png"  # HoN Web Logo: https://i.imgur.com/nsw8s2J.png
         # Reaction roles.
         self.guild_id_dict = {}  # {guild.id: {message.id: {emoji.name: role.name}}}
         self.synchronize.start()  # pylint: disable=no-member
@@ -480,7 +480,9 @@ class HoNOfficial(commands.Cog):
             webhook = discord.Webhook.from_url(webhook.url, adapter=discord.AsyncWebhookAdapter(session))
             # Send individually due to a Discord limitation for large embedded messages.
             for embed in embed_list:
-                await webhook.send(username=self.webhook_author, embed=embed)
+                await webhook.send(
+                    username="The Blind Disciples", avatar_url="https://i.imgur.com/ql9KULC.png", embed=embed
+                )
                 # Delay to preserve order when sent to Discord.
                 await asyncio.sleep(0.25)
         await ctx.message.delete()
