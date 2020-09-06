@@ -1,34 +1,25 @@
+from __future__ import annotations
+
 import asyncio
+from typing import Tuple
 
 import aiohttp
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 import rctbot.config
 from rctbot.core import checks
 from rctbot.core.mongodb import CLIENT
 
 
-class HoNOfficial(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-        self.db_client = CLIENT
-        self.db = self.db_client["hon"]
-        self.config_collection = self.db["config"]
+class EmbedCreator:
+    def __init__(self, ctx: commands.Context) -> None:
+        self.ctx = ctx
 
-    async def _get_webhook(self, ctx, name: str) -> discord.Webhook:
-        webhooks = await ctx.channel.webhooks()
-        if not (webhook := discord.utils.get(webhooks, name=name)):
-            async with aiohttp.ClientSession() as session:
-                resp = await session.get("https://i.imgur.com/nsw8s2J.png")
-                avatar_bytes = await resp.read()
-                webhook = await ctx.channel.create_webhook(name=name, avatar=avatar_bytes)
-        return webhook
-
-    async def create_rules_embed(self, ctx):
-        mod_mention = discord.utils.get(ctx.guild.roles, name="Discord Moderator").mention
-        off_topic = discord.utils.get(ctx.guild.channels, name="off-topic").mention
-        stream_promo = discord.utils.get(ctx.guild.channels, name="stream-promotions").mention
+    async def rules(self) -> Tuple[discord.Embed, discord.Embed]:
+        mod_mention = discord.utils.get(self.ctx.guild.roles, name="Discord Moderator").mention
+        off_topic = discord.utils.get(self.ctx.guild.channels, name="off-topic").mention
+        stream_promo = discord.utils.get(self.ctx.guild.channels, name="stream-promotions").mention
         description = (
             "As the official Heroes of Newerth Discord server, we adhere to and enforce the terms of service and code"
             " of conduct, along with all community guidelines set forth by Frostburn Studios and Discord, including"
@@ -204,8 +195,8 @@ class HoNOfficial(commands.Cog):
 
         return embed_1, embed_2
 
-    async def create_intro_embed(self, ctx):
-        emojis = ctx.guild.emojis
+    async def intro(self) -> discord.Embed:
+        emojis = self.ctx.guild.emojis
         facebook = discord.utils.get(emojis, name="Facebook")
         twitter = discord.utils.get(emojis, name="Twitter")
         reddit = discord.utils.get(emojis, name="Reddit")
@@ -236,8 +227,8 @@ class HoNOfficial(commands.Cog):
         embed.add_field(name="Socials", value=socials, inline=False)
         return embed
 
-    async def create_channel_categories_embed(self, ctx):
-        channels = ctx.guild.channels
+    async def channel_categories(self) -> discord.Embed:
+        channels = self.ctx.guild.channels
         picking_phase = discord.utils.get(channels, name="picking-phase").mention
         general = discord.utils.get(channels, name="general").mention
         ask_for_help = discord.utils.get(channels, name="help").mention
@@ -283,8 +274,8 @@ class HoNOfficial(commands.Cog):
         embed.add_field(name=category_4_name, value=category_4_desc, inline=False)
         return embed
 
-    async def create_roles_embed(self, ctx):
-        roles = ctx.guild.roles
+    async def roles(self) -> discord.Embed:
+        roles = self.ctx.guild.roles
         head_mod_mention = discord.utils.get(roles, name="Head Discord Moderator").mention
         mod_mention = discord.utils.get(roles, name="Discord Moderator").mention
         garena_mention = discord.utils.get(roles, name="Garena Staff").mention
@@ -355,11 +346,11 @@ class HoNOfficial(commands.Cog):
         embed.add_field(name="\u2063", value=group_5, inline=False)
         return embed
 
-    async def create_regional_roles_embed(self, ctx, region_emoji_names: dict):
+    async def reactions_regional_roles(self, region_emoji_names: dict) -> discord.Embed:
         desc = (
             "These give access to regional channel categories, including regional LFG (Looking for Group) channels.\n"
         )
-        roles = ctx.guild.roles
+        roles = self.ctx.guild.roles
         for emoji, role_name in region_emoji_names.items():
             role_mention = discord.utils.get(roles, name=role_name).mention
             desc += f"\n{emoji} - {role_mention}"
@@ -372,9 +363,7 @@ class HoNOfficial(commands.Cog):
         embed.set_footer(text=footer)
         return embed
 
-    @commands.command()
-    @checks.is_senior()
-    async def botcmdlist(self, ctx):
+    async def commands(self) -> discord.Embed:
         embed = discord.Embed(
             title="Heroes of Newerth International",
             type="rich",
@@ -385,7 +374,7 @@ class HoNOfficial(commands.Cog):
             ),
             url="https://discord.gg/F7gQtUm",
             color=0x3CC03C,
-            timestamp=ctx.message.created_at,
+            timestamp=self.ctx.message.created_at,
         )
         embed.set_author(name="Commands")
         embed.add_field(
@@ -407,7 +396,69 @@ class HoNOfficial(commands.Cog):
         # embed.add_field(name="Links (RCT Only)", value="```css\n.forums```", inline=False)
         embed.set_footer(text="RCTBot", icon_url="https://i.imgur.com/Ou1k4lD.png")
         embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
-        await ctx.send(embed=embed)
+        return embed
+
+
+class HoNOfficial(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+        self.db_client = CLIENT
+        self.db = self.db_client["hon"]
+        self.config_collection = self.db["config"]
+        # Default author and avatar.
+        self.webhook_author = "Hand of Sol"
+        self.webhook_avatar_url = "https://i.imgur.com/nsw8s2J.png"
+        # Reaction roles.
+        self.guild_id_dict = {}  # {guild.id: {message.id: {emoji.name: role.name}}}
+        self.synchronize.start()  # pylint: disable=no-member
+
+    def cog_unload(self):
+        self.synchronize.cancel()  # pylint: disable=no-member
+
+    @tasks.loop(hours=12.0)
+    async def synchronize(self):
+        config = await self.config_collection.find_one({})
+        # NOTE: All message ID keys are strings!
+        self.guild_id_dict = {config["guild_id"]: config["reaction_roles"]}
+
+    @commands.Cog.listener("on_raw_reaction_add")
+    async def _reaction_roles(self, payload):
+        # NOTE: All message ID keys are strings!
+        if (
+            payload.guild_id not in self.guild_id_dict
+            or str(payload.message_id) not in self.guild_id_dict[payload.guild_id]
+            or payload.emoji.name not in self.guild_id_dict[payload.guild_id][str(payload.message_id)]
+        ):
+            return
+        guild = self.bot.get_guild(payload.guild_id)
+        # member = guild.get_member(payload.user_id)
+        channel = guild.get_channel(payload.channel_id)
+        message = await channel.fetch_message(payload.message_id)
+        role = discord.utils.get(
+            guild.roles, name=(self.guild_id_dict[payload.guild_id][str(payload.message_id)][payload.emoji.name]),
+        )
+        if role not in payload.member.roles:
+            await payload.member.add_roles(role, reason="Reaction")
+
+        if role in payload.member.roles:
+            await payload.member.remove_roles(role, reason="Reaction")
+        await message.remove_reaction(payload.emoji, payload.member)
+
+    async def _get_webhook(self, ctx, name: str) -> discord.Webhook:
+        webhooks = await ctx.channel.webhooks()
+        if not (webhook := discord.utils.get(webhooks, name=name)):
+            async with aiohttp.ClientSession() as session:
+                resp = await session.get(self.webhook_avatar_url)
+                avatar_bytes = await resp.read()
+                webhook = await ctx.channel.create_webhook(name=name, avatar=avatar_bytes)
+        return webhook
+
+    @commands.command()
+    @checks.is_senior()
+    async def botcmdlist(self, ctx):
+        creator = EmbedCreator(ctx)
+        commands_ = await creator.commands()
+        await ctx.send(embed=commands_)
         await ctx.message.delete()
 
     @commands.group()
@@ -417,10 +468,11 @@ class HoNOfficial(commands.Cog):
 
     @embed.command(name="rules")
     async def _embed_rules(self, ctx):
-        intro = await self.create_intro_embed(ctx)
-        rules = await self.create_rules_embed(ctx)
-        channels = await self.create_channel_categories_embed(ctx)
-        roles = await self.create_roles_embed(ctx)
+        creator = EmbedCreator(ctx)
+        intro = await creator.intro()
+        rules = await creator.rules()
+        channels = await creator.channel_categories()
+        roles = await creator.roles()
         embed_list = [intro, rules[0], rules[1], channels, roles]
 
         webhook = await self._get_webhook(ctx, "RCTBot Rules")
@@ -428,13 +480,14 @@ class HoNOfficial(commands.Cog):
             webhook = discord.Webhook.from_url(webhook.url, adapter=discord.AsyncWebhookAdapter(session))
             # Send individually due to a Discord limitation for large embedded messages.
             for embed in embed_list:
-                await webhook.send(username="Hand of Sol", embed=embed)
+                await webhook.send(username=self.webhook_author, embed=embed)
                 # Delay to preserve order when sent to Discord.
                 await asyncio.sleep(0.25)
         await ctx.message.delete()
 
     @embed.command(name="regions")
     async def _embed_regions(self, ctx):
+        creator = EmbedCreator(ctx)
         dict_ = {
             "🇺🇸": "North America",
             "🇪🇺": "Europe",
@@ -442,12 +495,12 @@ class HoNOfficial(commands.Cog):
             "🇷🇺": "Commonwealth of Independent States",
             "🇦🇺": "Australia",
         }
-        embed = await self.create_regional_roles_embed(ctx, dict_)
+        embed = await creator.reactions_regional_roles(dict_)
 
         webhook = await self._get_webhook(ctx, "RCTBot Reaction Roles")
         async with aiohttp.ClientSession() as session:
             webhook = discord.Webhook.from_url(webhook.url, adapter=discord.AsyncWebhookAdapter(session))
-            await webhook.send(username="Hand of Sol", avatar_url="https://i.imgur.com/nsw8s2J.png", embed=embed)
+            await webhook.send(username=self.webhook_author, embed=embed)
 
         # Webhook send does not return a message object, getting the most recent message from this channel in cache:
         await asyncio.sleep(1.25)
@@ -460,7 +513,7 @@ class HoNOfficial(commands.Cog):
         reaction_roles = (await self.config_collection.find_one({}))["reaction_roles"]
         reaction_roles = {**message_reactions, **reaction_roles}
         await self.config_collection.update_one({}, {"$set": {"reaction_roles": reaction_roles}})
-        # TODO: Force fetch.
+        self.synchronize.restart()  # pylint: disable=no-member
         await ctx.message.delete()
 
 
