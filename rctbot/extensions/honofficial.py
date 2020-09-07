@@ -36,7 +36,7 @@ class EmbedCreator:
         no_pings_desc = (
             "Do not mention or DM inactive members who aren't part of the present conversation, especially"
             " Frostburn and Garena employees. Violations may lead to anything from simple mutes to permanent bans"
-            " if done consecutively and to purposefully disobey this rule. This doesn't apply if you're mentioning"
+            " if done consecutively and to purposefully break this rule. This doesn't apply if you're mentioning"
             " someone with whom you have some kind of mutual relationship."
         )
         be_polite_title = "Be polite and use common sense."
@@ -52,7 +52,7 @@ class EmbedCreator:
             "Do not post anything that is NSFW or generally inappropriate. This includes shocking, gory, lewd, erotic,"
             " or otherwise NSFW content, as well as statements with an underlying NSFW tone. If you are unsure whether"
             " something is considered NSFW, you shouldn't post it. Violation of this rule may be cause for an"
-            " immediate ban and the offending message reported to Discord’s Trust and Safety team."
+            " immediate ban and the offending message reported to Discord's Trust and Safety team."
         )
         channel_purpose_title = "Use channels for their purpose."
         channel_purpose_desc = (
@@ -82,10 +82,10 @@ class EmbedCreator:
         clean_names_title = "Avoid names with obstructive characters."
         clean_names_desc = (
             "Anyone can change their nickname in this server using the `/nick` command. Remember, nicknames are"
-            " server-only and will only change your name in this server. It won’t affect any of your other servers."
+            " server-only and will only change your name in this server. It won't affect any of your other servers."
             " Refrain from using too many special characters in your current display name. A couple of special symbols"
             " are fine so long as there is a normal alphanumeric name that people can easily type. For example,"
-            ' "$ NightHound $" is fine, but "ηＩᎶᕼŤ卄ⓞᵘηᵈ" is not. Should you break this rule, you will be asked'
+            ' "$ GolDenVeiL $" is fine, but "ƓօӀժҽղѵҽìӀ" is not. Should you break this rule, you will be asked'
             " to change your name or it will be changed for you. Repeat offenses of this rule will be punished."
         )
         no_nsfw_profile_title = "No inappropriate user avatars, names, or custom statuses."
@@ -102,7 +102,7 @@ class EmbedCreator:
             " known website (YouTube, DeviantArt, SoundCloud, etc.) is acceptable, as long as the content does not"
             " violate server rules. Otherwise, please message <@747112673786986577> to get moderator approval for what"
             " you intend to post first, or your link will be deleted and you may be punished depending on the severity"
-            f" of the offense. Advertising streams and videos must be limited to {stream_promo} *only*. Do not send"
+            f" of the offense. Advertising streams must be limited to {stream_promo} *only*. Do not send"  # streams (and videos)
             " unsolicited DMs or ads to other members. If you receive any form of advertising from members in this"
             " server, please report it through <@747112673786986577>."
         )
@@ -232,7 +232,9 @@ class EmbedCreator:
         picking_phase = discord.utils.get(channels, name="picking-phase").mention
         general = discord.utils.get(channels, name="general").mention
         ask_for_help = discord.utils.get(channels, name="help").mention
+        contributions = discord.utils.get(channels, name="contributions").mention
         tournaments = discord.utils.get(channels, name="tournaments").mention
+        alt_modes = discord.utils.get(channels, name="alternate-modes").mention
         off_topic = discord.utils.get(channels, name="off-topic").mention
         bot_playgrounds = discord.utils.get(channels, name="bot-playgrounds").mention
         memes = discord.utils.get(channels, name="memes").mention
@@ -240,21 +242,25 @@ class EmbedCreator:
         mid_wars = discord.utils.get(channels, name="mid-wars").mention
 
         title = "Channel Categories"
-        category_1_name = "Grounds of Newerth"
+        category_1_name = "Gates of Newerth"
         category_1_desc = (
             f"{picking_phase}: Claim roles by clicking on reactions! Some give you access to special channels such as"
             " regional LFG (Looking for Group)."
         )
-        category_2_name = "General"
+        category_2_name = "General Text Channels"
         category_2_desc = (
             f"{general}: Talk about anything HoN related, but keep it English only!"
-            f"\n{ask_for_help} Ask for help from the community. Inquiries regarding suspensions **may not** be"
+            f"\n{ask_for_help}: Ask for help from the community. Inquiries regarding suspensions **may not** be"
             " discussed here!"
+            f"\n{contributions}: Do you have an artistic touch? Share your HoN related artwork, videos, or"
+            " game modifications here!"
             f"\n{tournaments}: Talk about the current and upcoming tournaments."
+            f"\n{alt_modes}: Talk about alternative modes such as Capture the Flag, Prophets, Devo Wars, Team"
+            " Deathmatch, Soccer, etc. and find other people to play them with."
+            f"\n{bot_playgrounds}: Check in-game statistics and interact with available bots through commands."
             f"\n{off_topic}: Anything that is not directly related or completely unrelated to HoN may be discussed"
             " here. Any and all rules still apply."
             f"\n{memes}: Share your dankest memes while keeping all rules in mind!"
-            f"\n{bot_playgrounds}: Check in-game statistics and interact with available bots through commands."
         )
         category_3_name = "Balance & Design Discussions"
         category_3_desc = (
@@ -291,7 +297,7 @@ class EmbedCreator:
         be_mention = discord.utils.get(roles, name="Balance Enthusiast").mention
 
         group_1 = (
-            f"{head_mod_mention}: Moderators of moderators, in charge of the Moderators crew. Should issues"
+            f"{head_mod_mention}: Moderator of moderators, in charge of the HoN Discord moderation team. Should issues"
             f" involving any of our {mod_mention} arise, this is who you want to talk to. Secretly feeds Bananas to"
             " Wumpus."
             f"\n\n{mod_mention}: Preservers of the order in chat. Moderators are neither Discord nor Frostburn"
