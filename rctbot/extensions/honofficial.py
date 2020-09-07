@@ -273,10 +273,13 @@ class EmbedCreator:
             f"These will unlock depending on the roles you pick in {picking_phase} and will include a LFG text channel"
             " as well as a few voice channels for TMM groups."
         )
+        category_5_name = "Voice Channels"
+        category_5_desc = "To be used for playing HoN. Please do not idle in these channels."
         embed = discord.Embed(title=title, type="rich", description="", color=0x3CC03C)
         embed.add_field(name=category_1_name, value=category_1_desc, inline=False)
         embed.add_field(name=category_2_name, value=category_2_desc, inline=False)
         embed.add_field(name=category_3_name, value=category_3_desc, inline=False)
+        embed.add_field(name=category_5_name, value=category_5_desc, inline=False)
         embed.add_field(name=category_4_name, value=category_4_desc, inline=False)
         return embed
 
