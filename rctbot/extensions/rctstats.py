@@ -2,6 +2,7 @@ import math
 import timeit
 import asyncio
 from io import BytesIO
+from typing import Tuple
 
 import aiohttp
 import discord
@@ -13,10 +14,13 @@ import rctbot.config
 # from core.logging import record_usage NOTE: discord.py 1.4
 from rctbot.core.mongodb import CLIENT
 from rctbot.core.checks import guild_is_rct
+from rctbot.core.rct import CycleValues
+from rctbot.core.models import ActivityRank
 from rctbot.hon.masterserver import Client
 from rctbot.hon.portal import VPClient
 from rctbot.hon.acp2 import ACPClient
 from rctbot.hon.utils import get_name_color, get_avatar
+from rctbot.extensions.rctmatchtools import MatchTools
 
 
 class RCTStats(commands.Cog):
@@ -25,8 +29,221 @@ class RCTStats(commands.Cog):
         self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
+        self.cycle_values = CycleValues()
 
     # TODO: Match stats command.
+
+    async def _get_full_nickname(self, nickname: str) -> Tuple[str, str, int]:
+        try:
+            # timeout = aiohttp.ClientTimeout(total=5)
+            async with aiohttp.ClientSession() as session:
+                simple_stats = await Client("ac", session=session).show_simple_stats(nickname)
+                if simple_stats and b"nickname" in simple_stats:
+                    nick_with_clan_tag = simple_stats[b"nickname"].decode()
+                    name_color = await get_name_color(simple_stats)
+                    if "]" in nick_with_clan_tag:
+                        clan_tag = f"{nick_with_clan_tag.split(']')[0]}]"
+                    else:
+                        clan_tag = ""
+                else:
+                    nick_with_clan_tag = nick
+                    clan_tag = None
+                    name_color = 0xFFFFFF
+        except:
+            nick_with_clan_tag = nickname
+            clan_tag = None
+            name_color = 0xFFFFFF
+        return nick_with_clan_tag, clan_tag, name_color
+
+    def _seconds_to_dhms(self, seconds: int) -> str:
+        dhms = ""
+        for scale in 86400, 3600, 60:
+            result, seconds = divmod(seconds, scale)
+            if dhms != "" or result > 0:
+                dhms += "{0:02d}:".format(result)
+        dhms += "{0:02d}".format(seconds)
+        if dhms != "00":
+            return dhms
+        return "00:00"
+
+    @commands.command(aliases=["rank2", "sheet2"])
+    @guild_is_rct()
+    @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
+    @commands.max_concurrency(10, per=commands.BucketType.guild, wait=False)
+    async def rct2(self, ctx, member: str = ""):
+        # start = timeit.default_timer()
+        if member == "":
+            discord_id = ctx.author.id
+        elif len(ctx.message.raw_mentions) > 0:
+            discord_id = ctx.message.raw_mentions[0]
+        else:
+            discord_id = None
+
+        if discord_id is not None:
+            user = await self.testers.find_one({"discord_id": discord_id})
+        else:
+            member = member.replace("\\", "")
+            user = await self.testers.find_one({"nickname": member.lower()}, collation={"locale": "en", "strength": 1})
+
+        requester_discord_id = ctx.author.id
+        requester = await self.testers.find_one({"discord_id": requester_discord_id})
+        if requester is not None:
+            requester_name = requester["nickname"]
+        else:
+            requester_name = ctx.author.display_name
+            requester_discord_id = None
+
+        # print(user)
+        if user is None:
+            return await ctx.send(
+                f"{ctx.author.mention} That player is neither former nor past RCT member.", delete_after=10.0,
+            )
+
+        nick_with_clan_tag, _, name_color = await self._get_full_nickname(user["nickname"])
+
+        games_list = await (self.testing_games.find({"participants.account_id": user["testing_account_id"]})).to_list(
+            length=None
+        )
+        games = len(games_list)
+        total_games = user["total_games"] + games
+        seconds = sum([game["length"] for game in games_list])
+        total_seconds = user["total_seconds"] + seconds
+        game_time = self._seconds_to_dhms(seconds)
+        total_game_time = self._seconds_to_dhms(total_seconds)
+
+        # TODO: Bug reports.
+        bugs = 0
+        total_bugs = bugs + user["total_bugs"]
+
+        # Reset 50 games bonus values so that the current token calculations are accurate.
+        bonus_last_cycle = math.floor((user["total_games"] / 50) - user["bonuses_given"])
+        bonuses_given = user["bonuses_given"] + bonus_last_cycle
+        current_bonus = math.floor((total_games / 50) - bonuses_given)
+
+        rank_id = user["rank_id"]
+        if ("absence" not in user or user["absence"] is None) or ("absence" in user and rank_id > ActivityRank.GOLD):
+            if ActivityRank.UNRANKED < rank_id < ActivityRank.LEGENDARY:
+                if (games + bugs) >= self.cycle_values.advance[rank_id]:
+                    rank_id += 1
+                elif (games + bugs) < self.cycle_values.keep[rank_id]:
+                    rank_id -= 1
+        # Should've just put 1000 games requirement for advancing to Immortal... Keeping this for now.
+        if rank_id >= ActivityRank.LEGENDARY and (games + bugs) < self.cycle_values.keep[rank_id]:
+            rank_id -= 1
+
+        final_multiplier = self.cycle_values.multiplier[rank_id] + self.cycle_values.artificial
+        tokens = round(
+            (
+                games * self.cycle_values.game
+                + seconds * self.cycle_values.second
+                + (self.cycle_values.ten if games >= 10 else 0)
+                + (self.cycle_values.twenty if games >= 20 else 0)
+            )
+            * final_multiplier
+            + current_bonus * self.cycle_values.fifty
+            + bugs * self.cycle_values.bug
+            + (user["extra"])  # TODO: Extra
+        )
+
+        bonuses = []
+        for number in 10, 20:
+            if games >= number:
+                bonuses.append(str(number))
+        if current_bonus > 0:
+            bonuses.append("50")
+        bonuses = ", ".join(bonuses) + " games" if len(bonuses) > 0 else "None"
+
+        ranks = {
+            7: {
+                "name": "Immortal",
+                "icon_url": "https://i.imgur.com/dpugisO.png",
+                "icon_emoji": rctbot.config.EMOJI_IMMORTAL_RANK,
+                "chest_emoji": rctbot.config.EMOJI_IMMORTAL_CHEST,
+            },
+            6: {
+                "name": "Legendary",
+                "icon_url": "https://i.imgur.com/59Jighv.png",
+                "icon_emoji": rctbot.config.EMOJI_LEGENDARY_RANK,
+                "chest_emoji": rctbot.config.EMOJI_LEGENDARY_CHEST,
+            },
+            5: {
+                "name": "Diamond",
+                "icon_url": "https://i.imgur.com/AZYAK39.png",
+                "icon_emoji": rctbot.config.EMOJI_DIAMOND_RANK,
+                "chest_emoji": rctbot.config.EMOJI_DIAMOND_CHEST,
+            },
+            4: {
+                "name": "Gold",
+                "icon_url": "https://i.imgur.com/ZDLUlqs.png",
+                "icon_emoji": rctbot.config.EMOJI_GOLD_RANK,
+                "chest_emoji": rctbot.config.EMOJI_GOLD_CHEST,
+            },
+            3: {
+                "name": "Silver",
+                "icon_url": "https://i.imgur.com/xxxlPAq.png",
+                "icon_emoji": rctbot.config.EMOJI_SILVER_RANK,
+                "chest_emoji": rctbot.config.EMOJI_SILVER_CHEST,
+            },
+            2: {
+                "name": "Bronze",
+                "icon_url": "https://i.imgur.com/svAUm00.png",
+                "icon_emoji": rctbot.config.EMOJI_BRONZE_RANK,
+                "chest_emoji": rctbot.config.EMOJI_BRONZE_CHEST,
+            },
+            1: {
+                "name": "Warning",
+                "icon_url": "https://i.imgur.com/svAUm00.png",
+                "icon_emoji": rctbot.config.EMOJI_BRONZE_RANK,
+                "chest_emoji": rctbot.config.EMOJI_BRONZE_CHEST,
+            },
+            0: {
+                "name": "Unranked",
+                "icon_url": "https://i.imgur.com/ys2UBNW.png",
+                "icon_emoji": rctbot.config.EMOJI_UNRANKED_RANK,
+                "chest_emoji": rctbot.config.EMOJI_UNRANKED_CHEST,
+            },
+        }
+
+        embed = discord.Embed(
+            title="Retail Candidate Testers",
+            type="rich",
+            description=f'Information for {user["role"]} {discord.utils.escape_markdown(user["nickname"])}.',
+            url="https://forums.heroesofnewerth.com/index.php?/forum/18-rct/",
+            color=name_color,
+            timestamp=MatchTools.last_fetched,
+        )
+        embed.set_author(
+            name=nick_with_clan_tag,
+            # url=f'https://forums.heroesofnewerth.com/member.php?{user["account_id"]}',
+            icon_url=(await get_avatar(user["account_id"])),
+        )
+        enabled = user["enabled"]
+        if enabled:
+            embed.add_field(name="Games", value=games, inline=True)
+        embed.add_field(name="Total Games", value=total_games, inline=True)
+        if enabled:
+            embed.add_field(name="Game Time", value=game_time, inline=True)
+        embed.add_field(name="Total Game Time", value=total_game_time, inline=True)
+        if enabled:
+            embed.add_field(name="Bug Reports", value=bugs, inline=True)
+        embed.add_field(name="Total Bug Reports", value=total_bugs, inline=True)
+        if enabled:
+            embed.add_field(name="Tokens Earned", value=tokens, inline=True)
+            embed.add_field(name="Tokens Owned", value="N/A", inline=True)  # TODO
+            embed.add_field(
+                name="Activity rank", value=f'{ranks[rank_id]["icon_emoji"]} {ranks[rank_id]["name"]}', inline=True,
+            )
+            embed.add_field(
+                name="Multiplier", value=f'{ranks[rank_id]["chest_emoji"]} {final_multiplier}x', inline=True,
+            )
+            embed.add_field(name="Bonuses", value=bonuses, inline=True)
+        embed.add_field(
+            name="Join Date",
+            value=user["joined"].get("last", user["joined"]["first"]).strftime("%A, %B %d, %Y"),
+            inline=True,
+        )
+        embed.set_thumbnail(url=ranks[rank_id]["icon_url"])
+        await ctx.send(embed=embed)
 
     @commands.command(aliases=["rank", "sheet"])
     @guild_is_rct()
@@ -62,25 +279,7 @@ class RCTStats(commands.Cog):
                 f"{ctx.author.mention} That player is neither former nor past RCT member.", delete_after=10.0,
             )
 
-        try:
-            # timeout = aiohttp.ClientTimeout(total=5)
-            async with aiohttp.ClientSession() as session:
-                simple_stats = await Client("ac", session=session).show_simple_stats(user["nickname"])
-                if simple_stats and b"nickname" in simple_stats:
-                    nick_with_clan_tag = simple_stats[b"nickname"].decode()
-                    name_color = await get_name_color(simple_stats)
-                    if "]" in nick_with_clan_tag:
-                        clan_tag = f"{nick_with_clan_tag.split(']')[0]}]"
-                    else:
-                        clan_tag = ""
-                else:
-                    nick_with_clan_tag = nick
-                    clan_tag = None
-                    name_color = 0xFFFFFF
-        except:
-            nick_with_clan_tag = user["nickname"]
-            clan_tag = None
-            name_color = 0xFFFFFF
+        nick_with_clan_tag, clan_tag, name_color = await self._get_full_nickname(user["nickname"])
 
         enabled = user["enabled"]
         # TODO: dict to tuples
