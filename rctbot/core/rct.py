@@ -22,6 +22,7 @@ import math
 import random
 from datetime import datetime, timezone
 from dataclasses import dataclass
+from typing import Tuple
 
 import aiohttp
 import discord
@@ -304,6 +305,25 @@ class TesterManager:
         return TesterManagerResult(False, f"**Linking failed!** Could not find **{member.display_name}** in DB.")
 
 
+# To models.
+@dataclass
+class CycleValues:
+
+    # Tokens per activity:
+    bug: int = 100
+    game: int = 10
+    second: float = 0.003725
+    ten: int = 75
+    twenty: int = 225
+    fifty: int = 750
+    # Multipliers:
+    multiplier: Tuple[float, ...] = (0.0, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5)
+    artificial: float = 3.5
+    # Game requirement per rank:
+    keep: Tuple[int, ...] = (0, 1, 1, 3, 5, 7, 10, 0)
+    advance: Tuple[int, ...] = (0, 3, 5, 8, 10, 12, 0, 0)
+
+
 class CycleManagerResult:
     pass
 
@@ -321,17 +341,7 @@ class CycleManager:
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         self.testing_cycles = self.db[rctbot.config.MONGO_TESTING_CYCLES_COLLECTION_NAME]
 
-        # Tokens per activity:
-        self.bug = 100
-        self.game = 10
-        self.second = 0.003725
-        self.ten = 75
-        self.twenty = 225
-        self.fifty = 750
-        self.multiplier = (0.0, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5)
-        self.artificial = 3.5
-        self.keep = (0, 1, 1, 3, 5, 7, 10, 0)
-        self.advance = (0, 3, 5, 8, 10, 12, 0, 0)
+        self.values = CycleValues()
 
         # Match processor
         # self.mp = MatchProcessor()
@@ -466,16 +476,18 @@ class CycleManager:
             games = tester["games"]
             bugs = tester["bugs"]
             # Ignore testers with absence field and Gold and below rank.
-            if "absence" in tester and rank_id <= 4:
+            if "absence" in tester and rank_id <= ActivityRank.GOLD:
                 pass
-            # Unranked < current rank < Legendary
-            if 0 < rank_id < 6:
-                if (games + bugs) >= self.advance[rank_id]:
+            if ActivityRank.UNRANKED < rank_id < ActivityRank.LEGENDARY:
+                if (games + bugs) >= self.values.advance[rank_id]:
                     await self.testers.update_one({"account_id": tester["account_id"]}, {"$inc": {"rank_id": 1}})
-                elif (games + bugs) < self.keep[rank_id]:
+                elif (games + bugs) < self.values.keep[rank_id]:
                     await self.testers.update_one({"account_id": tester["account_id"]}, {"$inc": {"rank_id": -1}})
                 else:
                     pass
+            # Should've just put 1000 games requirement for advancing to Immortal... Keeping this for now.
+            if rank_id >= ActivityRank.LEGENDARY and (games + bugs) < self.values.keep[rank_id]:
+                await self.testers.update_one({"account_id": tester["account_id"]}, {"$inc": {"rank_id": -1}})
 
     async def update_tokens(self):
         async for tester in self.testers.find({}):
@@ -484,14 +496,14 @@ class CycleManager:
 
             tokens = round(
                 (
-                    games * self.game
-                    + tester["seconds"] * self.second
-                    + (self.ten if games >= 10 else 0)
-                    + (self.twenty if games >= 20 else 0)
+                    games * self.values.game
+                    + tester["seconds"] * self.values.second
+                    + (self.values.ten if games >= 10 else 0)
+                    + (self.values.twenty if games >= 20 else 0)
                 )
-                * (self.multiplier[tester["rank_id"]] + self.artificial)
-                + bonus * self.fifty
-                + tester["bugs"] * self.bug
+                * (self.values.multiplier[tester["rank_id"]] + self.values.artificial)
+                + bonus * self.values.fifty
+                + tester["bugs"] * self.values.bug
                 + (tester["extra"])
             )
             await self.testers.update_one(
