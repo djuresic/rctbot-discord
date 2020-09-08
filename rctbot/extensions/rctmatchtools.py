@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from typing import Union
+
+import discord
 from discord.ext import tasks, commands
 
 import rctbot.config
@@ -7,6 +13,8 @@ from rctbot.core.rct import MatchManipulator
 
 
 class MatchTools(commands.Cog):
+    last_fetched: Union[datetime, discord.Embed.Empty] = discord.Embed.Empty
+
     def __init__(self, bot):
         self.bot = bot
         self.db_client = CLIENT
@@ -25,6 +33,8 @@ class MatchTools(commands.Cog):
             for game in games:
                 data = await mm.match_data(game["match_id"])
                 await mm.update_match(game["match_id"], data)
+
+        MatchTools.last_fetched = datetime.now(timezone.utc)
 
     @auto_fetch.before_loop
     async def before_auto_fetch(self):
