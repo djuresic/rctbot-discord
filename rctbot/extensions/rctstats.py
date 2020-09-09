@@ -230,19 +230,26 @@ class RCTStats(commands.Cog):
         if enabled:
             embed.add_field(name="Tokens Earned", value=tokens, inline=True)
             embed.add_field(name="Tokens Owned", value="N/A", inline=True)  # TODO
+            embed.add_field(name="Bonuses", value=bonuses, inline=True)
             embed.add_field(
-                name="Activity rank", value=f'{ranks[rank_id]["icon_emoji"]} {ranks[rank_id]["name"]}', inline=True,
+                name="Activity Rank",
+                value=f'{ranks[user["rank_id"]]["icon_emoji"]} {ranks[user["rank_id"]]["name"]}',
+                inline=True,
+            )
+            embed.add_field(
+                name="Activity Rank Trend",
+                value=f'{ranks[rank_id]["icon_emoji"]} {ranks[rank_id]["name"]}',
+                inline=True,
             )
             embed.add_field(
                 name="Multiplier", value=f'{ranks[rank_id]["chest_emoji"]} {final_multiplier}x', inline=True,
             )
-            embed.add_field(name="Bonuses", value=bonuses, inline=True)
         embed.add_field(
             name="Join Date",
             value=user["joined"].get("last", user["joined"]["first"]).strftime("%A, %B %d, %Y"),
             inline=True,
         )
-        embed.set_thumbnail(url=ranks[rank_id]["icon_url"])
+        embed.set_thumbnail(url=ranks[user["rank_id"]]["icon_url"])
         await ctx.send(embed=embed)
 
     @commands.command(aliases=["rank", "sheet"])
