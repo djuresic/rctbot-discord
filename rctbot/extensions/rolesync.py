@@ -78,6 +78,10 @@ class RoleSynchronization(commands.Cog):
                 else:
                     pass
 
+    @update_volunteers.before_loop
+    async def before_update_volunteers(self):
+        await self.bot.wait_until_ready()
+
     @commands.command()
     @checks.is_senior()
     async def rolesync(self, ctx):
