@@ -10,6 +10,7 @@ from discord.ext import commands
 
 import rctbot.config
 from rctbot.core import checks
+from rctbot.core.rct import TestingNotes
 from rctbot.hon.masterserver import Client
 
 
@@ -21,21 +22,12 @@ class Playtesting(commands.Cog):
     @checks.is_tester()
     async def notes(self, ctx):
         """Current testing notes."""
-        author = ctx.author
         log_channel = self.bot.get_channel(rctbot.config.DISCORD_NOTES_CHANNEL_ID)
-
-        token_generator = f"https://{rctbot.config.HON_ALT_DOMAIN}/site/create-access-token"
-        cat_query = {"discordId": author.id, "password": rctbot.config.HON_CAT_PASSWORD}
-
-        async with aiohttp.ClientSession() as session:
-
-            async with session.get(token_generator, params=cat_query) as resp:
-                token = await resp.text()
-
-        notes_url = f"https://{rctbot.config.HON_ALT_DOMAIN}/{token}"
-        await author.send(f"Current Testing Notes: {notes_url}")
+        notes_url = await TestingNotes().create(ctx.author.id)
+        await ctx.author.send(f"Current Testing Notes: {notes_url}")
         await log_channel.send(
-            f'({strftime("%a, %d %b %Y, %H:%M:%S %Z", gmtime())}) {author.mention} received Testing Notes with the URL: `{notes_url}`'
+            f'({strftime("%a, %d %b %Y, %H:%M:%S %Z", gmtime())})'
+            f" {ctx.author.mention} received Testing Notes with the URL: `{notes_url}`"
         )
 
     @commands.command()
