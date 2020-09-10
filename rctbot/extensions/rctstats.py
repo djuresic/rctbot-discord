@@ -23,6 +23,18 @@ from rctbot.hon.utils import get_name_color, get_avatar
 from rctbot.extensions.rctmatchtools import MatchTools
 
 
+def _seconds_to_dhms(seconds: int) -> str:
+    dhms = ""
+    for scale in 86400, 3600, 60:
+        result, seconds = divmod(seconds, scale)
+        if dhms != "" or result > 0:
+            dhms += "{0:02d}:".format(result)
+    dhms += "{0:02d}".format(seconds)
+    if dhms != "00":
+        return dhms
+    return "00:00"
+
+
 class RCTStats(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
@@ -54,17 +66,6 @@ class RCTStats(commands.Cog):
             clan_tag = None
             name_color = 0xFFFFFF
         return nick_with_clan_tag, clan_tag, name_color
-
-    def _seconds_to_dhms(self, seconds: int) -> str:
-        dhms = ""
-        for scale in 86400, 3600, 60:
-            result, seconds = divmod(seconds, scale)
-            if dhms != "" or result > 0:
-                dhms += "{0:02d}:".format(result)
-        dhms += "{0:02d}".format(seconds)
-        if dhms != "00":
-            return dhms
-        return "00:00"
 
     @commands.command(aliases=["rank2", "sheet2"])
     @guild_is_rct()
@@ -108,8 +109,8 @@ class RCTStats(commands.Cog):
         total_games = user["total_games"] + games
         seconds = sum([game["length"] for game in games_list])
         total_seconds = user["total_seconds"] + seconds
-        game_time = self._seconds_to_dhms(seconds)
-        total_game_time = self._seconds_to_dhms(total_seconds)
+        game_time = _seconds_to_dhms(seconds)
+        total_game_time = _seconds_to_dhms(total_seconds)
 
         # TODO: Bug reports.
         bugs = 0
@@ -220,12 +221,10 @@ class RCTStats(commands.Cog):
         enabled = user["enabled"]
         if enabled:
             embed.add_field(name="Games", value=games, inline=True)
-        embed.add_field(name="Total Games", value=total_games, inline=True)
-        if enabled:
             embed.add_field(name="Game Time", value=game_time, inline=True)
-        embed.add_field(name="Total Game Time", value=total_game_time, inline=True)
-        if enabled:
             embed.add_field(name="Bug Reports", value=bugs, inline=True)
+        embed.add_field(name="Total Games", value=total_games, inline=True)
+        embed.add_field(name="Total Game Time", value=total_game_time, inline=True)
         embed.add_field(name="Total Bug Reports", value=total_bugs, inline=True)
         if enabled:
             embed.add_field(name="Tokens Earned", value=tokens, inline=True)
