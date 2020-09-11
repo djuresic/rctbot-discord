@@ -23,6 +23,11 @@ from rctbot.hon.utils import get_name_color, get_avatar
 from rctbot.extensions.rctmatchtools import MatchTools
 
 
+def _ordinal(n):
+    suffix = "th" if 4 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
+    return f"{n}{suffix}"
+
+
 def _seconds_to_dhms(seconds: int) -> str:
     dhms = ""
     for scale in 86400, 3600, 60:
@@ -115,6 +120,34 @@ class RCTStats(commands.Cog):
         # TODO: Bug reports.
         bugs = 0
         total_bugs = bugs + user["total_bugs"]
+
+        # Leaderboard ranking in real time.
+        def create_pipeline(field: str):
+            return [
+                # Sort in descending order.
+                {"$sort": {field: -1}},
+                # _id value is constant so it calculates accumulated values for all the input documents as a whole.
+                {"$group": {"_id": 1, "users": {"$push": {"account_id": "$account_id", field: f"${field}"}}}},
+                # Use index to later calculate ranking.
+                {"$unwind": {"path": "$users", "includeArrayIndex": "ranking"}},
+                # Find the user by account_id.
+                {"$match": {"users.account_id": user["account_id"]}},
+                # Add 1 to ranking (index) and project it.
+                {"$project": {"ranking": {"$add": ["$ranking", 1]}}},
+            ]
+
+        ranking_games = _ordinal(
+            (await (self.testers.aggregate(create_pipeline("games"))).to_list(length=None))[0]["ranking"]
+        )
+        ranking_total_games = _ordinal(
+            (await (self.testers.aggregate(create_pipeline("total_games"))).to_list(length=None))[0]["ranking"]
+        )
+        ranking_bugs = _ordinal(
+            (await (self.testers.aggregate(create_pipeline("bugs"))).to_list(length=None))[0]["ranking"]
+        )
+        ranking_total_bugs = _ordinal(
+            (await (self.testers.aggregate(create_pipeline("total_bugs"))).to_list(length=None))[0]["ranking"]
+        )
 
         # Reset 50 games bonus values so that the current token calculations are accurate.
         bonus_last_cycle = math.floor((user["total_games"] / 50) - user["bonuses_given"])
@@ -220,12 +253,12 @@ class RCTStats(commands.Cog):
         )
         enabled = user["enabled"]
         if enabled:
-            embed.add_field(name="Games", value=games, inline=True)
+            embed.add_field(name="Games", value=f"{games} ({ranking_games})", inline=True)
             embed.add_field(name="Game Time", value=game_time, inline=True)
-            embed.add_field(name="Bug Reports", value=bugs, inline=True)
-        embed.add_field(name="Total Games", value=total_games, inline=True)
+            embed.add_field(name="Bug Reports", value=f"{bugs} ({ranking_bugs})", inline=True)
+        embed.add_field(name="Total Games", value=f"{total_games} ({ranking_total_games})", inline=True)
         embed.add_field(name="Total Game Time", value=total_game_time, inline=True)
-        embed.add_field(name="Total Bug Reports", value=total_bugs, inline=True)
+        embed.add_field(name="Total Bug Reports", value=f"{total_bugs} ({ranking_total_bugs})", inline=True)
         if enabled:
             embed.add_field(name="Tokens Earned", value=tokens, inline=True)
             embed.add_field(name="Tokens Owned", value="N/A", inline=True)  # TODO
