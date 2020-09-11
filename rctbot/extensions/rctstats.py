@@ -1,6 +1,7 @@
 import math
 import timeit
 import asyncio
+import collections
 from io import BytesIO
 from typing import Tuple
 
@@ -23,7 +24,7 @@ from rctbot.hon.utils import get_name_color, get_avatar
 from rctbot.extensions.rctmatchtools import MatchTools
 
 
-def _ordinal(n):
+def _ordinal(n: int) -> str:
     suffix = "th" if 4 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
     return f"{n}{suffix}"
 
@@ -72,12 +73,77 @@ class RCTStats(commands.Cog):
             name_color = 0xFFFFFF
         return nick_with_clan_tag, clan_tag, name_color
 
+    async def _get_database_rankings(self, account_id: int) -> Tuple[str, str, str, str]:
+        def create_pipeline(field: str):
+            return [
+                # Sort in descending order.
+                {"$sort": {field: -1}},
+                # _id value is constant so it calculates accumulated values for all the input documents as a whole.
+                {"$group": {"_id": 1, "users": {"$push": {"account_id": "$account_id", field: f"${field}"}}}},
+                # Use index to later calculate ranking.
+                {"$unwind": {"path": "$users", "includeArrayIndex": "ranking"}},
+                # Find the user by account_id.
+                {"$match": {"users.account_id": account_id}},
+                # Add 1 to ranking (index) and project it.
+                {"$project": {"ranking": {"$add": ["$ranking", 1]}}},
+            ]
+
+        ranking_games = _ordinal(
+            (await (self.testers.aggregate(create_pipeline("games"))).to_list(length=None))[0]["ranking"]
+        )
+        ranking_total_games = _ordinal(
+            (await (self.testers.aggregate(create_pipeline("total_games"))).to_list(length=None))[0]["ranking"]
+        )
+        ranking_bugs = _ordinal(
+            (await (self.testers.aggregate(create_pipeline("bugs"))).to_list(length=None))[0]["ranking"]
+        )
+        ranking_total_bugs = _ordinal(
+            (await (self.testers.aggregate(create_pipeline("total_bugs"))).to_list(length=None))[0]["ranking"]
+        )
+        return ranking_games, ranking_total_games, ranking_bugs, ranking_total_bugs
+
+    async def _get_real_time_games_bugs(self, testing_account_id: int) -> Tuple[str, str, str, str]:
+        pipeline = [{"$unwind": "$participants"}, {"$project": {"_id": 0, "participants.account_id": 1}}]
+        documents = await (self.testing_games.aggregate(pipeline)).to_list(length=None)
+        participants = [document["participants"]["account_id"] for document in documents]
+        participants = collections.Counter(participants)
+        # participants = [participant for participant in participants]
+
+        # TODO
+        reporters = {}
+
+        testers = []
+        tester_tuple = None
+        async for tester in self.testers.find(
+            {}, {"_id": 0, "testing_account_id": 1, "total_games": 1, "total_bugs": 1}
+        ):
+            games = participants.get(tester["testing_account_id"], 0)
+            total_games = tester["total_games"] + games
+            # TODO
+            bugs = reporters.get(tester["testing_account_id"], 0)
+            total_bugs = tester["total_bugs"] + bugs
+            created_tuple = (tester["testing_account_id"], games, total_games, bugs, total_bugs)
+            testers.append(created_tuple)
+            if tester["testing_account_id"] == testing_account_id:
+                tester_tuple = created_tuple
+
+        lbd_games = sorted(testers, key=lambda unsorted_tuples: unsorted_tuples[1], reverse=True)
+        lbd_total_games = sorted(testers, key=lambda unsorted_tuples: unsorted_tuples[2], reverse=True)
+        lbd_bugs = sorted(testers, key=lambda unsorted_tuples: unsorted_tuples[3], reverse=True)
+        lbd_total_bugs = sorted(testers, key=lambda unsorted_tuples: unsorted_tuples[4], reverse=True)
+
+        ranking_games = _ordinal(lbd_games.index(tester_tuple) + 1)
+        ranking_total_games = _ordinal(lbd_total_games.index(tester_tuple) + 1)
+        ranking_bugs = _ordinal(lbd_bugs.index(tester_tuple) + 1)
+        ranking_total_bugs = _ordinal(lbd_total_bugs.index(tester_tuple) + 1)
+        return tester_tuple, ranking_games, ranking_total_games, ranking_bugs, ranking_total_bugs
+
     @commands.command(aliases=["rank2", "sheet2"])
-    @guild_is_rct()
+    # @guild_is_rct()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.max_concurrency(10, per=commands.BucketType.guild, wait=False)
     async def rct2(self, ctx, member: str = ""):
-        # start = timeit.default_timer()
+        start = timeit.default_timer()
         if member == "":
             discord_id = ctx.author.id
         elif len(ctx.message.raw_mentions) > 0:
@@ -121,33 +187,14 @@ class RCTStats(commands.Cog):
         bugs = 0
         total_bugs = bugs + user["total_bugs"]
 
-        # Leaderboard ranking in real time.
-        def create_pipeline(field: str):
-            return [
-                # Sort in descending order.
-                {"$sort": {field: -1}},
-                # _id value is constant so it calculates accumulated values for all the input documents as a whole.
-                {"$group": {"_id": 1, "users": {"$push": {"account_id": "$account_id", field: f"${field}"}}}},
-                # Use index to later calculate ranking.
-                {"$unwind": {"path": "$users", "includeArrayIndex": "ranking"}},
-                # Find the user by account_id.
-                {"$match": {"users.account_id": user["account_id"]}},
-                # Add 1 to ranking (index) and project it.
-                {"$project": {"ranking": {"$add": ["$ranking", 1]}}},
-            ]
-
-        ranking_games = _ordinal(
-            (await (self.testers.aggregate(create_pipeline("games"))).to_list(length=None))[0]["ranking"]
-        )
-        ranking_total_games = _ordinal(
-            (await (self.testers.aggregate(create_pipeline("total_games"))).to_list(length=None))[0]["ranking"]
-        )
-        ranking_bugs = _ordinal(
-            (await (self.testers.aggregate(create_pipeline("bugs"))).to_list(length=None))[0]["ranking"]
-        )
-        ranking_total_bugs = _ordinal(
-            (await (self.testers.aggregate(create_pipeline("total_bugs"))).to_list(length=None))[0]["ranking"]
-        )
+        # Leaderboard in real time. NOTE: This does some of the queries already performed by this command. Refactor?
+        (
+            tester_tuple,  # This.
+            ranking_games,
+            ranking_total_games,
+            ranking_bugs,
+            ranking_total_bugs,
+        ) = await self._get_real_time_games_bugs(user["testing_account_id"])
 
         # Reset 50 games bonus values so that the current token calculations are accurate.
         bonus_last_cycle = math.floor((user["total_games"] / 50) - user["bonuses_given"])
@@ -282,6 +329,8 @@ class RCTStats(commands.Cog):
             inline=True,
         )
         embed.set_thumbnail(url=ranks[user["rank_id"]]["icon_url"])
+        stop = timeit.default_timer()
+        print(stop - start)
         await ctx.send(embed=embed)
 
     @commands.command(aliases=["rank", "sheet"])
