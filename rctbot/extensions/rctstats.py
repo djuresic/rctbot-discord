@@ -25,11 +25,27 @@ from rctbot.extensions.rctmatchtools import MatchTools
 
 
 def _ordinal(n: int) -> str:
+    """Convert a cardinal to an ordinal number.
+
+    Args:
+        n (int): Number to convert.
+
+    Returns:
+        str: Cardinal number.
+    """
     suffix = "th" if 4 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
     return f"{n}{suffix}"
 
 
 def _seconds_to_dhms(seconds: int) -> str:
+    """Convert seconds to dd:hh:mm:ss.
+
+    Args:
+        seconds (int): Input seconds.
+
+    Returns:
+        str: dd:hh:mm:ss, days and hours not included if those values are 0.
+    """
     dhms = ""
     for scale in 86400, 3600, 60:
         result, seconds = divmod(seconds, scale)
@@ -73,7 +89,17 @@ class RCTStats(commands.Cog):
             name_color = 0xFFFFFF
         return nick_with_clan_tag, clan_tag, name_color
 
-    async def _get_database_rankings(self, account_id: int) -> Tuple[str, str, str, str]:
+    async def _get_db_rnk(self, account_id: int) -> Tuple[str, str, str, str]:
+        """Database leaderboard ranking for a user.
+
+        Args:
+            testing_account_id (int): Account ID of the user.
+
+        Returns:
+            Tuple[str, str, str, str]: Positions on the ladder as ordinal number strings in a tuple odered as follows:
+                games, total games, bug reports, total bug reports.
+        """
+
         def create_pipeline(field: str):
             return [
                 # Sort in descending order.
@@ -102,7 +128,16 @@ class RCTStats(commands.Cog):
         )
         return ranking_games, ranking_total_games, ranking_bugs, ranking_total_bugs
 
-    async def _get_real_time_games_bugs(self, testing_account_id: int) -> Tuple[str, str, str, str]:
+    async def _get_rt_rnk(self, testing_account_id: int) -> Tuple[str, str, str, str]:
+        """Real time leaderboard ranking for a user.
+
+        Args:
+            testing_account_id (int): Testing account ID of the user.
+
+        Returns:
+            Tuple[str, str, str, str]: Positions on the ladder as ordinal number strings in a tuple odered as follows:
+                games, total games, bug reports, total bug reports.
+        """
         pipeline = [{"$unwind": "$participants"}, {"$project": {"_id": 0, "participants.account_id": 1}}]
         documents = await (self.testing_games.aggregate(pipeline)).to_list(length=None)
         participants = [document["participants"]["account_id"] for document in documents]
@@ -112,31 +147,44 @@ class RCTStats(commands.Cog):
         # TODO
         reporters = {}
 
-        testers = []
+        # Unlike the previous method with list of tuples sorted by tuple elements, this method solves the prolem of
+        # testers with the same "score" not sharing the same place on the ladder.
+
+        # Create empty lists for all required fields.
+        games_list = []
+        total_games_list = []
+        bugs_list = []
+        total_bugs_list = []
+        # Tuple for the tester in question.
         tester_tuple = None
         async for tester in self.testers.find(
             {}, {"_id": 0, "testing_account_id": 1, "total_games": 1, "total_bugs": 1}
         ):
             games = participants.get(tester["testing_account_id"], 0)
             total_games = tester["total_games"] + games
+            games_list.append(games)
+            total_games_list.append(total_games)
             # TODO
             bugs = reporters.get(tester["testing_account_id"], 0)
             total_bugs = tester["total_bugs"] + bugs
-            created_tuple = (tester["testing_account_id"], games, total_games, bugs, total_bugs)
-            testers.append(created_tuple)
+            bugs_list.append(bugs)
+            total_bugs_list.append(total_bugs)
+
             if tester["testing_account_id"] == testing_account_id:
-                tester_tuple = created_tuple
+                tester_tuple = (tester["testing_account_id"], games, total_games, bugs, total_bugs)
 
-        lbd_games = sorted(testers, key=lambda unsorted_tuples: unsorted_tuples[1], reverse=True)
-        lbd_total_games = sorted(testers, key=lambda unsorted_tuples: unsorted_tuples[2], reverse=True)
-        lbd_bugs = sorted(testers, key=lambda unsorted_tuples: unsorted_tuples[3], reverse=True)
-        lbd_total_bugs = sorted(testers, key=lambda unsorted_tuples: unsorted_tuples[4], reverse=True)
+        # All lists to descending order.
+        lbd_games = sorted(games_list, reverse=True)
+        lbd_total_games = sorted(total_games_list, reverse=True)
+        lbd_bugs = sorted(bugs_list, reverse=True)
+        lbd_total_bugs = sorted(total_bugs_list, reverse=True)
 
-        ranking_games = _ordinal(lbd_games.index(tester_tuple) + 1)
-        ranking_total_games = _ordinal(lbd_total_games.index(tester_tuple) + 1)
-        ranking_bugs = _ordinal(lbd_bugs.index(tester_tuple) + 1)
-        ranking_total_bugs = _ordinal(lbd_total_bugs.index(tester_tuple) + 1)
-        return tester_tuple, ranking_games, ranking_total_games, ranking_bugs, ranking_total_bugs
+        # Ranking as the index of the element + 1.
+        rnk_games = _ordinal(lbd_games.index(tester_tuple[1]) + 1)
+        rnk_total_games = _ordinal(lbd_total_games.index(tester_tuple[2]) + 1)
+        rnk_bugs = _ordinal(lbd_bugs.index(tester_tuple[3]) + 1)
+        rnk_total_bugs = _ordinal(lbd_total_bugs.index(tester_tuple[4]) + 1)
+        return rnk_games, rnk_total_games, rnk_bugs, rnk_total_bugs
 
     @commands.command(aliases=["rank2", "sheet2"])
     # @guild_is_rct()
@@ -187,14 +235,8 @@ class RCTStats(commands.Cog):
         bugs = 0
         total_bugs = bugs + user["total_bugs"]
 
-        # Leaderboard in real time. NOTE: This does some of the queries already performed by this command. Refactor?
-        (
-            tester_tuple,  # This.
-            ranking_games,
-            ranking_total_games,
-            ranking_bugs,
-            ranking_total_bugs,
-        ) = await self._get_real_time_games_bugs(user["testing_account_id"])
+        # Leaderboard in real time. NOTE: This does some of the queries already performed by the command. Refactor?
+        rnk_games, rnk_total_games, rnk_bugs, rnk_total_bugs = await self._get_rt_rnk(user["testing_account_id"])
 
         # Reset 50 games bonus values so that the current token calculations are accurate.
         bonus_last_cycle = math.floor((user["total_games"] / 50) - user["bonuses_given"])
@@ -300,12 +342,12 @@ class RCTStats(commands.Cog):
         )
         enabled = user["enabled"]
         if enabled:
-            embed.add_field(name="Games", value=f"{games} ({ranking_games})", inline=True)
+            embed.add_field(name="Games", value=f"{games} ({rnk_games})", inline=True)
             embed.add_field(name="Game Time", value=game_time, inline=True)
-            embed.add_field(name="Bug Reports", value=f"{bugs} ({ranking_bugs})", inline=True)
-        embed.add_field(name="Total Games", value=f"{total_games} ({ranking_total_games})", inline=True)
+            embed.add_field(name="Bug Reports", value=f"{bugs} ({rnk_bugs})", inline=True)
+        embed.add_field(name="Total Games", value=f"{total_games} ({rnk_total_games})", inline=True)
         embed.add_field(name="Total Game Time", value=total_game_time, inline=True)
-        embed.add_field(name="Total Bug Reports", value=f"{total_bugs} ({ranking_total_bugs})", inline=True)
+        embed.add_field(name="Total Bug Reports", value=f"{total_bugs} ({rnk_total_bugs})", inline=True)
         if enabled:
             embed.add_field(name="Tokens Earned", value=tokens, inline=True)
             embed.add_field(name="Tokens Owned", value="N/A", inline=True)  # TODO
@@ -328,10 +370,19 @@ class RCTStats(commands.Cog):
             value=user["joined"].get("last", user["joined"]["first"]).strftime("%A, %B %d, %Y"),
             inline=True,
         )
+        if user["signature"]["purchased"]:
+            if user["signature"]["url"] != "":
+                embed.set_image(url=user["signature"]["url"])
+            else:
+                embed.add_field(
+                    name="You own a Discord Embedded Signature!",
+                    value="Set it up using the `.signature` command to make Merrick even more jealous of you.",
+                    inline=False,
+                )
         embed.set_thumbnail(url=ranks[user["rank_id"]]["icon_url"])
+        await ctx.send(embed=embed)
         stop = timeit.default_timer()
         print(stop - start)
-        await ctx.send(embed=embed)
 
     @commands.command(aliases=["rank", "sheet"])
     @guild_is_rct()
