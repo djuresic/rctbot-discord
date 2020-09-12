@@ -187,7 +187,7 @@ class RCTStats(commands.Cog):
         return rnk_games, rnk_total_games, rnk_bugs, rnk_total_bugs
 
     @commands.command(aliases=["rank2", "sheet2"])
-    # @guild_is_rct()
+    @guild_is_rct()
     @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
     @commands.max_concurrency(10, per=commands.BucketType.guild, wait=False)
     async def rct2(self, ctx, member: str = ""):
