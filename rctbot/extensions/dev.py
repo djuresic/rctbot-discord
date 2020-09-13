@@ -148,6 +148,7 @@ class Development(commands.Cog):
     @usage.command(name="player", aliases=["p"])
     @checks.is_senior()
     async def _usage_player(self, ctx, player_nickname: str):
+        player_nickname = player_nickname.replace("\\", "")
         pipeline = [
             # {"$sort": {"participants.hero": 1}},
             {"$match": {"participants.nickname": player_nickname}},
