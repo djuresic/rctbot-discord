@@ -233,10 +233,20 @@ async def get_name_color(masterserver_response):
         return 0xFFFFFF
 
 
-async def hero_name(cli_name):
+def hero_name(cli_name):
     """Return official hero name."""
     if cli_name in HERO_NAMES:
         return HERO_NAMES[cli_name]
+    else:
+        return "Unknown"
+
+
+def cli_hero_name(name):
+    name = name.lower()
+    """Return cli name."""
+    CLI_HERO_NAMES = {v.lower(): k for k, v in HERO_NAMES.items()}
+    if name in CLI_HERO_NAMES:
+        return CLI_HERO_NAMES[name]
     else:
         return "Unknown"
 

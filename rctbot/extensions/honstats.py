@@ -242,7 +242,7 @@ class HoNStats(commands.Cog):
         for number in range(1, 6):
             hero = campaign[f"favHero{number}_2".encode()].decode()
             if hero != "":
-                hero = await hero_name(campaign[f"favHero{number}_2".encode()].decode())
+                hero = hero_name(campaign[f"favHero{number}_2".encode()].decode())
                 heroes.append(f'{hero} ({campaign[f"favHero{number}Time".encode()]}%)')
 
         embed.add_field(
