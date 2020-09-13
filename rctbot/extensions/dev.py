@@ -1,4 +1,3 @@
-import asyncio
 import collections
 
 import aiohttp
@@ -8,7 +7,7 @@ from discord.ext import commands
 import rctbot.config
 
 from rctbot.core.mongodb import CLIENT
-from rctbot.core.rct import DatabaseManager, CycleManager, MatchManipulator
+from rctbot.core.rct import DatabaseManager, MatchManipulator
 from rctbot.core import checks
 from rctbot.hon.acp2 import ACPClient
 from rctbot.hon.masterserver import Client
@@ -123,13 +122,13 @@ class Development(commands.Cog):
 
     @usage.command(name="hero", aliases=["h"])
     @checks.is_senior()
-    async def _usage_hero(self, ctx, *hero_name):
-        hero_cli_name = cli_hero_name(" ".join(hero_name))
+    async def _usage_hero(self, ctx, *name):
+        cli_name = cli_hero_name(" ".join(name))
         pipeline = [
             {"$sort": {"participants.nickname": 1}},
-            {"$match": {"participants.hero": hero_cli_name}},
+            {"$match": {"participants.hero": cli_name}},
             {"$unwind": "$participants"},
-            {"$match": {"participants.hero": hero_cli_name}},
+            {"$match": {"participants.hero": cli_name}},
             {"$project": {"_id": 0, "participants.nickname": 1}},
         ]
         documents = await (
@@ -147,13 +146,13 @@ class Development(commands.Cog):
 
     @usage.command(name="player", aliases=["p"])
     @checks.is_senior()
-    async def _usage_player(self, ctx, player_nickname: str):
-        player_nickname = player_nickname.replace("\\", "")
+    async def _usage_player(self, ctx, nickname: str):
+        nickname = nickname.replace("\\", "")
         pipeline = [
             # {"$sort": {"participants.hero": 1}},
-            {"$match": {"participants.nickname": player_nickname}},
+            {"$match": {"participants.nickname": nickname}},
             {"$unwind": "$participants"},
-            {"$match": {"participants.nickname": player_nickname}},
+            {"$match": {"participants.nickname": nickname}},
             {"$project": {"_id": 0, "participants.hero": 1}},
         ]
         documents = await (
