@@ -1,5 +1,6 @@
 # RCTBot
 
+![Discord Shield](https://discordapp.com/api/guilds/210131920611311616/widget.png?style=shield)
 [![Maintainability](https://api.codeclimate.com/v1/badges/4ed47a9dcca4dbba7947/maintainability)](https://codeclimate.com/github/djuresic/rctbot-discord/maintainability)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
