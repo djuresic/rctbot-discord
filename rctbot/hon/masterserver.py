@@ -111,7 +111,8 @@ class Client:
             await self.prepare()
         response = await self.request(query, path=path, cookie=cookie, deserialize=deserialize)
         # if "cookie" in response[b"auth"].decode()
-        if response and b"auth" in response and response[0] == False:
+        # Keeping explicit else here.
+        if response and b"auth" in response and not response[0]:
             for attempt in range(5):
                 prepared = await self.prepare()
                 if prepared:

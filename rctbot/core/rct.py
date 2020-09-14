@@ -469,8 +469,8 @@ class CycleManager:
 
         # TODO: collections.defaultdict
 
-        # Using set() to remove duplicates. Account ID is from the testing database.
-        account_ids = list(set([entry["account_id"] for entry in participants]))
+        # Using set comprehension to remove duplicates. Account ID is from the testing database.
+        account_ids = {entry["account_id"] for entry in participants}
         players = []
         for account_id in account_ids:
             games = 0
