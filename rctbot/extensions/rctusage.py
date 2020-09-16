@@ -23,7 +23,7 @@ class HeroUsage(commands.Cog):
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
 
     @commands.group(aliases=["u"], invoke_without_command=True)
-    @checks.is_senior()
+    @checks.is_tester()
     async def usage(self, ctx):
         pipeline = [
             {"$unwind": "$participants"},
@@ -44,7 +44,6 @@ class HeroUsage(commands.Cog):
         await ctx.send(f"Total Hero picks: **{unique_picks}**\nDifferent Heroes from Hero Pool: **{len(counter)}**")
 
     @usage.command(name="hero", aliases=["h"])
-    @checks.is_senior()
     async def _usage_hero(self, ctx, *name):
         cli_name = cli_hero_name(" ".join(name))
         pipeline = [
@@ -65,10 +64,9 @@ class HeroUsage(commands.Cog):
         message = chunks(sorted(message), 50)
         for chunk in message:
             await ctx.send("\n".join(chunk))
-        await ctx.send(f"Times picked: **{len(players)}**\nTimes picked by an unique player: **{len(counter)}**")
+        await ctx.send(f"Times picked: **{len(players)}**\nTimes picked by a unique player: **{len(counter)}**")
 
     @usage.command(name="player", aliases=["p"])
-    @checks.is_senior()
     async def _usage_player(self, ctx, nickname: str):
         nickname = nickname.replace("\\", "")
         pipeline = [
