@@ -5,7 +5,7 @@ import rctbot.config
 from rctbot.core import checks
 from rctbot.core.driver import CLIENT
 from rctbot.core.paginator import EmbedPaginatorSession
-from rctbot.core.utils import chunks
+from rctbot.core.utils import chunks, ordinal
 
 
 class Leaderboard(commands.Cog):
@@ -65,12 +65,12 @@ class Leaderboard(commands.Cog):
             description = []
             for player in chunk:
 
-                place = str(values.index(player[key]) + 1)
+                place = ordinal(values.index(player[key]) + 1)
                 name = player["nickname"]
                 amount = str(player[key])
                 line = (
                     place
-                    + (10 - len(place)) * " "
+                    + (12 - len(place)) * " "
                     + name
                     + (14 - len(name)) * " "  # Align name left. len(name) <= 12
                     + (10 - len(amount)) * " "  # Align amount right. len(amount) <= 5
