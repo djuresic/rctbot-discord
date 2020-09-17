@@ -8,11 +8,12 @@ from discord.ext import tasks, commands
 
 import rctbot.config
 from rctbot.core import checks
-from rctbot.core.mongodb import CLIENT
+from rctbot.core.driver import CLIENT
 from rctbot.core.rct import MatchManipulator
 
 
 class MatchTools(commands.Cog):
+    # TODO: rct.MatchManipulator.last_fetched
     last_fetched: Union[datetime, discord.Embed.Empty] = discord.Embed.Empty
 
     def __init__(self, bot):

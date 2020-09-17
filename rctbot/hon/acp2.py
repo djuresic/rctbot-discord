@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 import rctbot.config
 from rctbot.core.webhooks import webhook_embed
-from rctbot.core.mongodb import CLIENT
+from rctbot.core.driver import CLIENT
 
 from rctbot.hon.masterserver import Client
 from rctbot.hon.utils import get_avatar

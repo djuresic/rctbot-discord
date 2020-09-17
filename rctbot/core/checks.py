@@ -2,7 +2,7 @@ from discord.ext import commands
 
 import rctbot.config
 import rctbot.core.errors
-from rctbot.core.mongodb import CLIENT
+from rctbot.core.driver import CLIENT
 
 
 def in_whitelist(whitelist):

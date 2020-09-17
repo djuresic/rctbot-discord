@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from enum import Enum, IntEnum
-from dataclasses import dataclass
+# Enum, IntEnum
+from enum import IntEnum
 
-import rctbot.config
+from dataclasses import dataclass
 
 # TODO: Tester, Player dataclass.
 
@@ -87,12 +87,3 @@ class CustomEmoji:
             self.__setattr__(emoji.name, emoji)
 
     # NOTE: Verify CustomEmoji([]).__dict__
-
-
-# pylint: disable=unused-argument
-def setup(bot):
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

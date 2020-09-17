@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 import rctbot.config
-from rctbot.core.mongodb import CLIENT
+from rctbot.core.driver import CLIENT
 from rctbot.core.checks import is_tester
 from rctbot.core.errors import NotATester
 from rctbot.core.logging import record_usage

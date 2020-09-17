@@ -4,8 +4,13 @@ from discord.ext import commands
 
 import rctbot.config
 
-from rctbot.core.mongodb import CLIENT
-from rctbot.core.rct import DatabaseManager, MatchManipulator
+from rctbot.core.driver import CLIENT
+from rctbot.core.rct import MatchManipulator
+from rctbot.core.rct.migration import DatabaseManager
+
+# from rctbot.core.paginator import EmbedPaginatorSession
+# from rctbot.core.utils import chunks
+
 from rctbot.hon.acp2 import ACPClient
 from rctbot.hon.masterserver import Client
 

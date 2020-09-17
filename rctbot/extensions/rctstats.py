@@ -13,48 +13,15 @@ from PIL import Image
 import rctbot.config
 
 # from core.logging import record_usage NOTE: discord.py 1.4
-from rctbot.core.mongodb import CLIENT
+from rctbot.core.driver import CLIENT
 from rctbot.core.checks import guild_is_rct
-from rctbot.core.rct import CycleValues
-from rctbot.core.models import ActivityRank
+from rctbot.core.rct import ActivityRank, CycleValues
+from rctbot.core.utils import dhms, ordinal
 from rctbot.hon.masterserver import Client
 from rctbot.hon.portal import VPClient
 from rctbot.hon.acp2 import ACPClient
 from rctbot.hon.utils import get_name_color, get_avatar
 from rctbot.extensions.rctmatchtools import MatchTools
-
-
-def _ordinal(n: int) -> str:
-    """Convert a cardinal to an ordinal number.
-
-    Args:
-        n (int): Number to convert.
-
-    Returns:
-        str: Cardinal number.
-    """
-    suffix = "th" if 4 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-    return f"{n}{suffix}"
-
-
-def _seconds_to_dhms(seconds: int) -> str:
-    """Convert seconds to dd:hh:mm:ss.
-
-    Args:
-        seconds (int): Input seconds.
-
-    Returns:
-        str: dd:hh:mm:ss, days and hours not included if those values are 0.
-    """
-    dhms = ""
-    for scale in 86400, 3600, 60:
-        result, seconds = divmod(seconds, scale)
-        if dhms != "" or result > 0:
-            dhms += "{0:02d}:".format(result)
-    dhms += "{0:02d}".format(seconds)
-    if dhms != "00":
-        return dhms
-    return "00:00"
 
 
 class RCTStats(commands.Cog):
@@ -114,16 +81,16 @@ class RCTStats(commands.Cog):
                 {"$project": {"ranking": {"$add": ["$ranking", 1]}}},
             ]
 
-        ranking_games = _ordinal(
+        ranking_games = ordinal(
             (await (self.testers.aggregate(create_pipeline("games"))).to_list(length=None))[0]["ranking"]
         )
-        ranking_total_games = _ordinal(
+        ranking_total_games = ordinal(
             (await (self.testers.aggregate(create_pipeline("total_games"))).to_list(length=None))[0]["ranking"]
         )
-        ranking_bugs = _ordinal(
+        ranking_bugs = ordinal(
             (await (self.testers.aggregate(create_pipeline("bugs"))).to_list(length=None))[0]["ranking"]
         )
-        ranking_total_bugs = _ordinal(
+        ranking_total_bugs = ordinal(
             (await (self.testers.aggregate(create_pipeline("total_bugs"))).to_list(length=None))[0]["ranking"]
         )
         return ranking_games, ranking_total_games, ranking_bugs, ranking_total_bugs
@@ -180,10 +147,10 @@ class RCTStats(commands.Cog):
         lbd_total_bugs = sorted(total_bugs_list, reverse=True)
 
         # Ranking as the index of the element + 1.
-        rnk_games = _ordinal(lbd_games.index(tester_tuple[1]) + 1)
-        rnk_total_games = _ordinal(lbd_total_games.index(tester_tuple[2]) + 1)
-        rnk_bugs = _ordinal(lbd_bugs.index(tester_tuple[3]) + 1)
-        rnk_total_bugs = _ordinal(lbd_total_bugs.index(tester_tuple[4]) + 1)
+        rnk_games = ordinal(lbd_games.index(tester_tuple[1]) + 1)
+        rnk_total_games = ordinal(lbd_total_games.index(tester_tuple[2]) + 1)
+        rnk_bugs = ordinal(lbd_bugs.index(tester_tuple[3]) + 1)
+        rnk_total_bugs = ordinal(lbd_total_bugs.index(tester_tuple[4]) + 1)
         return rnk_games, rnk_total_games, rnk_bugs, rnk_total_bugs
 
     @commands.command(aliases=["rank2", "sheet2"])
@@ -228,8 +195,8 @@ class RCTStats(commands.Cog):
         total_games = user["total_games"] + games
         seconds = sum([game["length"] for game in games_list])
         total_seconds = user["total_seconds"] + seconds
-        game_time = _seconds_to_dhms(seconds)
-        total_game_time = _seconds_to_dhms(total_seconds)
+        game_time = dhms(seconds)
+        total_game_time = dhms(total_seconds)
 
         # TODO: Bug reports.
         bugs = 0
@@ -481,12 +448,12 @@ class RCTStats(commands.Cog):
             },
         }
 
-        # Convert cardinal to ordinal.
+        # TODO: yikes
         async def ordinal(n):
             suffix = "th" if 4 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
             return f"{n}{suffix}"
 
-        # This cycle.
+        # This cycle. TODO: fucking yikes
         seconds = user["seconds"]
         dhms = ""
         for scale in 86400, 3600, 60:

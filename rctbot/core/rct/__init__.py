@@ -16,11 +16,22 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-__version__ = "0.0.2"
+from rctbot.core.rct.cycle import CycleValues, CycleManager, CycleManagerResult
+from rctbot.core.rct.match import MatchManipulator
+from rctbot.core.rct.models import ActivityRank, Perks, Role
+from rctbot.core.rct.notes import TestingNotes
+from rctbot.core.rct.tester import TesterManager, TesterManagerResult
 
-
-from rctbot.core.bot import RCTBot
-
-
-def get_bot():
-    return RCTBot(version=__version__)
+# from rctbot.core.rct import *
+__all__ = [
+    "CycleValues",
+    "CycleManager",
+    "CycleManagerResult",
+    "MatchManipulator",
+    "ActivityRank",
+    "Perks",
+    "Role",
+    "TestingNotes",
+    "TesterManager",
+    "TesterManagerResult",
+]

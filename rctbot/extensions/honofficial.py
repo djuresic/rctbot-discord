@@ -9,7 +9,7 @@ from discord.ext import commands, tasks
 
 import rctbot.config
 from rctbot.core import checks
-from rctbot.core.mongodb import CLIENT
+from rctbot.core.driver import CLIENT
 
 
 class EmbedCreator:

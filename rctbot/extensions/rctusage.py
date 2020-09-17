@@ -5,15 +5,9 @@ from discord.ext import commands
 
 import rctbot.config
 from rctbot.core import checks
-from rctbot.core.mongodb import CLIENT
+from rctbot.core.driver import CLIENT
+from rctbot.core.utils import chunks
 from rctbot.hon.utils import hero_name, cli_hero_name
-
-
-def chunks(list_, n):
-    # https://stackoverflow.com/a/312464/13185424
-    """Yield successive n-sized chunks from list."""
-    for i in range(0, len(list_), n):
-        yield list_[i : i + n]
 
 
 class HeroUsage(commands.Cog):
