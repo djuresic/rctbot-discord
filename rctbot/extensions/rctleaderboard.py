@@ -3,7 +3,9 @@ from discord.ext import commands
 
 import rctbot.config
 from rctbot.core import checks
-from rctbot.core.mongodb import CLIENT
+from rctbot.core.driver import CLIENT
+from rctbot.core.paginator import EmbedPaginatorSession
+from rctbot.core.utils import chunks
 
 
 class Leaderboard(commands.Cog):
@@ -15,9 +17,80 @@ class Leaderboard(commands.Cog):
         # self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         # self.testing_cycles = self.db[rctbot.config.MONGO_TESTING_CYCLES_COLLECTION_NAME]
 
+    @commands.command(aliases=["ladder", "lbd", "ldr", "lb", "ld"])
+    @checks.is_tester()
+    async def leaderboard(self, ctx, *leaderboard):
+        """Player performance leaderboards."""
+        leaderboard = " ".join(leaderboard)
+        # These words don't conflict so this approach is fine.
+        games = bool("game" in leaderboard)
+        bugs = bool("bug" in leaderboard or "report" in leaderboard)  # Not used in branches.
+        total = bool("total" in leaderboard or "all" in leaderboard)
+
+        if total:
+            if games:
+                title = "Total Games Leaderboard"
+                find = {}
+                key = "total_games"
+            elif bugs:
+                title = "Total Bug Reports Leaderboard"
+                find = {}
+                key = "total_bugs"
+        elif games:
+            title = "Games Leaderboard"
+            find = {"enabled": True}
+            key = "games"
+        elif bugs:
+            title = "Bug Reports Leaderboard"
+            find = {"enabled": True}
+            key = "bugs"
+        else:
+            title = "Earned Tokens Leaderboard"
+            find = {"enabled": True}
+            key = "tokens"
+
+        async def get_documents(find: dict, key: str) -> list:
+            return await (
+                self.testers.find(find, {"_id": 0, "nickname": 1, key: 1}, sort=list({key: -1}.items()))
+            ).to_list(length=None)
+
+        documents = await get_documents(find, key)
+        values = sorted(
+            list({document[key] for document in documents}), reverse=True
+        )  # Set comprehension to remove duplicates.
+        doc_chunks = chunks(documents, 25)
+
+        embeds = []
+        for chunk in doc_chunks:
+            description = []
+            for player in chunk:
+
+                place = str(values.index(player[key]) + 1)
+                name = player["nickname"]
+                amount = str(player[key])
+                line = (
+                    place
+                    + (10 - len(place)) * " "
+                    + name
+                    + (14 - len(name)) * " "  # Align name left. len(name) <= 12
+                    + (10 - len(amount)) * " "  # Align amount right. len(amount) <= 5
+                    + amount
+                )
+                description.append(line)
+            description = "```\n" + "\n".join(description) + "```"
+            embed = discord.Embed(
+                title=title, type="rich", description=description, color=0xFF6600, timestamp=ctx.message.created_at,
+            )
+            embed.set_footer(icon_url="https://i.imgur.com/q8KmQtw.png")
+            embed.set_author(name="Retail Candidate Testers", icon_url="https://i.imgur.com/Ou1k4lD.png")
+            embeds.append(embed)
+
+        session = EmbedPaginatorSession(self.bot, ctx, *embeds)
+        await session.run()
+
     @commands.command()
     @checks.is_senior()
-    async def leaderboard(self, ctx):
+    async def channelleaderboard(self, ctx):
         """Player performance leaderboard."""
         games = await (
             self.testers.find(
@@ -78,7 +151,7 @@ class Leaderboard(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def legacyleaderboard(self, ctx):
+    async def legacychannelleaderboard(self, ctx):
         """Legacy player performance leaderboard.
         
         This uses Google Sheets.
