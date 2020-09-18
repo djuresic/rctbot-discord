@@ -30,6 +30,7 @@ class RCTStats(commands.Cog):
         self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
+        self.testing_bugs = self.db[rctbot.config.MONGO_TESTING_BUGS_COLLECTION_NAME]
         self.cycle_values = CycleValues()
 
     # TODO: Match stats command.
@@ -106,13 +107,15 @@ class RCTStats(commands.Cog):
                 games, total games, bug reports, total bug reports.
         """
         pipeline = [{"$unwind": "$participants"}, {"$project": {"_id": 0, "participants.account_id": 1}}]
-        documents = await (self.testing_games.aggregate(pipeline)).to_list(length=None)
-        participants = [document["participants"]["account_id"] for document in documents]
+        games_docs = await (self.testing_games.aggregate(pipeline)).to_list(length=None)
+        participants = [document["participants"]["account_id"] for document in games_docs]
         participants = collections.Counter(participants)
         # participants = [participant for participant in participants]
 
-        # TODO
-        reporters = {}
+        # TODO: Approved and unapproved bugs.
+        bugs_docs = await (self.testing_bugs.find({})).to_list(length=None)
+        reporters = [document["reporter"]["testing_account_id"] for document in bugs_docs]
+        reporters = collections.Counter(reporters)
 
         # Unlike the previous method with list of tuples sorted by tuple elements, this method solves the prolem of
         # testers with the same "score" not sharing the same place on the ladder.
@@ -131,7 +134,7 @@ class RCTStats(commands.Cog):
             total_games = tester["total_games"] + games
             games_list.append(games)
             total_games_list.append(total_games)
-            # TODO
+
             bugs = reporters.get(tester["testing_account_id"], 0)
             total_bugs = tester["total_bugs"] + bugs
             bugs_list.append(bugs)
@@ -176,8 +179,10 @@ class RCTStats(commands.Cog):
         requester = await self.testers.find_one({"discord_id": requester_discord_id})
         if requester is not None:
             requester_name = requester["nickname"]
+            requester_verified = True  # TODO: Better solution for this.
         else:
             requester_name = ctx.author.display_name
+            requester_verified = False
             requester_discord_id = None
 
         # print(user)
@@ -198,9 +203,8 @@ class RCTStats(commands.Cog):
         game_time = dhms(seconds)
         total_game_time = dhms(total_seconds)
 
-        # TODO: Bug reports.
-        bugs = 0
-        total_bugs = bugs + user["total_bugs"]
+        bugs = await self.testing_bugs.count_documents({"reporter.testing_account_id": user["testing_account_id"]})
+        total_bugs = user["total_bugs"] + bugs
 
         # Leaderboard in real time. NOTE: This does some of the queries already performed by the command. Refactor?
         rnk_games, rnk_total_games, rnk_bugs, rnk_total_bugs = await self._get_rt_rnk(user["testing_account_id"])
@@ -316,8 +320,16 @@ class RCTStats(commands.Cog):
         embed.add_field(name="Total Game Time", value=total_game_time, inline=True)
         embed.add_field(name="Total Bug Reports", value=f"{total_bugs} ({rnk_total_bugs})", inline=True)
         if enabled:
-            embed.add_field(name="Tokens Earned", value=tokens, inline=True)
-            embed.add_field(name="Tokens Owned", value="N/A", inline=True)  # TODO
+            embed.add_field(name="Earned Tokens", value=tokens, inline=True)
+
+            if requester_name.lower() == user["nickname"].lower() and requester_verified:
+                owned_tokens_message = f"React with {rctbot.config.EMOJI_GOLD_COINS} to reveal."
+            else:
+                owned_tokens_message = (
+                    f'Available when used by {discord.utils.escape_markdown(user["nickname"])} only!'
+                )
+
+            embed.add_field(name="Owned Tokens", value=owned_tokens_message, inline=True)
             embed.add_field(name="Bonuses", value=bonuses, inline=True)
             embed.add_field(
                 name="Activity Rank",
@@ -347,9 +359,54 @@ class RCTStats(commands.Cog):
                     inline=False,
                 )
         embed.set_thumbnail(url=ranks[user["rank_id"]]["icon_url"])
-        await ctx.send(embed=embed)
+        message = await ctx.send(embed=embed)
         stop = timeit.default_timer()
         print(stop - start)
+
+        if requester_name.lower() == user["nickname"].lower() and requester_verified:
+            await message.add_reaction(rctbot.config.EMOJI_GOLD_COINS)
+
+        # Compare reaction emojis, clear all on timeout.
+        try:
+            reaction, _ = await self.bot.wait_for(
+                "reaction_add",
+                check=lambda reaction, user: user == ctx.author
+                and str(reaction.emoji) in [rctbot.config.EMOJI_GOLD_COINS]
+                and reaction.message.id == message.id,
+                timeout=300.0,
+            )
+
+            if (
+                str(reaction.emoji) == rctbot.config.EMOJI_GOLD_COINS
+                and requester_name.lower() == user["nickname"].lower()
+                and requester_verified
+            ):
+                await message.clear_reactions()
+                async with VPClient() as portal:
+                    tokens = await portal.get_tokens(user["account_id"])
+                embed.set_field_at(index=7, name="Owned Tokens", value=tokens, inline=True)
+                await message.edit(embed=embed)
+                await message.add_reaction("🗑️")
+                await message.add_reaction("💾")
+
+                # Allow the message containing owned tokens info to be deleted.
+                try:
+                    reaction, _ = await self.bot.wait_for(
+                        "reaction_add",
+                        check=lambda reaction, user: user == ctx.author
+                        and str(reaction.emoji) in ["🗑️", "💾"]
+                        and reaction.message.id == message.id,
+                        timeout=300.0,
+                    )
+
+                    if reaction.emoji == "🗑️":
+                        await message.delete()
+
+                except asyncio.TimeoutError:
+                    await message.delete()
+
+        except asyncio.TimeoutError:
+            await message.clear_reactions()
 
     @commands.command(aliases=["rank", "sheet"])
     @guild_is_rct()
