@@ -16,6 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+from rctbot.core.rct.bugs import BugReport, BugReportManager
 from rctbot.core.rct.cycle import CycleValues, CycleManager, CycleManagerResult
 from rctbot.core.rct.match import MatchManipulator
 from rctbot.core.rct.models import ActivityRank, Perks, Role
@@ -24,6 +25,8 @@ from rctbot.core.rct.tester import TesterManager, TesterManagerResult
 
 # from rctbot.core.rct import *
 __all__ = [
+    "BugReport",
+    "BugReportManager",
     "CycleValues",
     "CycleManager",
     "CycleManagerResult",
