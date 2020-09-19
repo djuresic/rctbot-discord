@@ -8,6 +8,7 @@ from discord.ext import tasks, commands
 
 import rctbot.config
 from rctbot.core import checks
+from rctbot.core.utils import chunks
 from rctbot.core.driver import CLIENT
 from rctbot.core.rct import MatchManipulator
 
@@ -51,15 +52,19 @@ class MatchTools(commands.Cog):
         # TODO: Match stats when ID is passed.
         pass
 
-    @match.group(name="insert", aliases=["i"], invoke_without_command=True)
+    @match.group(name="insert", aliases=["i", "add", "+"], invoke_without_command=True)
     async def _match_insert(self, ctx, match_id: str):
         if match_id.isdigit():
             await ctx.send((await MatchManipulator.insert_match(match_id)))
 
     @_match_insert.command(name="range")
     async def _match_insert_range(self, ctx, first: int, last: int):
+        results = []
         for match_id in range(first, last + 1):
-            await ctx.send((await MatchManipulator.insert_match(match_id)))
+            results.append((await MatchManipulator.insert_match(match_id)))
+        results = chunks(results, 25)
+        for chunk in results:
+            await ctx.send("\n".join(chunk))
 
     # NOTE: Just in case someone tries to use it this way.
     @_match_insert.command(name="id")
