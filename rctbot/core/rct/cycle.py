@@ -44,6 +44,7 @@ class CycleManager:
         self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
+        self.testing_bugs = self.db[rctbot.config.MONGO_TESTING_BUGS_COLLECTION_NAME]
         self.testing_cycles = self.db[rctbot.config.MONGO_TESTING_CYCLES_COLLECTION_NAME]
 
         self.values = CycleValues()
@@ -85,6 +86,7 @@ class CycleManager:
         games = await (self.testing_games.find({"retrieved": True}, sort=list({"match_id": 1}.items()))).to_list(
             length=None
         )
+        bugs = await (self.testing_bugs.find({})).to_list(length=None)
         if len(games) == 0 or len(testers) == 0:
             # TODO: Result
             print("len games testers 0")
@@ -95,12 +97,20 @@ class CycleManager:
         else:
             id_ = last_cycle["_id"] + 1
         result = await self.testing_cycles.insert_one(
-            {"_id": id_, "games": games, "participants": testers, "start": start, "end": datetime.now(timezone.utc)}
+            {
+                "_id": id_,
+                "games": games,
+                "bugs": bugs,
+                "participants": testers,
+                "start": start,
+                "end": datetime.now(timezone.utc),
+            }
         )
         if not result.acknowledged:
             return False
-        result = await self.testing_games.delete_many({})
-        return result.acknowledged
+        result_g = await self.testing_games.delete_many({})
+        result_b = await self.testing_bugs.delete_many({})
+        return result_g.acknowledged and result_b.acknowledged
 
     async def new_cycle(self):
         values = {
