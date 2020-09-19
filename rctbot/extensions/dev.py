@@ -21,6 +21,15 @@ class Development(commands.Cog):
         self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
+        self.testing_bugs = self.db[rctbot.config.MONGO_TESTING_BUGS_COLLECTION_NAME]
+        self.testing_cycles = self.db[rctbot.config.MONGO_TESTING_CYCLES_COLLECTION_NAME]
+
+    @commands.command()
+    @commands.is_owner()
+    async def pgbb(self, ctx, cycle_id: int):
+        cycle = await self.testing_cycles.find_one({"_id": cycle_id}, {"games": 1, "bugs": 1})
+        await self.testing_games.insert_many(cycle["games"])
+        await self.testing_bugs.insert_many(cycle["bugs"])
 
     @commands.command()
     @commands.is_owner()
