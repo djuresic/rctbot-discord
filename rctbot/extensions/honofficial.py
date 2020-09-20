@@ -233,6 +233,7 @@ class EmbedCreator:
         general = discord.utils.get(channels, name="general").mention
         ask_for_help = discord.utils.get(channels, name="help").mention
         contributions = discord.utils.get(channels, name="contributions").mention
+        community_content = discord.utils.get(channels, name="community-content").mention
         tournaments = discord.utils.get(channels, name="tournaments").mention
         alt_modes = discord.utils.get(channels, name="alternate-modes").mention
         off_topic = discord.utils.get(channels, name="off-topic").mention
@@ -254,6 +255,8 @@ class EmbedCreator:
             " discussed here!"
             f"\n{contributions}: Do you have an artistic touch? Share your HoN related artwork, videos, or"
             " game modifications here!"
+            f"\n{community_content}: Post screenshots or videos of your games and matches, discuss them, or simply"
+            " enjoy them."
             f"\n{tournaments}: Talk about the current and upcoming tournaments."
             f"\n{alt_modes}: Talk about alternative modes such as Capture the Flag, Prophets, Devo Wars, Team"
             " Deathmatch, Soccer, etc. and find other people to play them with."
