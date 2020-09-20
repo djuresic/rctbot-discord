@@ -289,6 +289,7 @@ class EmbedCreator:
         mod_mention = discord.utils.get(roles, name="Discord Moderator").mention
         garena_mention = discord.utils.get(roles, name="Garena Staff").mention
         forstburn_mention = discord.utils.get(roles, name="Frostburn Staff").mention
+        guardian_mention = discord.utils.get(roles, name="Guardian of Newerth").mention
         gm_mention = discord.utils.get(roles, name="Game Master").mention
         rct_mention = discord.utils.get(roles, name="Retail Candidate Tester").mention
         to_mention = discord.utils.get(roles, name="Tournament Organizer").mention
@@ -316,7 +317,8 @@ class EmbedCreator:
             " given by Frostburn employees in <#735515144091598898> isn't official support and should be taken as-is."
         )
         group_3 = (
-            f"{gm_mention}: Verified Game Masters, Newerth's Lawmen. Together they saddle up and ride,"
+            f"{guardian_mention}: Verified volunteers who moderate the Volunteer Corner channel category on Discord."
+            f"\n\n{gm_mention}: Verified Game Masters, Newerth's Lawmen. Together they saddle up and ride,"
             " bringing justice, law, and order to all corners of Newerth. You may ask them general RAP questions."
             " However, case specific inquiries may not be discussed; please refer to the"
             " [RAP Portal](https://rap.heroesofnewerth.com/ 'rap.heroesofnewerth.com')."
