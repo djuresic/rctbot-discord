@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import collections
 from typing import Tuple
 from datetime import datetime, timezone
 from dataclasses import dataclass
@@ -159,8 +160,18 @@ class CycleManager:
                 acknowledged += 1
 
     async def update_bugs(self):
-        # TODO
-        raise NotImplementedError
+        bugs_docs = await (self.testing_bugs.find({})).to_list(length=None)
+        reporters = [document["reporter"]["testing_account_id"] for document in bugs_docs]
+        reporters = collections.Counter(reporters)
+
+        acknowledged = 0
+        async for tester in self.testers.find({}, {"_id": 0, "testing_account_id": 1}):
+            bugs = reporters.get(tester["testing_account_id"], 0)
+            result = await self.testers.update_one(
+                {"testing_account_id": tester["testing_account_id"]}, {"$set": {"bugs": bugs}},
+            )
+            if result.acknowledged:
+                acknowledged += 1
 
     async def update_total(self):
         # NOTE: fine
