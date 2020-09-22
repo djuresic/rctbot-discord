@@ -28,7 +28,7 @@ class RCTCycle(commands.Cog):
         cm = CycleManager()
         # TODO: Call archive_cycle() here?
         await cm.new_cycle()
-        await ctx.send("***New cycle** set in DB.")
+        await ctx.send("**New cycle** set in DB.")
 
     @update.command(name="games")
     async def _ugames(self, ctx):
@@ -38,7 +38,9 @@ class RCTCycle(commands.Cog):
 
     @update.command(name="bugs")
     async def _ubugs(self, ctx):
-        pass
+        cm = CycleManager()
+        await cm.update_bugs()
+        await ctx.send("Updated **bug reports** in DB.")
 
     @update.command(name="total")
     async def _utotal(self, ctx):
