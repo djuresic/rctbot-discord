@@ -33,6 +33,16 @@ class Development(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
+    async def addextra(self, ctx, amount: int):
+        result = await self.testers.update_many(
+            {"enabled": True, "$or": [{"games": {"$gte": 1}}, {"bugs": {"$gte": 1}}],}, {"$set": {"extra": amount}},
+        )
+        if result.acknowledged:
+            await ctx.send(f"Found {result.matched_count} and updated {result.modified_count} members' extra amount.")
+        await ctx.send(f"Could not update perks status!")
+
+    @commands.command()
+    @commands.is_owner()
     async def ap(self, ctx, account_id, masterserver="ac"):
         async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
             await ctx.send(await acp.add_perks(account_id))
