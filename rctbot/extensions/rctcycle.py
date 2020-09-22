@@ -72,9 +72,8 @@ class RCTCycle(commands.Cog):
     async def _dtokens(self, ctx):
         cm = CycleManager()
         success, error = await cm.distribute_tokens()
-        # TODO: Handle None.
-        await ctx.send(f"Passed:\n{discord.utils.escape_markdown(success)}")
-        await ctx.send(f"Failed:\n{discord.utils.escape_markdown(error)}")
+        await ctx.send(f'Passed:\n{discord.utils.escape_markdown(success if success is not None else "0")}')
+        await ctx.send(f'Failed:\n{discord.utils.escape_markdown(error if error is not None else "0")}')
 
 
 # pylint: disable=unused-argument
