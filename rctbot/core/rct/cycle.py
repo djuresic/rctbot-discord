@@ -203,7 +203,7 @@ class CycleManager:
             bugs = tester["bugs"]
             # Ignore testers with absence field and Gold and below rank.
             if "absence" in tester and rank_id <= ActivityRank.GOLD:
-                pass
+                continue
             if ActivityRank.UNRANKED < rank_id < ActivityRank.LEGENDARY:
                 if (games + bugs) >= self.values.advance[rank_id]:
                     await self.testers.update_one({"account_id": tester["account_id"]}, {"$inc": {"rank_id": 1}})
