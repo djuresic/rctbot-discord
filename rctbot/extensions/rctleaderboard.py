@@ -24,8 +24,20 @@ class Leaderboard(commands.Cog):
         leaderboard = " ".join(leaderboard)
         # These words don't conflict so this approach is fine.
         games = bool("game" in leaderboard)
-        bugs = bool("bug" in leaderboard or "report" in leaderboard)  # Not used in branches.
+        bugs = bool("bug" in leaderboard or "report" in leaderboard)
         total = bool("total" in leaderboard or "all" in leaderboard)
+        ranks = bool("rank" in leaderboard or "activity" in leaderboard)
+
+        rank_names = {
+            7: "Immortal",
+            6: "Legendary",
+            5: "Diamond",
+            4: "Gold",
+            3: "Silver",
+            2: "Bronze",
+            1: "Warning",
+            0: "Unranked",
+        }
 
         if total:
             if games:
@@ -44,6 +56,10 @@ class Leaderboard(commands.Cog):
             title = "Bug Reports Leaderboard"
             find = {"enabled": True}
             key = "bugs"
+        elif ranks:
+            title = "Activity Ranks Overview"
+            find = {"enabled": True}
+            key = "rank_id"
         else:
             title = "Earned Tokens Leaderboard"
             find = {"enabled": True}
@@ -67,15 +83,20 @@ class Leaderboard(commands.Cog):
 
                 place = ordinal(values.index(player[key]) + 1)
                 name = player["nickname"]
-                amount = str(player[key])
-                line = (
-                    place
-                    + (12 - len(place)) * " "
-                    + name
-                    + (14 - len(name)) * " "  # Align name left. len(name) <= 12
-                    + (10 - len(amount)) * " "  # Align amount right. len(amount) <= 5
-                    + amount
-                )
+                if not ranks:
+                    amount = str(player[key])
+                    line = (
+                        place
+                        + (12 - len(place)) * " "
+                        + name
+                        + (14 - len(name)) * " "  # Align name left. len(name) <= 12
+                        + (10 - len(amount)) * " "  # Align amount right. len(amount) <= 5
+                        + amount
+                    )
+                else:
+                    rank = rank_names[player[key]]
+                    line = name + (14 - len(name)) * " " + (16 - len(rank)) * " " + rank
+
                 description.append(line)
             description = "```\n" + "\n".join(description) + "```"
             embed = discord.Embed(
