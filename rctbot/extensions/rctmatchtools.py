@@ -9,7 +9,7 @@ from discord.ext import tasks, commands
 import rctbot.config
 from rctbot.core import checks
 from rctbot.core.utils import chunks
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.core.rct import MatchManipulator
 
 
@@ -19,7 +19,7 @@ class MatchTools(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
-        self.db_client = CLIENT
+        self.db_client = AsyncDatabaseHandler.client
         self.db = self.db_client[rctbot.config.MONGO_DATABASE_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         self.auto_fetch.start()  # pylint: disable=no-member

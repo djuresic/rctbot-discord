@@ -9,7 +9,7 @@ from discord.ext import commands, tasks
 
 import rctbot.config
 from rctbot.core import checks
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 
 
 class EmbedCreator:
@@ -416,7 +416,7 @@ class EmbedCreator:
 class HoNOfficial(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db_client = CLIENT
+        self.db_client = AsyncDatabaseHandler.client
         self.db = self.db_client["hon"]
         self.config_collection = self.db["config"]
         # Default author and avatar.

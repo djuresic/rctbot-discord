@@ -8,7 +8,7 @@ from dataclasses import dataclass
 
 import rctbot.config
 from rctbot.core.rct.models import ActivityRank
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.hon.portal import VPClient
 
 
@@ -42,7 +42,7 @@ class CycleManager:
 
     def __init__(self):
         # Database
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         self.testing_bugs = self.db[rctbot.config.MONGO_TESTING_BUGS_COLLECTION_NAME]

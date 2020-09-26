@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 
 import rctbot.config
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.core.checks import is_tester
 from rctbot.core.errors import NotATester
 from rctbot.core.logging import record_usage
@@ -12,7 +12,7 @@ from rctbot.hon.acp2 import ACPClient
 class RCTAccount(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.changing_pw = "Someone you should tell Lightwalker about"
 

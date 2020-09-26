@@ -1,8 +1,7 @@
+import os
 from typing import Union
 
 import aiohttp
-
-import rctbot.config
 
 
 class TestingNotes:
@@ -10,9 +9,11 @@ class TestingNotes:
     Class representing Testing Notes.
     """
 
+    domain = os.getenv("HON_NOTES_DOMAIN", "rct.manu311.de")
+    password = os.getenv("HON_NOTES_AT_PASSWORD", None)
+
     def __init__(self) -> None:
-        self.domain = rctbot.config.HON_ALT_DOMAIN
-        self.password = rctbot.config.HON_CAT_PASSWORD
+        pass
 
     async def create(self, discord_id: Union[int, str]) -> str:
         """Create a Testing Notes access token for a user.

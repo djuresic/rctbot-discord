@@ -2,7 +2,7 @@ from discord.ext import commands
 
 import rctbot.config
 import rctbot.core.errors
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 
 
 def in_whitelist(whitelist):
@@ -16,7 +16,7 @@ def in_whitelist(whitelist):
 
 def is_tester():
     async def is_tester_check(ctx):
-        user = await CLIENT[rctbot.config.MONGO_DATABASE_NAME][
+        user = await AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME][
             rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME
         ].find_one({"discord_id": ctx.author.id}, {"enabled": 1, "role": 1})
         if not user or not user["enabled"]:
@@ -28,7 +28,7 @@ def is_tester():
 
 def is_senior():
     async def is_senior_check(ctx):
-        user = await CLIENT[rctbot.config.MONGO_DATABASE_NAME][
+        user = await AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME][
             rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME
         ].find_one({"discord_id": ctx.author.id}, {"enabled": 1, "role": 1})
         if not user or not user["enabled"]:

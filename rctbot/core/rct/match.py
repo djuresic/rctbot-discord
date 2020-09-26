@@ -1,7 +1,7 @@
 import aiohttp
 
 import rctbot.config
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.hon.masterserver import Client
 
 # TODO: Change static methods.
@@ -14,7 +14,7 @@ class MatchManipulator:
         else:
             self.session = session
         self.client = Client(masterserver, session=self.session)
-        self.db_client = CLIENT
+        self.db_client = AsyncDatabaseHandler.client
         self.db = self.db_client[rctbot.config.MONGO_DATABASE_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
 
@@ -97,7 +97,9 @@ class MatchManipulator:
 
     @staticmethod
     async def insert_match(match_id):
-        collection = CLIENT[rctbot.config.MONGO_DATABASE_NAME][rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
+        collection = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME][
+            rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME
+        ]
         match_id = int(match_id)
         if (await collection.find_one({"match_id": match_id})) is None:
             result = await collection.insert_one(
@@ -117,7 +119,9 @@ class MatchManipulator:
         # print(match_id, match_data)
         if not match_data or "match_id" not in match_data or match_id != match_data["match_id"]:
             return "Match ID does not match match data! You are not allowed to change match ID."
-        collection = CLIENT[rctbot.config.MONGO_DATABASE_NAME][rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
+        collection = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME][
+            rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME
+        ]
         match = await collection.find_one({"match_id": match_id})
         if match is None:
             return f"{match_id} doesn't exist!"

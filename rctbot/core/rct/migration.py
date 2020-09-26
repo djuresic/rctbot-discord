@@ -4,21 +4,19 @@ from datetime import datetime, timezone
 import aiohttp
 
 import rctbot.config
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.hon.masterserver import Client
 
 
 class DatabaseManager:
     def __init__(self, session=None):
-        self.url = rctbot.config.HON_VP_URL
         if session is None:
             self.session = aiohttp.ClientSession()
         else:
             self.session = session
-        self.token = None
 
         # Database
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         self.testing_cycles = self.db[rctbot.config.MONGO_TESTING_CYCLES_COLLECTION_NAME]

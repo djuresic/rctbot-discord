@@ -3,7 +3,7 @@ from discord.ext import commands
 
 import rctbot.config
 from rctbot.core import checks
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.core.paginator import EmbedPaginatorSession
 from rctbot.core.utils import chunks, ordinal
 
@@ -11,7 +11,7 @@ from rctbot.core.utils import chunks, ordinal
 class Leaderboard(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         # TODO: Since cycle snapshots are saved it's possible to load past tester data.
         # self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]

@@ -1,9 +1,7 @@
+import os
 import binascii
-from hashlib import md5, sha256
-
 import asyncio
-import aiohttp
-from discord.ext import commands
+from hashlib import md5, sha256
 
 import srp
 import utils.phpserialize as phpserialize
@@ -13,34 +11,66 @@ import rctbot.config
 # TODO: Clean up dicts.
 
 
+# Sefe prime N and generator g crypto parameters for SRP authentication.
+S2_N = (
+    "DA950C6C97918CAE89E4F5ECB32461032A217D740064BC12FC0723CD204BD02A7AE29B53F3310C13BA998B7910F8B6A14112CBC67BDD2427E"
+    "DF494CB8BCA68510C0AAEE5346BD320845981546873069B337C073B9A9369D500873D647D261CCED571826E54C6089E7D5085DC2AF01FD861"
+    "AE44C8E64BCA3EA4DCE942C5F5B89E5496C2741A9E7E9F509C261D104D11DD4494577038B33016E28D118AE4FD2E85D9C3557A2346FAECED3"
+    "EDBE0F4D694411686BA6E65FEE43A772DC84D394ADAE5A14AF33817351D29DE074740AA263187AB18E3A25665EACAA8267C16CDE064B1D5AF"
+    "0588893C89C1556D6AEF644A3BA6BA3F7DEC2F3D6FDC30AE43FBD6D144BB"
+)
+S2_G = "2"
+
+# The official HoN authentication server uses these in SRP, but they may not be accissible to you. If you are setting
+# up an official instance of RCTBot and the defaults do not work, please contact a system admin or a server engineer.
+S2_SRP_MAGIC1 = os.getenv("S2_SRP_MAGIC1", "[!~esTo0}")
+S2_SRP_MAGIC2 = os.getenv("S2_SRP_MAGIC2", "taquzaph_?98phab&junaj=z=kuChusu")
+
+# String of characters after dash in os query parameter for RC and TC. These are requires for client version checking
+# and other interaction with test clients' authentication servers. In order to know these, you must have access to
+# their respective clients. If you don't, ask RCT and SBT staff for assistance. Required for the official RCTBot.
+HON_NAEU_RC_OS_SECRET = os.getenv("HON_NAEU_RC_OS_SECRET")
+HON_NAEU_TC_OS_SECRET = os.getenv("HON_NAEU_TC_OS_SECRET")
+
+# Credentials per environment.
+HON_NAEU_AC_USERNAME = os.getenv("HON_NAEU_AC_USERNAME")
+HON_NAEU_AC_PASSWORD = os.getenv("HON_NAEU_AC_PASSWORD")
+
+HON_NAEU_RC_USERNAME = os.getenv("HON_NAEU_RC_USERNAME")
+HON_NAEU_RC_PASSWORD = os.getenv("HON_NAEU_RC_PASSWORD")
+
+HON_NAEU_TC_USERNAME = os.getenv("HON_NAEU_TC_USERNAME")
+HON_NAEU_TC_PASSWORD = os.getenv("HON_NAEU_TC_PASSWORD")
+
+
 class Client:
     "Requires aiohttp.ClientSession()"
 
     usernames = {
-        "ac": rctbot.config.HON_USERNAME,
-        "rc": rctbot.config.HON_RC_USERNAME,
-        "tc": rctbot.config.HON_TC_USERNAME,
+        "ac": HON_NAEU_AC_USERNAME,
+        "rc": HON_NAEU_RC_USERNAME,
+        "tc": HON_NAEU_TC_USERNAME,
     }
     passwords = {
-        "ac": rctbot.config.HON_PASSWORD,
-        "rc": rctbot.config.HON_RC_PASSWORD,
-        "tc": rctbot.config.HON_TC_PASSWORD,
+        "ac": HON_NAEU_AC_PASSWORD,
+        "rc": HON_NAEU_RC_PASSWORD,
+        "tc": HON_NAEU_TC_PASSWORD,
     }
-
+    # Authentication servers.
     hostnames = {
-        "ac": rctbot.config.HON_NAEU_AC_MASTERSERVER,
-        "rc": rctbot.config.HON_NAEU_RC_MASTERSERVER,
-        "tc": rctbot.config.HON_NAEU_TC_MASTERSERVER,
+        "ac": "masterserver.naeu.heroesofnewerth.com",
+        "rc": "masterserver.rct.naeu.heroesofnewerth.com",
+        "tc": "masterserver.sbt.naeu.heroesofnewerth.com",
     }
     ua_versions = {
-        "ac": rctbot.config.HON_UA_VERSION,
-        "rc": rctbot.config.HON_UA_RC_VERSION,
-        "tc": rctbot.config.HON_UA_TC_VERSION,
+        "ac": "4.8.5",
+        "rc": "0.30.45",
+        "tc": "0.30.141",
     }
     client_os = {
         "ac": "ac",
-        "rc": f"rc-{rctbot.config.HON_NAEU_RC_OS_PART}",
-        "tc": f"tc-{rctbot.config.HON_NAEU_TC_OS_PART}",
+        "rc": f"rc-{HON_NAEU_RC_OS_SECRET}",
+        "tc": f"tc-{HON_NAEU_TC_OS_SECRET}",
     }
     client_names = {
         "ac": "Heroes of Newerth",
@@ -136,7 +166,7 @@ class Client:
             query["cookie"] = self.cookie
 
         headers = {
-            "User-Agent": f"{rctbot.config.HON_GAME_CLIENT}/{self.ua_version}/l{self.masterserver}/x86-biarch",
+            "User-Agent": f"S2 Games/Heroes of Newerth/{self.ua_version}/l{self.masterserver}/x86-biarch",
             "X-Forwarded-For": "unknown",
         }
         # print(headers)
@@ -153,8 +183,7 @@ class Client:
             if deserialize:
                 loop = asyncio.get_running_loop()
                 return await loop.run_in_executor(None, phpserialize.loads, data.encode())
-            else:
-                return data
+            return data
 
     async def authenticate(self, login, password):  # <3
         # session = aiohttp.ClientSession()
@@ -163,12 +192,7 @@ class Client:
         query = {"f": "pre_auth", "login": login}
         srp.rfc5054_enable()
         user = srp.User(
-            login.encode(),
-            None,
-            hash_alg=srp.SHA256,
-            ng_type=srp.NG_CUSTOM,
-            n_hex=rctbot.config.HON_S2_N.encode(),
-            g_hex=rctbot.config.HON_S2_G.encode(),
+            login.encode(), None, hash_alg=srp.SHA256, ng_type=srp.NG_CUSTOM, n_hex=S2_N.encode(), g_hex=S2_G.encode(),
         )
         _, A = user.start_authentication()
         query["A"] = binascii.hexlify(A).decode()
@@ -181,11 +205,9 @@ class Client:
         user.password = (
             sha256(
                 (
-                    md5(
-                        (md5(password.encode()).hexdigest()).encode() + salt2 + rctbot.config.HON_SRP_SS.encode()
-                    ).hexdigest()
+                    md5((md5(password.encode()).hexdigest()).encode() + salt2 + S2_SRP_MAGIC1.encode()).hexdigest()
                 ).encode()
-                + rctbot.config.HON_SRP_SL.encode()
+                + S2_SRP_MAGIC2.encode()
             ).hexdigest()
         ).encode()
         user.p = user.password

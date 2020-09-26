@@ -13,7 +13,7 @@ from PIL import Image
 import rctbot.config
 
 # from core.logging import record_usage NOTE: discord.py 1.4
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.core.checks import guild_is_rct
 from rctbot.core.rct import ActivityRank, CycleValues
 from rctbot.core.utils import dhms, ordinal
@@ -27,7 +27,7 @@ from rctbot.extensions.rctmatchtools import MatchTools
 class RCTStats(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         self.testing_bugs = self.db[rctbot.config.MONGO_TESTING_BUGS_COLLECTION_NAME]
@@ -617,10 +617,9 @@ class RCTStats(commands.Cog):
                 inline=True,
             )
             # FIXME: Move Artificial Multiplier
+            final_multiplier = self.cycle_values.multiplier[user["rank_id"]] + self.cycle_values.artificial
             embed.add_field(
-                name="Multiplier",
-                value=f'{ranks[user["rank_id"]]["chest_emoji"]} {ranks[user["rank_id"]]["multiplier"]+3.5}x',
-                inline=True,
+                name="Multiplier", value=f'{ranks[user["rank_id"]]["chest_emoji"]} {final_multiplier}x', inline=True,
             )
             embed.add_field(name="Bonuses", value=bonus, inline=True)
 

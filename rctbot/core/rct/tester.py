@@ -8,7 +8,7 @@ import discord
 
 import rctbot.config
 from rctbot.core.rct.models import ActivityRank, Role
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.hon.masterserver import Client
 
 
@@ -46,7 +46,7 @@ class TesterManager:
     """
 
     def __init__(self) -> None:
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
 
     async def full_add(self, nickname: str) -> NotImplementedError:

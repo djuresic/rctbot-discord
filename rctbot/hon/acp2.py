@@ -10,7 +10,7 @@ from bs4 import BeautifulSoup
 
 import rctbot.config
 from rctbot.core.webhooks import webhook_embed
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 
 from rctbot.hon.masterserver import Client
 from rctbot.hon.utils import get_avatar
@@ -39,7 +39,7 @@ class ACPClient:
         self.ssl = bool(self.url.startswith("https://"))
         self.color = self.ACP_CONFIG[masterserver]["color"]
         self.admin = admin
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
 
     # async def __aenter__(self) -> "ACPClient":
@@ -56,7 +56,7 @@ class ACPClient:
         await self.session.close()
 
     @staticmethod
-    async def proxy_connector():
+    def proxy_connector():
         """Returns ProxyConnector for use in ClientSession."""
         return ProxyConnector.from_url(rctbot.config.HON_ACP_PROXY_URL)
 
@@ -64,10 +64,7 @@ class ACPClient:
         status, _, text = await self.request(
             rctbot.config.HON_ACP_AUTH, data=rctbot.config.HON_ACP_MAGIC, ssl=self.ssl
         )
-        if status in [200, 301, 302] and rctbot.config.HON_ACP_USER in text:
-            return True
-        else:
-            return False
+        return bool(status in [200, 301, 302] and rctbot.config.HON_ACP_USER in text)
 
     async def request(
         self,

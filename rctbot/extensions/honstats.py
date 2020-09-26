@@ -5,7 +5,7 @@ from discord.ext import commands
 import rctbot.config
 
 from rctbot.core.logging import record_usage  # NOTE: discord.py 1.4
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 
 from rctbot.hon.masterserver import Client
 from rctbot.hon.utils import get_name_color, get_avatar, hero_name
@@ -14,7 +14,7 @@ from rctbot.hon.utils import get_name_color, get_avatar, hero_name
 class HoNStats(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
 
     # TODO: Match stats command.

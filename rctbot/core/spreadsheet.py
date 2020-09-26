@@ -1,16 +1,21 @@
 from datetime import datetime, timezone
 
-from discord.ext import tasks, commands
-
 import gspread
 import gspread_asyncio
 from gspread_asyncio import _nowait
 from oauth2client.service_account import ServiceAccountCredentials
-
+from discord.ext import tasks, commands
 
 import rctbot.config
 from rctbot.core.checks import is_senior
 
+
+GOOGLE_CLIENT_SECRET_FILE = "gspread_client_secret.json"
+GOOGLE_SCOPES = [
+    "https://www.googleapis.com/auth/drive",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://spreadsheets.google.com/feeds",
+]
 
 # gspread_asyncio doesn't currently include changes made to some methods in gspread, overriding:
 class AsyncioGspreadClientManagerUpdated(gspread_asyncio.AsyncioGspreadClientManager):
@@ -97,9 +102,7 @@ class AsyncioGspreadWorksheetUpdated(gspread_asyncio.AsyncioGspreadWorksheet):
 
 def get_creds():
     """Returns Service Account credentials."""
-    return ServiceAccountCredentials.from_json_keyfile_name(
-        rctbot.config.GOOGLE_CLIENT_SECRET_FILE, rctbot.config.GOOGLE_SCOPES
-    )
+    return ServiceAccountCredentials.from_json_keyfile_name(GOOGLE_CLIENT_SECRET_FILE, GOOGLE_SCOPES)
 
 
 # Do spreadsheet.client() instead of spreadsheet.CLIENT_MANAGER.authorize()

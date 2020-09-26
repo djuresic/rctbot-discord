@@ -23,9 +23,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from datetime import datetime, timezone
 
 import discord
+from dotenv import load_dotenv
 
 import rctbot
-from rctbot.core.checks import in_whitelist
+from rctbot.core import checks
 
 
 # bot = commands.AutoShardedBot(
@@ -37,15 +38,16 @@ from rctbot.core.checks import in_whitelist
 
 
 if __name__ == "__main__":
+    load_dotenv()
     bot = rctbot.get_bot()
 
     @bot.command()
-    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    @checks.in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
     async def dev_permission_test(ctx):
         await ctx.send("{.mention} You do have permission.".format(ctx.message.author))
 
     @bot.command(name="load", hidden=True)
-    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    @checks.in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
     async def _load(ctx, module: str):
         """Loads a module."""
         for item in rctbot.config.STARTUP_EXTENSIONS:
@@ -62,7 +64,7 @@ if __name__ == "__main__":
             await ctx.send(f"Loaded {extension} \N{OK HAND SIGN}")
 
     @bot.command(name="unload", hidden=True)
-    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    @checks.in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
     async def _unload(ctx, module: str):
         """Unloads a module."""
         for item in rctbot.config.STARTUP_EXTENSIONS:
@@ -79,7 +81,7 @@ if __name__ == "__main__":
             await ctx.send(f"Unloaded {extension} \N{OK HAND SIGN}")
 
     @bot.command(name="reload", hidden=True)
-    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    @checks.in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
     async def _reload(ctx, module: str):
         """Reloads a module."""
         for item in rctbot.config.STARTUP_EXTENSIONS:
@@ -96,7 +98,7 @@ if __name__ == "__main__":
             await ctx.send(f"Reloaded {extension} \N{OK HAND SIGN}")
 
     @bot.command(name="loaded", hidden=True)
-    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    @checks.in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
     async def _loaded(ctx):
         """Lists loaded modules."""
         message = []
@@ -114,7 +116,7 @@ if __name__ == "__main__":
         await ctx.send("\n".join(message))
 
     @bot.command(name="unloaded", hidden=True)
-    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
+    @checks.in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
     async def _unloaded(ctx):
         """Lists unloaded modules."""
         message = []
@@ -177,19 +179,8 @@ if __name__ == "__main__":
         print("------")
 
     @bot.event
-    async def on_message(message):  # TODO: Move to a cog.
-        ctx = await bot.get_context(message)
-
-        if message.guild is None and ctx.valid:  # TODO: with guild_only and dm_allowed
-            # print([f.__name__ for f in ctx.command.checks])
-            if ctx.command.name not in rctbot.config.DISCORD_DM_COMMANDS:
-                print(
-                    "{0.name}#{0.discriminator} ({0.id}) tried to invoke {1} in Direct Message: {2}".format(
-                        message.author, ctx.command, message.content
-                    )
-                )
-                # return
-
+    async def on_message(message):
+        # ctx = await bot.get_context(message)
         await bot.process_commands(message)
 
     bot.run()

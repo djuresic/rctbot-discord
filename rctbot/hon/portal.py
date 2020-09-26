@@ -1,10 +1,17 @@
+from __future__ import annotations
+
+import os
 import asyncio
+from typing import Tuple, Union
 
 import aiohttp
 from bs4 import BeautifulSoup
 
 
 import rctbot.config
+
+HON_VP_USER = os.getenv("HON_VP_USER", "RCTBot")
+HON_VP_PASSWORD = os.getenv("HON_VP_PASSWORD", None)
 
 
 # FIXME: Not singleton pattern.
@@ -14,35 +21,33 @@ class VPClient:
     Asynchronous context manager if `async with` statement is used.
     Creates a new session if one isn't provided."""
 
-    def __init__(self, session=None):
-        self.url = rctbot.config.HON_VP_URL
+    def __init__(self, session=None) -> None:
+        self.url = "https://volunteers.heroesofnewerth.com"
         if session is None:
             self.session = aiohttp.ClientSession()
         else:
             self.session = session
         self.token = None
 
-    # async def __aenter__(self) -> "VPClient":
-    async def __aenter__(self):
+    async def __aenter__(self) -> VPClient:
         await self.authenticate()
         return self
 
-    # async def __aexit__(self, *_) -> None:
-    async def __aexit__(self, *_):
+    async def __aexit__(self, *_) -> None:
         await self.close()
 
-    async def close(self):
+    async def close(self) -> None:
         """Coroutine. Log out and close the session."""
         await self.request("/auth/logout", method="GET")
         await self.session.close()
 
-    async def authenticate(self):
+    async def authenticate(self) -> bool:
         """Coroutine. Perform authentication. Returns authenticated status as bool."""
         status, text = await self.request("/auth", method="GET")
         if status != 200:
             return False
 
-        def find_token(response_text):
+        def find_token(response_text) -> str:
             soup = BeautifulSoup(response_text, "lxml")
             return soup.find(attrs={"name": "_token"})["value"]
 
@@ -51,19 +56,16 @@ class VPClient:
 
         data = {
             "_token": self.token,
-            "password": rctbot.config.HON_FORUM_USER_PASSWORD,
-            "username": rctbot.config.HON_FORUM_USER,
+            "password": HON_VP_PASSWORD,
+            "username": HON_VP_USER,
         }
 
         status, text = await self.request("/auth/login", data=data)
-        if status == 200 and rctbot.config.HON_FORUM_USER in text:
-            return True
-        else:
-            return False
+        return bool(status == 200 and HON_VP_USER in text)
 
     async def request(
         self, path, params=None, data=None, method="POST", chunked=None, read_until_eof=True,
-    ):
+    ) -> Tuple[int, str]:
         """Coroutine. Ensure the client is authenticated and perform a HTTP request.
         
         Return tuple (status, text) from HTTP response."""
@@ -82,7 +84,7 @@ class VPClient:
         else:
             return status, text
 
-    async def _do_request(self, path, params, data, method, chunked, read_until_eof):
+    async def _do_request(self, path, params, data, method, chunked, read_until_eof) -> Tuple[int, str]:
         async with self.session.request(
             method=method,
             url=f"{self.url}{path}",
@@ -93,22 +95,22 @@ class VPClient:
         ) as response:
             return response.status, (await response.text())
 
-    async def get_tokens(self, account_id):
+    async def get_tokens(self, account_id) -> float:
         """Coroutine. Get tokens value for account ID."""
         path = f"/admin/user/edit/o/5/u/{account_id}"
         status, text = await self.request(path, method="GET")
         if status == 200:
 
-            def find_tokens_value(response_text):
+            def find_tokens_value(response_text) -> float:
                 soup = BeautifulSoup(response_text, "lxml")
                 return float(soup.find(attrs={"name": "tokens"})["value"])
 
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, find_tokens_value, text)
-        else:
-            return 0.0
 
-    async def mod_tokens(self, mod_input):
+        return 0.0
+
+    async def mod_tokens(self, mod_input) -> Tuple[Union[None, str], Union[None, str]]:
         """Coroutine. Perform modify tokens action.
 
         Input can be a sigle string with a username, followed by how many tokens to take orgive, or a list of those
@@ -124,7 +126,7 @@ class VPClient:
         }
         status, text = await self.request(path, data=data)
 
-        def mod_tokens_result(response_text):
+        def mod_tokens_result(response_text) -> Tuple[Union[None, str], Union[None, str]]:
             soup = BeautifulSoup(response_text, "lxml")
             success = soup.find(attrs={"class": "alert-success"})
             error = soup.find(attrs={"class": "alert-danger"})
@@ -138,11 +140,11 @@ class VPClient:
         if status == 200:
             loop = asyncio.get_running_loop()
             return await loop.run_in_executor(None, mod_tokens_result, text)
-        else:
-            return (
-                None,
-                f"Failed to modify tokens. Status code: {status}",
-            )
+
+        return (
+            None,
+            f"Failed to modify tokens. Status code: {status}",
+        )
 
 
 # pylint: disable=unused-argument

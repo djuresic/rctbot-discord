@@ -5,7 +5,7 @@ from discord.ext import commands
 
 import rctbot.config
 from rctbot.core import checks
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.core.utils import chunks
 from rctbot.hon.utils import hero_name, cli_hero_name
 
@@ -13,7 +13,7 @@ from rctbot.hon.utils import hero_name, cli_hero_name
 class HeroUsage(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
 
     @commands.group(aliases=["u"], invoke_without_command=True)

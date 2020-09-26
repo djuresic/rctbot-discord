@@ -229,16 +229,14 @@ async def get_name_color(masterserver_response):
             break
     if color is not None and color in CHAT_COLORS:
         return CHAT_COLORS[color]
-    else:
-        return 0xFFFFFF
+    return 0xFFFFFF
 
 
 def hero_name(cli_name):
     """Return official hero name."""
     if cli_name in HERO_NAMES:
         return HERO_NAMES[cli_name]
-    else:
-        return "Unknown"
+    return "Unknown"
 
 
 def cli_hero_name(name):
@@ -247,8 +245,15 @@ def cli_hero_name(name):
     CLI_HERO_NAMES = {v.lower(): k for k, v in HERO_NAMES.items()}
     if name in CLI_HERO_NAMES:
         return CLI_HERO_NAMES[name]
-    else:
-        return "Unknown"
+    return "Unknown"
+
+
+def get_account_type(index: int):
+    raise NotImplementedError
+
+
+def get_account_standing(index: int):
+    raise NotImplementedError
 
 
 # pylint: disable=unused-argument

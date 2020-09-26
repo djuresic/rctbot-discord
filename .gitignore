@@ -1,4 +1,5 @@
 env
+.env
 rctbot/config/development*
 rctbot/config/production*
 .vs

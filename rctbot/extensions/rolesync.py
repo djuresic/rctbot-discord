@@ -7,7 +7,7 @@ from discord.ext import commands, tasks
 
 import rctbot.config
 from rctbot.core import checks
-from rctbot.core.driver import CLIENT
+from rctbot.core.driver import AsyncDatabaseHandler
 
 # NOTE: Lots of hardcoded stuff here.
 
@@ -15,7 +15,7 @@ from rctbot.core.driver import CLIENT
 class RoleSynchronization(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.db = CLIENT[rctbot.config.MONGO_DATABASE_NAME]
+        self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.update_volunteers.start()  # pylint: disable=no-member
 

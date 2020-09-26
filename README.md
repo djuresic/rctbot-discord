@@ -7,3 +7,11 @@
 Discord part of RCTBot, a chat bot for Retail Candidate Testers, Heroes of Newerth volunteer community position.
 
 (overhaul, work in progress)
+
+## Installation
+
+(WIP)
+
+## License
+
+Licensed under the [GNU AGPL v3](https://www.gnu.org/licenses/agpl-3.0.html) license.
