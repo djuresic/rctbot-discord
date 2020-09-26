@@ -60,4 +60,3 @@ class BugReportManager:
         if result.acknowledged:
             return f'Inserted report for {report.reporter["nickname"]}.'
         return f'Could not insert report for {report.reporter["nickname"]}.'
-

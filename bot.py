@@ -184,4 +184,3 @@ if __name__ == "__main__":
         await bot.process_commands(message)
 
     bot.run()
-
