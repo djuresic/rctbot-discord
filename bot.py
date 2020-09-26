@@ -38,7 +38,7 @@ from rctbot.core import checks
 
 
 if __name__ == "__main__":
-    load_dotenv()
+    load_dotenv(".env")
     bot = rctbot.get_bot()
 
     @bot.command()
