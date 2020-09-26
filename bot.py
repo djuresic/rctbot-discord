@@ -23,7 +23,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from datetime import datetime, timezone
 
 import discord
-from dotenv import load_dotenv
+import dotenv
+
+# NOTE: WTF?
+dotenv.load_dotenv(".env")
 
 import rctbot
 from rctbot.core import checks
@@ -38,7 +41,6 @@ from rctbot.core import checks
 
 
 if __name__ == "__main__":
-    load_dotenv(".env")
     bot = rctbot.get_bot()
 
     @bot.command()
