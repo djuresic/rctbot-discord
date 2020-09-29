@@ -26,7 +26,12 @@ class RoleSynchronization(commands.Cog):
         testers = []
         senior_testers = []
         async for tester in self.testers.find(
-            {"enabled": True, "$or": [{"role": "Tester"}, {"role": "Senior"}], "discord_id": {"$not": {"$eq": None}},},
+            {
+                "consents.sync_roles": True,
+                "enabled": True,
+                "$or": [{"role": "Tester"}, {"role": "Senior"}],
+                "discord_id": {"$not": {"$eq": None}},
+            },
             {"_id": 0, "role": 1, "discord_id": 1},
         ):
             if tester["role"] != "Tester":

@@ -184,6 +184,9 @@ class TesterManager:
         document["super_id"] = super_id
         document["testing_super_id"] = testing_super_id
 
+        # NOTE: Add future consents here.
+        document["consents"] = {"sync_roles": True}
+
         result = await self.testers.insert_one(document)
         if result.acknowledged:
             return TesterManagerResult(
