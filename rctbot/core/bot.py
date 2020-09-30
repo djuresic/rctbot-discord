@@ -19,7 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import platform
 
-from discord import LoginFailure
+import discord
 from discord.ext import commands
 
 import rctbot.config
@@ -39,7 +39,11 @@ class RCTBot(commands.Bot):
     def __init__(self, *, version: str):
         self.version = version
         self.platform = platform.platform()
-        super().__init__(command_prefix=commands.when_mentioned_or(*[".", "!"]), case_insensitive=True)
+        super().__init__(
+            command_prefix=commands.when_mentioned_or(*[".", "!"]),
+            case_insensitive=True,
+            intents=discord.Intents.all(),
+        )
         self._load_extensions()
         self._remove_help()
 
@@ -73,9 +77,9 @@ class RCTBot(commands.Bot):
     def run(self):  # pylint: disable=arguments-differ
         try:
             super().run(rctbot.config.DISCORD_TOKEN)
-        except LoginFailure:
+        except discord.LoginFailure:
             print("Login failure! Re-check the config file and your Discord bot token.")
-            raise LoginFailure
+            raise discord.LoginFailure
 
     async def close(self):
         return await super().close()
