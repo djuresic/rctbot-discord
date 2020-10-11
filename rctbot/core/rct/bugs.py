@@ -18,7 +18,7 @@ class BugReport:
     description: str = None
     version: str = None
     build_date: str = None
-    created_at: datetime = datetime.now(timezone.utc)
+    created_at: datetime = datetime.now(timezone.utc)  # FIXME: something's wrong, need to read the docs
     # created_at: datetime = field(default_factory=datetime.now(timezone.utc))
 
 

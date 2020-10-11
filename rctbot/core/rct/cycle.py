@@ -47,6 +47,7 @@ class CycleManager:
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         self.testing_bugs = self.db[rctbot.config.MONGO_TESTING_BUGS_COLLECTION_NAME]
         self.testing_cycles = self.db[rctbot.config.MONGO_TESTING_CYCLES_COLLECTION_NAME]
+        self.testing_extra = self.db[rctbot.config.MONGO_TESTING_EXTRA_COLLECTION_NAME]
 
         self.values = CycleValues()
 
@@ -88,6 +89,7 @@ class CycleManager:
             length=None
         )
         bugs = await (self.testing_bugs.find({})).to_list(length=None)
+        extra = await (self.testing_extra.find({})).to_list(length=None)
         if len(games) == 0 or len(testers) == 0:
             # TODO: Result
             print("len games testers 0")
@@ -102,6 +104,7 @@ class CycleManager:
                 "_id": id_,
                 "games": games,
                 "bugs": bugs,
+                "extra": extra,
                 "participants": testers,
                 "start": start,
                 "end": datetime.now(timezone.utc),
@@ -111,7 +114,8 @@ class CycleManager:
             return False
         result_g = await self.testing_games.delete_many({})
         result_b = await self.testing_bugs.delete_many({})
-        return result_g.acknowledged and result_b.acknowledged
+        result_e = await self.testing_extra.delete_many({})
+        return result_g.acknowledged and result_b.acknowledged and result_e.acknowledged
 
     async def new_cycle(self):
         values = {
@@ -216,6 +220,15 @@ class CycleManager:
                 await self.testers.update_one({"account_id": tester["account_id"]}, {"$inc": {"rank_id": -1}})
 
     async def update_tokens(self):
+        """Update tokens for all testers.
+
+        Updates both tokens and extra fields in the database.
+        """
+        extra_docs = await (self.testing_extra.find({})).to_list(length=None)
+        extra = collections.Counter()
+        for document in extra_docs:
+            extra.update({document["tester"]["account_id"]: document["amount"]})
+
         async for tester in self.testers.find({}):
             games = tester["games"]
             bonus = math.floor((tester["total_games"] / 50) - tester["bonuses_given"])
@@ -230,7 +243,7 @@ class CycleManager:
                 * (self.values.multiplier[tester["rank_id"]] + self.values.artificial)
                 + bonus * self.values.fifty
                 + tester["bugs"] * self.values.bug
-                + (tester["extra"])
+                + (extra[tester["account_id"]])
             )
             await self.testers.update_one(
                 {"account_id": tester["account_id"]}, {"$set": {"tokens": tokens}},

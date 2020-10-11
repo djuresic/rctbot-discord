@@ -31,6 +31,7 @@ class RCTStats(commands.Cog):
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         self.testing_bugs = self.db[rctbot.config.MONGO_TESTING_BUGS_COLLECTION_NAME]
+        self.testing_extra = self.db[rctbot.config.MONGO_TESTING_EXTRA_COLLECTION_NAME]
         self.cycle_values = CycleValues()
 
     # TODO: Match stats command.
@@ -226,6 +227,8 @@ class RCTStats(commands.Cog):
             rank_id -= 1
 
         final_multiplier = self.cycle_values.multiplier[rank_id] + self.cycle_values.artificial
+        extra = await (self.testing_extra.find({"tester.account_id": user["account_id"]})).to_list(length=None)
+        extra = sum([document["amount"] for document in extra])
         tokens = round(
             (
                 games * self.cycle_values.game
@@ -236,7 +239,7 @@ class RCTStats(commands.Cog):
             * final_multiplier
             + current_bonus * self.cycle_values.fifty
             + bugs * self.cycle_values.bug
-            + (user["extra"])  # TODO: Extra
+            + extra
         )
 
         bonuses = []

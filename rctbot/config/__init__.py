@@ -26,10 +26,42 @@ from rctbot.core.driver import DatabaseHandler
 # Detect if deployed on Heroku. NOTE: This is not currently in use.
 HEROKU_DEPLOYED = bool("DYNO" in os.environ)
 
-# TODO: WIP
-class DiscordConfiguration:
-    def __init__(self, db):
-        pass
+# TODO: WIP; Partial low priority
+
+
+class PartialConfiguration:  # name isn't great tbh KEKW
+    pass
+
+
+class DiscordConfiguration(PartialConfiguration):
+    """
+    RCTBot Discord configuration.
+    """
+
+    def __init__(self, document: dict):
+        self.token = os.getenv("DISCORD_TOKEN", None)
+        self.home = document["DISCORD"]["RCT_GUILD_ID"]
+
+
+class MongoDBConfiguration(PartialConfiguration):
+    """
+    RCTBot MongoDB configuration.
+    """
+
+    rct = "rct"
+    testers = "testers"
+    games = "testing_games"
+    bugs = "testing_bugs"
+    cycles = "testing_cycles"
+    extra = "testing_extra"
+
+
+class HoNConfiguration(PartialConfiguration):
+    """
+    RCTBot HoN configuration.
+    """
+
+    pass
 
 
 class Configuration:
@@ -37,11 +69,15 @@ class Configuration:
     RCTBot configuration.
     """
 
+    release_stage = None
+
     db = DatabaseHandler.client["rctbot"]
     collection = db["config"]
     document = {}
 
-    release_stage = None
+    discord = None
+    mongodb = None
+    hon = None
 
     @staticmethod
     def load(release_stage: str) -> None:
@@ -59,6 +95,10 @@ class Configuration:
         Configuration.release_stage = release_stage
         Configuration.document = document
 
+        Configuration.discord = DiscordConfiguration(document)
+        Configuration.mongodb = MongoDBConfiguration()
+        Configuration.hon = HoNConfiguration()
+
     @staticmethod
     def reload() -> None:
         """Reload current configuration.
@@ -70,6 +110,8 @@ class Configuration:
         if document is None:
             raise Exception("No configuration found!")
         Configuration.document = document
+
+        # TODO: Partial.
 
 
 config = Configuration
@@ -125,6 +167,7 @@ MONGO_TESTING_PLAYERS_COLLECTION_NAME = "testers"
 MONGO_TESTING_GAMES_COLLECTION_NAME = "testing_games"
 MONGO_TESTING_CYCLES_COLLECTION_NAME = "testing_cycles"
 MONGO_TESTING_BUGS_COLLECTION_NAME = "testing_bugs"
+MONGO_TESTING_EXTRA_COLLECTION_NAME = "testing_extra"
 
 
 # TODO: Auto search for uploaded emojis in shared servers.

@@ -18,10 +18,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 from rctbot.core.rct.bugs import BugReport, BugReportManager
 from rctbot.core.rct.cycle import CycleValues, CycleManager, CycleManagerResult
+from rctbot.core.rct.extra import ExtraTokens, ExtraTokensManager
 from rctbot.core.rct.match import MatchManipulator
 from rctbot.core.rct.models import ActivityRank, Perks, Role
 from rctbot.core.rct.notes import TestingNotes
 from rctbot.core.rct.tester import TesterManager, TesterManagerResult
+
+# TODO: Inherit from BaseManager, BaseManagerResult?
 
 # from rctbot.core.rct import *
 __all__ = [
@@ -30,6 +33,8 @@ __all__ = [
     "CycleValues",
     "CycleManager",
     "CycleManagerResult",
+    "ExtraTokens",
+    "ExtraTokensManager",
     "MatchManipulator",
     "ActivityRank",
     "Perks",
