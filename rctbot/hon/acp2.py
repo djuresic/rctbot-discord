@@ -2,7 +2,7 @@ import asyncio
 import string
 import secrets
 import re
-import ssl
+import ssl as ssl_module
 
 import discord
 import aiohttp
@@ -19,7 +19,7 @@ from rctbot.hon.utils import get_avatar
 # TODO: Rearrange methods.
 # TODO: Verify perks addition.
 
-SSL_CONTEXT = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+SSL_CONTEXT = ssl_module.create_default_context(purpose=ssl_module.Purpose.CLIENT_AUTH)
 SSL_CONTEXT.load_cert_chain(certfile="lightwalker.crt.pem", keyfile="lightwalker.key.pem")
 
 # FIXME: Not singleton pattern.
@@ -28,7 +28,7 @@ class ACPClient:
 
     ACP_CONFIG = {
         "ac": {"base_url": f"https://{rctbot.config.HON_ACP_AC_DOMAIN}", "color": 0x3CC03C},
-        "rc": {"base_url": f"http://{rctbot.config.HON_ACP_RC_DOMAIN}", "color": 0xFF6600},
+        "rc": {"base_url": f"https://{rctbot.config.HON_ACP_RC_DOMAIN}", "color": 0xFF6600},
         "tc": {"base_url": f"http://{rctbot.config.HON_ACP_TC_DOMAIN}", "color": 0x0059FF},
     }
 
@@ -41,7 +41,7 @@ class ACPClient:
         self.masterserver = masterserver
         self.url = self.ACP_CONFIG[masterserver]["base_url"]
         self.ssl = bool(self.url.startswith("https://"))
-        if self.ssl:
+        if self.ssl and masterserver == "ac":
             self.ssl = SSL_CONTEXT
         self.color = self.ACP_CONFIG[masterserver]["color"]
         self.admin = admin
