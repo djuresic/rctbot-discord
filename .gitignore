@@ -8,3 +8,4 @@ rctbot/config/production*
 __pycache__
 *.json
 *.html
+*.pem

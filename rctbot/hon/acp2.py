@@ -2,6 +2,7 @@ import asyncio
 import string
 import secrets
 import re
+import ssl
 
 import discord
 import aiohttp
@@ -17,6 +18,9 @@ from rctbot.hon.utils import get_avatar
 
 # TODO: Rearrange methods.
 # TODO: Verify perks addition.
+
+SSL_CONTEXT = ssl.create_default_context(purpose=ssl.Purpose.CLIENT_AUTH)
+SSL_CONTEXT.load_cert_chain(certfile="lightwalker.crt.pem", keyfile="lightwalker.key.pem")
 
 # FIXME: Not singleton pattern.
 class ACPClient:
@@ -37,6 +41,8 @@ class ACPClient:
         self.masterserver = masterserver
         self.url = self.ACP_CONFIG[masterserver]["base_url"]
         self.ssl = bool(self.url.startswith("https://"))
+        if self.ssl:
+            self.ssl = SSL_CONTEXT
         self.color = self.ACP_CONFIG[masterserver]["color"]
         self.admin = admin
         self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
