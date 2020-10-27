@@ -127,7 +127,11 @@ class Lookup(commands.Cog):
         embed.add_field(name="Clan Name", value=clan_name, inline=True)
         embed.add_field(name="Clan Rank", value=clan_rank, inline=True)
 
-        embed.add_field(name="Level", value=data[b"level"].decode(), inline=True)
+        embed.add_field(
+            name="Level",
+            value=(data[b"level"].decode() if not isinstance(data[b"level"], int) else data[b"level"]),
+            inline=True,
+        )
         embed.add_field(name="Level Experience", value=data[b"level_exp"], inline=True)
 
         if upgrades:
