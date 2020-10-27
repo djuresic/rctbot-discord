@@ -9,6 +9,16 @@ import rctbot.config
 class Moderation(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.banned_domains = ["bit.ly"]
+
+    @commands.Cog.listener("on_member_update")
+    async def kick_username_links(self, before, after):
+        if after.display_name != before.display_name:
+            display_name = after.display_name.replace(" ", "")
+            for domain in self.banned_domains:
+                if domain in display_name and "/" in display_name:
+                    await after.kick(reason=f"Banned URL in display name: {display_name}")
+                    break
 
     @commands.command(aliases=["clear", "delete"])
     @commands.guild_only()
