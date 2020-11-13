@@ -1,6 +1,7 @@
 # (c) 2020 ziep
 
 import os
+import json
 import random
 import asyncio
 import datetime
@@ -10,6 +11,7 @@ from discord.ext import commands
 import pymongo
 
 import rctbot.config
+from rctbot.core import checks
 from rctbot.core.driver import AsyncDatabaseHandler, DatabaseHandler
 from rctbot.core.utils import chunks, ordinal
 from rctbot.core.paginator import EmbedPaginatorSession
@@ -60,7 +62,8 @@ class TriviaGame(commands.Cog):
         await ctx.send_help("trivia")
 
     @trivia.command()
-    @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))  # Roles can be names or IDs.
+    # Roles can be names or IDs.
+    @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
     async def setdate(self, ctx):
         await ctx.send("Enter the date in the following format: dd/mm/yyyy  hh:mm")
 
@@ -133,6 +136,7 @@ class TriviaGame(commands.Cog):
                     and not m.content.startswith(self.bot.user.mention)
                     and m.author.id == ctx.author.id
                     and 1 <= int(m.content) <= 50
+                    and m.channel == ctx.channel
                 )
             except:
                 return False
@@ -156,6 +160,7 @@ class TriviaGame(commands.Cog):
                     and not m.content.startswith(self.bot.user.mention)
                     and m.author.id == ctx.author.id
                     and 10 <= int(m.content) <= 360
+                    and m.channel == ctx.channel
                 )
             except:
                 return False
@@ -175,6 +180,7 @@ class TriviaGame(commands.Cog):
                     and not m.content.startswith(self.bot.user.mention)
                     and m.author.id == ctx.author.id
                     and 1 <= int(m.content) <= 120
+                    and m.channel == ctx.channel
                 )
             except:
                 return False
@@ -194,6 +200,7 @@ class TriviaGame(commands.Cog):
                     and not m.content.startswith(self.bot.user.mention)
                     and m.author.id == ctx.author.id
                     and 1 <= int(m.content) <= 10
+                    and m.channel == ctx.channel
                 )
             except:
                 return False
@@ -425,6 +432,7 @@ class TriviaGame(commands.Cog):
                     and not m.content[0] in self.bot_prefixes
                     and not m.content.startswith("//")
                     and not m.content.startswith(self.bot.user.mention)
+                    and m.channel == self.channel
                 )
 
             try:
@@ -634,7 +642,7 @@ class TriviaGame(commands.Cog):
         )
 
         def confirm_check(msg):
-            return msg.author.id == ctx.author.id
+            return msg.author.id == ctx.author.id and msg.channel == ctx.channel
 
         await ctx.send(embed=embed)
         try:
