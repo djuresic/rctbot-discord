@@ -62,20 +62,6 @@ class Development(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def ta(self, ctx, masterserver="ac"):
-        async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
-            await ctx.send(await acp.user_test_access(8198846))
-            await ctx.send(await acp.toggle_test_access(8198846))
-            await ctx.send(await acp.user_test_access(8198846))
-            await ctx.send(await acp.toggle_test_access(8198846))
-            await ctx.send(await acp.user_test_access(8198846))
-            await ctx.send(await acp.toggle_test_access(8198846))
-            await ctx.send(await acp.user_test_access(8198846))
-            await ctx.send(await acp.toggle_test_access(8198846))
-            await ctx.send(await acp.user_test_access(8198846))
-
-    @commands.command()
-    @commands.is_owner()
     async def t1(self, ctx):
         async with MatchManipulator() as mp:
             match_ids = [i for i in range(25063, 25165)]
