@@ -385,7 +385,6 @@ class TriviaGame(commands.Cog):
     async def game(self):
         while self.current_round < self.rounds:
             scoreboard_msg = ""
-            leaderboard_msg = ""
             next_round_msg = await self.channel.send(f"Next round starting in {self.pause}..")
             await asyncio.sleep(1)
             i = 1
@@ -678,7 +677,7 @@ class TriviaGame(commands.Cog):
         await asyncio.sleep(self.delay)
 
     async def do_guess(self, guess):
-        return guess.casefold() in self.answers
+        return guess.lower() in [a.lower() for a in self.answers]
 
     async def get_prefixes(self, ctx):
         self.bot_prefixes = [(x).replace(self.bot.user.mention, "") for x in (await self.bot.get_prefix(ctx.message))]
@@ -687,7 +686,7 @@ class TriviaGame(commands.Cog):
         q_doc = random.choice(TriviaGame.QUESTIONS)
         TriviaGame.QUESTIONS.remove(q_doc)
         self.question = q_doc["question"]
-        self.answers = [s.casefold() for s in q_doc["answers"]]
+        self.answers = q_doc["answers"]
 
     def round_reset(self):
         self.question = ""
