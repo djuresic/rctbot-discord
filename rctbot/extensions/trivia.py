@@ -370,8 +370,10 @@ class TriviaGame(commands.Cog):
             for index, (key, value) in enumerate(sorted_scoreboard.items()):
                 if index < 3 and self.current_round >= self.rounds:
                     scoreboard_msg += f"{podium[index]}{key}: **{value}**\n"
-                else:
+                elif index < 10:
                     scoreboard_msg += f"{key}: **{value}**\n"
+                else:
+                    break
             if not scoreboard_msg:
                 scoreboard_msg = "\u2063"
             embed = discord.Embed(title="Scoreboard")
