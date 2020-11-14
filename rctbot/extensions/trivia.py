@@ -1,7 +1,6 @@
 # (c) 2020 ziep
 
 import os
-import json
 import random
 import asyncio
 import datetime
@@ -11,7 +10,6 @@ from discord.ext import commands
 import pymongo
 
 import rctbot.config
-from rctbot.core import checks
 from rctbot.core.driver import AsyncDatabaseHandler, DatabaseHandler
 from rctbot.core.utils import chunks, ordinal
 from rctbot.core.paginator import EmbedPaginatorSession
@@ -30,8 +28,10 @@ ICONS = {
 
 
 class TriviaGame(commands.Cog):
+    """Trivia game class."""
+
     db = DatabaseHandler.client["Trivia"]
-    QUESTIONS = [x for x in (db["QUESTIONS"].find({"enabled": True}))]
+    QUESTIONS = [x for x in db["QUESTIONS"].find({"enabled": True})]
 
     def __init__(self, bot):
         self.bot = bot
@@ -81,6 +81,7 @@ class TriviaGame(commands.Cog):
     @trivia.command()
     @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
     async def quick(self, ctx):
+        self.game_reset()
         await self.get_prefixes(ctx)
         self.channel = ctx.channel
         self.delay = 5.0
@@ -110,7 +111,7 @@ class TriviaGame(commands.Cog):
         """Starts a game of trivia"""
         self.delay = delay
         self.game_reset()
-        if type(channel) == discord.channel.TextChannel:
+        if isinstance(channel, discord.channel.TextChannel):
             self.channel = channel
         else:
             self.channel = ctx.channel
@@ -149,7 +150,7 @@ class TriviaGame(commands.Cog):
         # check if there are enough questions left
         if len(TriviaGame.QUESTIONS) < self.rounds:
             TriviaGame.QUESTIONS = await (self.db["QUESTIONS"].find({"enabled": True})).to_list(length=None)
-        await ctx.send("Time per round in seconds (10-360)")
+        await ctx.send("Time per round in seconds (5-360)")
 
         def len_check(m):
             try:
@@ -159,7 +160,7 @@ class TriviaGame(commands.Cog):
                     and not m.content.startswith("//")
                     and not m.content.startswith(self.bot.user.mention)
                     and m.author.id == ctx.author.id
-                    and 10 <= int(m.content) <= 360
+                    and 5 <= int(m.content) <= 360
                     and m.channel == ctx.channel
                 )
             except:
@@ -219,10 +220,10 @@ class TriviaGame(commands.Cog):
                 await self.record_stats()
             except asyncio.CancelledError:
                 pass
-                """ try:
-                    await self.record_stats()
-                except:
-                    print("Failed to record stats for cancelled game")"""
+                # try:
+                #    await self.record_stats()
+                # except:
+                #    print("Failed to record stats for cancelled game")
         else:
             await ctx.send("Aborting..")
 
@@ -261,7 +262,7 @@ class TriviaGame(commands.Cog):
         """Stats for a player"""
         if not member:
             member = ctx.author
-        if (player_stats := await self.fetch_player_stats(member)) :
+        if (player_stats := await self.fetch_player_stats(member)) :  # pyint: disable=superfluous-parens
             embed = discord.Embed(title="Player Stats", timestamp=ctx.message.created_at)
             embed.add_field(name="Games", value=player_stats["total_games"])
             embed.add_field(name="Points", value=player_stats["points"])
@@ -327,7 +328,7 @@ class TriviaGame(commands.Cog):
             embed = discord.Embed(title=title, type="rich", color=0xFF6600, timestamp=ctx.message.created_at,)
             embed.add_field(name="Rank", value=placements)
             embed.add_field(name="Player", value=names)
-            embed.add_field(name=key, value=amounts)
+            embed.add_field(name=title.split(" ")[0], value=amounts)
 
             embed.set_author(name="Heroes of Newerth Trivia", icon_url="https://i.imgur.com/q8KmQtw.png")
             embed.set_thumbnail(url=icon)
@@ -336,51 +337,6 @@ class TriviaGame(commands.Cog):
 
         session = EmbedPaginatorSession(self.bot, ctx, *embeds)
         await session.run()
-
-    """ @commands.command()
-    async def t(self, ctx, times: int = 1):
-        player_stats_collection = self.db["PLAYERSTATS"]
-        for _ in range(times):
-            ident = random.randint(266, 100000)
-            points = random.randint(0, 25)
-            wrong = random.randint(0, 25)
-            total_rounds = random.randint(2, 36)
-            total_games = points+wrong
-            await player_stats_collection.insert_one({"_id": ident, "active": True, "points": points, "wrong": wrong, "total_rounds":
-                                                      total_rounds, "total_games": total_games})
-            return
-            embed = discord.Embed(title="LEADERBOARD",
-                                  timestamp=datetime.datetime.now())
-        leaderboard_points = await self.fetch_leaderboard()
-        leaderboard_games = await self.fetch_leaderboard(attr="total_games")
-        leaderboard_rounds = await self.fetch_leaderboard(attr="total_rounds")
-        points = " ,".join(
-            [f"{ordinal(i+1)} <@!{x['_id']}>\n" for i, x in enumerate(leaderboard_points)]).replace(",", "")
-        points_num = " ,".join(
-            [f"**{x['points']}**\n" for i, x in enumerate(leaderboard_points)]).replace(",", "")
-        games = " ,".join(
-            [f"{ordinal(i+1)} <@!{x['_id']}>\n" for i, x in enumerate(leaderboard_games)]).replace(",", "")
-        games_num = " ,".join(
-            [f"**{x['total_games']}**\n" for i, x in enumerate(leaderboard_points)]).replace(",", "")
-        rounds = " ,".join(
-            [f"{ordinal(i+1)} <@!{x['_id']}>\n" for i, x in enumerate(leaderboard_rounds)]).replace(",", "")
-        rounds_num = " ,".join(
-            [f"**{x['total_rounds']}**\n" for i, x in enumerate(leaderboard_points)]).replace(",", "")
-        embed.add_field(name="Points", value=points)
-        embed.add_field(name="\u2063", value=points_num)
-        embed.add_field(name="\u2063", value="\u2063")
-        embed.add_field(name="Games", value=games)
-        embed.add_field(name="\u2063", value=games_num)
-        embed.add_field(name="\u2063", value="\u2063")
-        embed.add_field(name="Rounds", value=rounds)
-        embed.add_field(name="\u2063", value=rounds_num)
-        embed.add_field(name="\u2063", value="\u2063")
-        embed.set_author(name="Heroes of Newerth Trivia",
-                         icon_url="https://i.imgur.com/q8KmQtw.png")
-        embed.set_footer(text="Last updated ",)
-        embed.set_thumbnail(
-            url=ICONS["ladder"])
-        await ctx.send(embed=embed) """
 
     async def game(self):
         while self.current_round < self.rounds:
@@ -397,10 +353,17 @@ class TriviaGame(commands.Cog):
             try:
                 await self.round_fut
             except asyncio.TimeoutError:
-                if type(self.answers) == list:
-                    await self.channel.send(f"The answer was **{self.answers[0]}**")
-                elif type(self.answers) == str:
-                    await self.channel.send(f"The answer was **{self.answers}**")
+                if isinstance(self.answers, list):
+                    correct_answer = ", ".join(self.answers)
+                    if len(self.answers) > 1:
+                        before_answer_str = "Answers were"
+                    else:
+                        before_answer_str = "The answer was"
+                elif isinstance(self.answers, str):
+                    correct_answer = self.answers
+                    before_answer_str = "The answer was"
+
+                await self.channel.send(f"**Time's up!** {before_answer_str}: **{correct_answer}**")
                 await self.save_round_stats()
                 self.round_reset()
             sorted_scoreboard = dict(sorted(self.scoreboard.items(), key=lambda x: x[1], reverse=True))
@@ -422,7 +385,9 @@ class TriviaGame(commands.Cog):
 
         self.current_round += 1
         await self.get_question()
-        await self.channel.send(f"Round {self.current_round}/{self.rounds}: {self.question}")
+        await self.channel.send(
+            f"Round {self.current_round}/{self.rounds}: **{discord.utils.escape_markdown(self.question)}**"
+        )
         while True:
 
             def check(m):
@@ -438,12 +403,22 @@ class TriviaGame(commands.Cog):
                 msg = await self.bot.wait_for("message", timeout=60.0, check=check)
                 if not self.has_answered.count(msg.author) >= self.attempts:
                     if await self.do_guess(msg.content.lower()):
-                        if type(self.answers) == list:
-                            await self.channel.send(
-                                f"{msg.author.mention} correct! The answer was **{self.answers[0]}**"
+                        if isinstance(self.answers, list):
+                            correct_answer = ", ".join(self.answers)
+                            if len(self.answers) > 1:
+                                before_answer_str = "Answers were"
+                            else:
+                                before_answer_str = "The answer was"
+                        elif isinstance(self.answers, str):
+                            correct_answer = self.answers
+                            before_answer_str = "The answer was"
+
+                        await self.channel.send(
+                            (
+                                f"**Correct**, {msg.author.mention}!"
+                                f" {before_answer_str}: **{discord.utils.escape_markdown(correct_answer)}**"
                             )
-                        elif type(self.answers) == str:
-                            await self.channel.send(f"{msg.author.mention} correct! The answer was **{self.answers}**")
+                        )
                         self.has_answered.append(msg.author)
                         # await msg.add_reaction("✅") Not really necessary imho
                         if not msg.author.mention in self.scoreboard.keys():
@@ -491,7 +466,7 @@ class TriviaGame(commands.Cog):
 
         player_stats_collection = self.db["PLAYERSTATS"]
         game_stats_collection = self.db["GAMESTATS"]
-        for key in self.player_stats.keys():
+        for key in self.player_stats:
             player = self.player_stats[key]
             if not "points" in player.keys():
                 player["points"] = 0
@@ -583,7 +558,7 @@ class TriviaGame(commands.Cog):
             try:
                 ldb_msg = await ldb_channel.fetch_message(TriviaConfig.document["leaderboard_msg_id"])
                 lbd_msg_exists = True
-            except (discord.NotFound, discord.Forbidden, discord.HTTPException):
+            except (discord.NotFound, discord.Forbidden, discord.HTTPException, AttributeError):
                 lbd_msg_exists = False
 
         embed = discord.Embed(title="LEADERBOARD", type="rich", color=0xFF6600, timestamp=datetime.datetime.now())
@@ -677,7 +652,11 @@ class TriviaGame(commands.Cog):
         await asyncio.sleep(self.delay)
 
     async def do_guess(self, guess):
-        return guess.lower() in [a.lower() for a in self.answers]
+        return (
+            guess.lower() in [a.lower() for a in self.answers]
+            if isinstance(self.answers, list)
+            else guess.lower() in self.answers.lower()
+        )
 
     async def get_prefixes(self, ctx):
         self.bot_prefixes = [(x).replace(self.bot.user.mention, "") for x in (await self.bot.get_prefix(ctx.message))]
