@@ -11,8 +11,6 @@ from rctbot.core.driver import AsyncDatabaseHandler
 
 from rctbot.extensions.trivia_config import TriviaConfig
 
-# from rctbot.extensions.trivia import TriviaGame
-
 
 os.environ["PYTHONASYNCIODEBUG"] = "1"
 
@@ -56,7 +54,7 @@ class TriviaAdmin(commands.Cog):
         go = True
 
         def check(msg):
-            return msg.author.id == ctx.author.id
+            return msg.author.id == ctx.author.id and msg.channel == ctx.channel
 
         if not q:
             await ctx.send("Enter a question, for example: 'What is the square root of 4?'")
@@ -152,7 +150,7 @@ class TriviaAdmin(commands.Cog):
                         f'**ID**          : {q["_id"]}\n'
                         f'**Enabled**     : {q["enabled"]}\n'
                         f'**Question**    : {q["question"]}\n'
-                        f'**Answers**     : {q["answers"]}\n'
+                        f'**Answers**     : {q["answers"]} -> {type(q["answers"]).__name__}\n'
                         f'**Category**    : {q["category"]}\n'
                         f'**Hint**        : {q["hint"]}\n'
                     ),
@@ -188,7 +186,7 @@ class TriviaAdmin(commands.Cog):
                     f'**ID**          : {question_doc["_id"]}\n'
                     f'**Enabled**     : {question_doc["enabled"]}\n'
                     f'**Question**    : {question_doc["question"]}\n'
-                    f'**Answers**     : {question_doc["answers"]}\n'
+                    f'**Answers**     : {question_doc["answers"]} -> {type(question_doc["answers"]).__name__}\n'
                     f'**Category**    : {question_doc["category"]}\n'
                     f'**Hint**        : {question_doc["hint"]}\n'
                 ),
@@ -199,7 +197,7 @@ class TriviaAdmin(commands.Cog):
                     f'**ID**          : {prepare_doc["_id"]}\n'
                     f'**Enabled**     : {prepare_doc["enabled"]}\n'
                     f'**Question**    : {prepare_doc["question"]}\n'
-                    f'**Answers**     : {prepare_doc["answers"]}\n'
+                    f'**Answers**     : {prepare_doc["answers"]} -> {type(prepare_doc["answers"]).__name__}\n'
                     f'**Category**    : {prepare_doc["category"]}\n'
                     f'**Hint**        : {prepare_doc["hint"]}\n'
                 ),
