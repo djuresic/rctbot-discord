@@ -54,8 +54,10 @@ class RCTBot(commands.Bot):
                 for entry in it:
                     if entry.name.endswith(".py") and entry.is_file():
                         bot_module = entry.name[:-3]
-                        if bot_module not in rctbot.config.DISABLED_EXTENSIONS:
-                            rctbot.config.STARTUP_EXTENSIONS.append(f"{extension_directory}.{bot_module}")
+                    else:
+                        bot_module = entry.name
+                    if bot_module not in rctbot.config.DISABLED_EXTENSIONS:
+                        rctbot.config.STARTUP_EXTENSIONS.append(f"{extension_directory}.{bot_module}")
 
         for bot_extension in rctbot.config.STARTUP_EXTENSIONS:
             try:

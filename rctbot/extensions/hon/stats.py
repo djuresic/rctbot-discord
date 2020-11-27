@@ -304,13 +304,3 @@ class HoNStats(commands.Cog):
                 delete_after=8.0,
             )
         # raise error
-
-
-def setup(bot):
-    bot.add_cog(HoNStats(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    bot.remove_cog(HoNStats(bot))
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

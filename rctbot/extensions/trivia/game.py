@@ -9,12 +9,11 @@ import discord
 from discord.ext import commands
 import pymongo
 
-import rctbot.config
 from rctbot.core.driver import AsyncDatabaseHandler, DatabaseHandler
 from rctbot.core.utils import chunks, ordinal
 from rctbot.core.paginator import EmbedPaginatorSession
 
-from rctbot.extensions.trivia_config import TriviaConfig
+from rctbot.extensions.trivia.config import TriviaConfig
 
 os.environ["PYTHONASYNCIODEBUG"] = "1"
 # pylint: disable=no-member
@@ -96,7 +95,7 @@ class TriviaGame(commands.Cog):
                 await self.game_fut
                 await self.record_stats()
             except asyncio.CancelledError:
-                pass
+                pass  # pylint: disable=unnecessary-pass
                 """ try:
                     await self.record_stats()
                 except:
@@ -705,13 +704,3 @@ class TriviaGame(commands.Cog):
 
     def cog_unload(self):
         self.game_reset()
-
-
-def setup(bot):
-    bot.add_cog(TriviaGame(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    bot.remove_cog(TriviaGame(bot))
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

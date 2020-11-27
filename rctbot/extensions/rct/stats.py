@@ -21,7 +21,7 @@ from rctbot.hon.masterserver import Client
 from rctbot.hon.portal import VPClient
 from rctbot.hon.acp2 import ACPClient
 from rctbot.hon.utils import get_name_color, get_avatar
-from rctbot.extensions.rctmatchtools import MatchTools
+from rctbot.extensions.rct.matchtools import MatchTools
 
 
 class RCTStats(commands.Cog):
@@ -508,11 +508,6 @@ class RCTStats(commands.Cog):
             },
         }
 
-        # TODO: yikes
-        async def ordinal(n):
-            suffix = "th" if 4 <= n % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(n % 10, "th")
-            return f"{n}{suffix}"
-
         # This cycle. TODO: fucking yikes
         seconds = user["seconds"]
         dhms = ""
@@ -570,12 +565,12 @@ class RCTStats(commands.Cog):
             embed.add_field(name="Unconfirmed games", value=unconfirmed_games, inline=True)
             # embed.add_field(name=u"\u2063", value=u"\u2063", inline=True)
             embed.add_field(
-                name="Games", value=f'{user["games"]} ({await ordinal(user["ladder"]["games"])})', inline=True,
+                name="Games", value=f'{user["games"]} ({ordinal(user["ladder"]["games"])})', inline=True,
             )
         if enabled:
             embed.add_field(
                 name="Total games",
-                value=f'{user["total_games"]} ({await ordinal(user["ladder"]["total_games"])})',
+                value=f'{user["total_games"]} ({ordinal(user["ladder"]["total_games"])})',
                 inline=True,
             )
         else:
@@ -585,12 +580,12 @@ class RCTStats(commands.Cog):
         embed.add_field(name="Total game time", value=gametime_total, inline=True)
         if enabled:
             embed.add_field(
-                name="Bug reports", value=f'{user["bugs"]} ({await ordinal(user["ladder"]["bugs"])})', inline=True,
+                name="Bug reports", value=f'{user["bugs"]} ({ordinal(user["ladder"]["bugs"])})', inline=True,
             )
         if enabled:
             embed.add_field(
                 name="Total bug reports",
-                value=f'{user["total_bugs"]} ({await ordinal(user["ladder"]["total_bugs"])})',
+                value=f'{user["total_bugs"]} ({ordinal(user["ladder"]["total_bugs"])})',
                 inline=True,
             )
         else:
@@ -599,9 +594,7 @@ class RCTStats(commands.Cog):
             )
         if enabled:
             embed.add_field(
-                name="Tokens earned",
-                value=f'{user["tokens"]} ({await ordinal(user["ladder"]["tokens"])})',
-                inline=True,
+                name="Tokens earned", value=f'{user["tokens"]} ({ordinal(user["ladder"]["tokens"])})', inline=True,
             )
 
             if requester_name.lower() == user["nickname"].lower():
@@ -960,13 +953,3 @@ class RCTStats(commands.Cog):
 
         except:
             await message.delete()
-
-
-def setup(bot):
-    bot.add_cog(RCTStats(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    bot.remove_cog(RCTStats(bot))
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

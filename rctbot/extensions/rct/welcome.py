@@ -97,13 +97,3 @@ class RCTWelcome(commands.Cog):
             text="And another one!", icon_url="https://i.imgur.com/q8KmQtw.png",
         )
         await ctx.send(embed=embed)
-
-
-# pylint: disable=unused-argument
-def setup(bot):
-    bot.add_cog(RCTWelcome(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

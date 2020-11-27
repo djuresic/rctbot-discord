@@ -2,7 +2,6 @@ import aiohttp
 import discord
 from discord.ext import commands
 
-import rctbot.config
 from rctbot.core import checks
 from rctbot.core.rct import TesterManager
 from rctbot.hon.acp2 import ACPClient
@@ -122,13 +121,3 @@ class RCTUserAdmin(commands.Cog):
             await ctx.send(f"Denied **{nickname}** RCT access.")
         else:
             await ctx.send(f"Could not deny **{nickname}** RCT access!")
-
-
-# pylint: disable=unused-argument
-def setup(bot):
-    bot.add_cog(RCTUserAdmin(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

@@ -115,13 +115,3 @@ class Playtesting(commands.Cog):
             )
 
             await ctx.send(embed=embed)
-
-
-def setup(bot):
-    bot.add_cog(Playtesting(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    bot.remove_cog(Playtesting(bot))
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

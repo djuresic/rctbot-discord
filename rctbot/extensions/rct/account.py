@@ -1,3 +1,5 @@
+import asyncio
+
 import discord
 from discord.ext import commands
 
@@ -36,7 +38,7 @@ class RCTAccount(commands.Cog):
                 check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id,
                 timeout=45.0,
             )
-        except:
+        except asyncio.TimeoutError:
             return await ctx.send("You took too long. Please use the command again if you wish to continue.")
         async with ACPClient(admin=ctx.author, masterserver="rc") as acp:
             await ctx.send(
@@ -59,13 +61,3 @@ class RCTAccount(commands.Cog):
                 delete_after=8.0,
             )
         # raise error
-
-
-# pylint: disable=unused-argument
-def setup(bot):
-    bot.add_cog(RCTAccount(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

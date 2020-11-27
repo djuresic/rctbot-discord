@@ -289,13 +289,3 @@ class Leaderboard(commands.Cog):
         await ctx.send("```\n" + "\n".join(leaderboard_at_bugs[:10]) + "```")
 
         await ctx.message.delete()
-
-
-def setup(bot):
-    bot.add_cog(Leaderboard(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    bot.remove_cog(Leaderboard(bot))
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

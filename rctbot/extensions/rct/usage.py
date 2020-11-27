@@ -82,13 +82,3 @@ class HeroUsage(commands.Cog):
         for chunk in message:
             await ctx.send("\n".join(chunk))
         await ctx.send(f"Total picks: **{len(heroes)}**\nDifferent Heroes picked: **{len(counter)}**")
-
-
-def setup(bot):
-    bot.add_cog(HeroUsage(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    bot.remove_cog(HeroUsage(bot))
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

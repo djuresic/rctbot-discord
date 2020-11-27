@@ -1,7 +1,5 @@
-import discord
 from discord.ext import commands
 
-import rctbot.config
 from rctbot.core.checks import is_senior
 from rctbot.hon.acp2 import ACPClient
 
@@ -39,13 +37,3 @@ class Clan(commands.Cog):
     async def _clan_crown(self, ctx, nickname, masterserver="ac"):
         async with ACPClient(admin=ctx.author, masterserver=masterserver) as acp:
             await ctx.send(await acp.clan_crown(nickname))
-
-
-# pylint: disable=unused-argument
-def setup(bot):
-    bot.add_cog(Clan(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

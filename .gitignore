@@ -9,3 +9,5 @@ __pycache__
 *.json
 *.html
 *.pem
+data.txt
+bulkadd.py

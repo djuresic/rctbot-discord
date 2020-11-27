@@ -1,7 +1,6 @@
 import discord
 from discord.ext import commands
 
-import rctbot.config
 from rctbot.core.rct import CycleManager
 
 
@@ -76,13 +75,3 @@ class RCTCycle(commands.Cog):
         success, error = await cm.distribute_tokens()
         await ctx.send(f'Passed:\n{discord.utils.escape_markdown(success if success is not None else "0")}')
         await ctx.send(f'Failed:\n{discord.utils.escape_markdown(error if error is not None else "0")}')
-
-
-# pylint: disable=unused-argument
-def setup(bot):
-    bot.add_cog(RCTCycle(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

@@ -196,9 +196,9 @@ EMOJI_GITHUB = "<:GitHub:725437431188291674>"
 EXTENSIONS_DIRECTORIES = ["rctbot.core", "rctbot.hon", "rctbot.extensions"]
 STARTUP_EXTENSIONS = []
 if config.release_stage == "dev":
-    DISABLED_EXTENSIONS = ["__init__", "bot", "avatar", "perseverance", "manager", "spreadsheet", "rolesync"]
+    DISABLED_EXTENSIONS = ["__init__", "__pycache__", "bot", "spreadsheet", "rolesync", "paginator"]
 else:
-    DISABLED_EXTENSIONS = ["__init__"]
+    DISABLED_EXTENSIONS = ["__init__", "__pycache__", "bot"]
 LOADED_EXTENSIONS = []
 
 

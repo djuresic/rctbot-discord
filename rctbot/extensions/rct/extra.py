@@ -5,27 +5,27 @@ from discord.ext import commands
 
 import rctbot.config
 from rctbot.core import checks
-from rctbot.core.rct import BugReport, BugReportManager
+from rctbot.core.rct import ExtraTokens, ExtraTokensManager
 from rctbot.core.driver import AsyncDatabaseHandler
 
 
-class BugReports(commands.Cog):
+class ExtraTokensCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db_client = AsyncDatabaseHandler.client
         self.db = self.db_client[rctbot.config.MONGO_DATABASE_NAME]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
 
-    @commands.group(aliases=["bug", "b"])
+    @commands.group(aliases=["e"])
     @checks.is_senior()
-    async def bugs(self, ctx):
+    async def extra(self, ctx):
         pass
 
-    @bugs.command(name="add", aliases=["+"])
-    async def _bugs_add(self, ctx, nickname: str):
+    @extra.command(name="add", aliases=["+"])
+    async def _extra_add(self, ctx, nickname: str, amount: int, *reason):
         nickname = nickname.replace("\\", "")
         if not (
-            reporter := await self.testers.find_one(
+            tester := await self.testers.find_one(
                 {"nickname": nickname},
                 {
                     "_id": 0,
@@ -42,16 +42,8 @@ class BugReports(commands.Cog):
                 f"{ctx.author.mention} Could not find {discord.utils.escape_markdown(nickname)} in testers!",
                 delete_after=8.0,
             )
-        bug_report = BugReport(reporter)
-        manager = BugReportManager()
-        await ctx.send(await manager.insert(bug_report))
-
-
-# pylint: disable=unused-argument
-def setup(bot):
-    bot.add_cog(BugReports(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)
+        if len(reason := " ".join(reason)) == 0:
+            reason = None
+        extra_tokens = ExtraTokens(tester, amount, reason)
+        manager = ExtraTokensManager()
+        await ctx.send(await manager.insert(extra_tokens))

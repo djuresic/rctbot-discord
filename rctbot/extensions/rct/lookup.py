@@ -19,7 +19,9 @@ class Lookup(commands.Cog):
 
     @commands.command(aliases=["lu", "lup", "lkp", "lkup"])
     @is_senior()
-    async def lookup(self, ctx, player: Union[str, int], masterserver: str = "ac", *args):
+    async def lookup(
+        self, ctx, player: Union[str, int], masterserver: str = "ac", *args
+    ):  # pylint: disable=keyword-arg-before-vararg
         """Yes."""
         if masterserver.startswith("-"):
             args += (masterserver,)
@@ -178,13 +180,3 @@ class Lookup(commands.Cog):
 
         except asyncio.TimeoutError:
             await message.delete()
-
-
-def setup(bot):
-    bot.add_cog(Lookup(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    bot.remove_cog(Lookup(bot))
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

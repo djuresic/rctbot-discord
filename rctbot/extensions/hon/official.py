@@ -7,7 +7,6 @@ import aiohttp
 import discord
 from discord.ext import commands, tasks
 
-import rctbot.config
 from rctbot.core import checks
 from rctbot.core.driver import AsyncDatabaseHandler
 
@@ -531,13 +530,3 @@ class HoNOfficial(commands.Cog):
         await self.config_collection.update_one({}, {"$set": {"reaction_roles": reaction_roles}})
         self.synchronize.restart()  # pylint: disable=no-member
         await ctx.message.delete()
-
-
-# pylint: disable=unused-argument
-def setup(bot):
-    bot.add_cog(HoNOfficial(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

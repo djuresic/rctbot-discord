@@ -6,11 +6,9 @@ import asyncio
 import discord
 from discord.ext import commands
 
-import rctbot.config
 from rctbot.core.driver import AsyncDatabaseHandler
 
-from rctbot.extensions.trivia_config import TriviaConfig
-
+from rctbot.extensions.trivia.config import TriviaConfig
 
 os.environ["PYTHONASYNCIODEBUG"] = "1"
 
@@ -241,13 +239,3 @@ class TriviaAdmin(commands.Cog):
             await ctx.message.add_reaction("👌")
         else:
             await ctx.send(f"Couldn't find a question with ID: {question_id}")
-
-
-def setup(bot):
-    bot.add_cog(TriviaAdmin(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-def teardown(bot):
-    bot.remove_cog(TriviaAdmin(bot))
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

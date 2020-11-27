@@ -26,7 +26,7 @@ class Development(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def pgbb(self, ctx, cycle_id: int):
+    async def pgbb(self, ctx, cycle_id: int):  # pylint: disable=unused-argument
         cycle = await self.testing_cycles.find_one({"_id": cycle_id}, {"games": 1, "bugs": 1})
         await self.testing_games.insert_many(cycle["games"])
         await self.testing_bugs.insert_many(cycle["bugs"])
@@ -62,7 +62,7 @@ class Development(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def t1(self, ctx):
+    async def t1(self, ctx):  # pylint: disable=unused-argument
         async with MatchManipulator() as mp:
             match_ids = [i for i in range(25063, 25165)]
             for match_id in match_ids:
@@ -94,18 +94,18 @@ class Development(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def t5(self, ctx):
+    async def t5(self, ctx):  # pylint: disable=unused-argument
         print(rctbot.config.LIST_OF_LISTS)
 
     @commands.command()
     @commands.is_owner()
-    async def fixdid(self, ctx, member: discord.Member):
+    async def fixdid(self, ctx, member: discord.Member):  # pylint: disable=unused-argument
         async with DatabaseManager() as dbm:
             await dbm.fix_discord_id(member)
 
     @commands.command()
     @commands.is_owner()
-    async def mho(self, ctx, nickname: str = "Lightwalker", table: str = "other"):
+    async def mho(self, ctx, nickname: str = "Lightwalker", table: str = "other"):  # pylint: disable=unused-argument
         async with aiohttp.ClientSession() as session:
             gc = Client("ac", session=session)
             print(await gc.match_history_overview(nickname, table))
