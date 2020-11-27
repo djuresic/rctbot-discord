@@ -315,6 +315,7 @@ class RCTStats(commands.Cog):
             icon_url=(await get_avatar(user["account_id"])),
         )
         enabled = user["enabled"]
+        auto_reveal_tokens = user["consents"].get("auto_reveal_tokens", None)
         if enabled:
             embed.add_field(name="Games", value=f"{games} ({rnk_games})", inline=True)
             embed.add_field(name="Game Time", value=game_time, inline=True)
@@ -326,7 +327,11 @@ class RCTStats(commands.Cog):
             embed.add_field(name="Earned Tokens", value=tokens, inline=True)
 
             if requester_name.lower() == user["nickname"].lower() and requester_verified:
-                owned_tokens_message = f"React with {rctbot.config.EMOJI_GOLD_COINS} to reveal."
+                if not auto_reveal_tokens:
+                    owned_tokens_message = f"React with {rctbot.config.EMOJI_GOLD_COINS} to reveal."
+                else:
+                    async with VPClient() as portal:
+                        owned_tokens_message = await portal.get_tokens(user["account_id"])
             else:
                 owned_tokens_message = (
                     f'Available when used by {discord.utils.escape_markdown(user["nickname"])} only!'
@@ -350,7 +355,7 @@ class RCTStats(commands.Cog):
         embed.add_field(
             name="Join Date",
             value=user["joined"].get("last", user["joined"]["first"]).strftime("%A, %B %d, %Y"),
-            inline=True,
+            inline=False,
         )
         if user["signature"]["purchased"]:
             if user["signature"]["url"] != "":
@@ -366,7 +371,7 @@ class RCTStats(commands.Cog):
         stop = timeit.default_timer()
         print(stop - start)
 
-        if requester_name.lower() == user["nickname"].lower() and requester_verified:
+        if requester_name.lower() == user["nickname"].lower() and requester_verified and not auto_reveal_tokens:
             await message.add_reaction(rctbot.config.EMOJI_GOLD_COINS)
 
         # Compare reaction emojis, clear all on timeout.
