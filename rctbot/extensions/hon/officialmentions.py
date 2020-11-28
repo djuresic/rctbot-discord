@@ -1,10 +1,22 @@
 import discord
 from discord.ext import commands
 
+# TODO: Remove hardcoded and put in DB instead.
+
 
 class MentionsTemp(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.excluded_channels = [
+            776395558460981279,
+            777190927399649312,
+            776395711599607838,
+            776395734224076840,
+            776395750800228362,
+            735520263554465823,
+            735562300697608286,
+            752153227780423681,
+        ]
 
     @commands.Cog.listener("on_message")
     async def staff_mention_listener(self, message):
@@ -13,6 +25,7 @@ class MentionsTemp(commands.Cog):
             or message.guild.id != 735493943025860658
             or message.author.bot
             or len(message.mentions) < 1
+            or message.channel.id in self.excluded_channels
         ):
             return
 
