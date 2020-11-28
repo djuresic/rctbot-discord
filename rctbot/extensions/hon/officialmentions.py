@@ -31,9 +31,16 @@ class MentionsTemp(commands.Cog):
             return
 
         channel = message.guild.get_channel(735562529346158623)
-        await channel.send(
-            (
-                f"{moderator.mention}, {message.author.mention} mentioned staff in {message.channel.mention}:"
-                f" {message.content}"
-            )
+        embed = discord.Embed(
+            title="Staff mentioned!",
+            type="rich",
+            description=message.clean_content,
+            color=0x7289DA,
+            timestamp=message.created_at,
         )
+        embed.set_author(name=message.author, icon_url=message.author.avatar_url)
+        embed.add_field(name="Message", value=f"[Jump]({message.jump_url})", inline=True)
+        embed.add_field(name="Author", value=message.author.mention, inline=True)
+        embed.add_field(name="Channel", value=message.channel.mention, inline=True)
+        embed.set_footer(text=f"Author: {message.author.id} • Message: {message.id}")
+        await channel.send(moderator.mention, embed=embed)
