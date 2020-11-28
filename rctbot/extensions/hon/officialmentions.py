@@ -8,7 +8,12 @@ class MentionsTemp(commands.Cog):
 
     @commands.Cog.listener("on_message")
     async def staff_mention_listener(self, message):
-        if message.guild is None or message.guild.id != 735493943025860658 or len(message.mentions) < 1:
+        if (
+            message.guild is None
+            or message.guild.id != 735493943025860658
+            or message.author.bot
+            or len(message.mentions) < 1
+        ):
             return
 
         staff = discord.utils.get(message.guild.roles, name="Frostburn Staff")
