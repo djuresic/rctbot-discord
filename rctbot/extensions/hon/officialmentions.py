@@ -43,9 +43,9 @@ class MentionsTemp(commands.Cog):
         if not is_staff:
             return
 
-        channel = message.guild.get_channel(735562529346158623)
+        channel = message.guild.get_channel(782535231332155392)
         embed = discord.Embed(
-            title="Staff mentioned!",
+            title="Staff Mention",
             type="rich",
             description=message.clean_content,
             color=0x7289DA,
