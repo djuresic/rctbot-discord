@@ -24,7 +24,7 @@ class CycleValues:
     fifty: int = 750
     # Multipliers:
     multiplier: Tuple[float, ...] = (0.0, 0.5, 1.0, 1.25, 1.5, 1.75, 2.0, 2.5)
-    artificial: float = 3.5
+    artificial: float = 5.5
     # Game requirement per rank:
     keep: Tuple[int, ...] = (0, 1, 1, 3, 5, 7, 10, 0)
     advance: Tuple[int, ...] = (0, 3, 5, 8, 10, 12, 0, 0)
@@ -54,7 +54,7 @@ class CycleManager:
         # Match processor
         # self.mp = MatchProcessor()
 
-    async def archive_cycle(self):
+    async def archive_cycle(self, version):
         testers = await (
             self.testers.find(
                 {"enabled": True, "tokens": {"$gt": 0}},
@@ -102,12 +102,14 @@ class CycleManager:
         result = await self.testing_cycles.insert_one(
             {
                 "_id": id_,
+                "version": version,
                 "games": games,
                 "bugs": bugs,
                 "extra": extra,
                 "participants": testers,
                 "start": start,
                 "end": datetime.now(timezone.utc),
+                "artificial": CycleValues.artificial,
             }
         )
         if not result.acknowledged:

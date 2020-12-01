@@ -17,9 +17,9 @@ class RCTCycle(commands.Cog):
         pass
 
     @update.command(name="archive")
-    async def _uarchive(self, ctx):
+    async def _uarchive(self, ctx, version: str):
         cm = CycleManager()
-        await cm.archive_cycle()
+        await cm.archive_cycle(version)
         await ctx.send("**Archived** the past cycle in DB.")
 
     @update.command(name="cycle")
