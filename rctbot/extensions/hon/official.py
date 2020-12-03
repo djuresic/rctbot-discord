@@ -33,10 +33,10 @@ class EmbedCreator:
         )
         no_pings_title = "Do not ping staff or abuse Discord mentions."
         no_pings_desc = (
-            "Do not mention or DM inactive members who aren't part of the present conversation, especially"
+            "Do not mention or DM inactive members who aren't part of the present conversation. This doesn't apply if"
+            " you're mentioning someone with whom you have some kind of mutual relationship. Do not ever @"
             " Frostburn and Garena employees. Violations may lead to anything from simple mutes to permanent bans"
-            " if done consecutively and to purposefully break this rule. This doesn't apply if you're mentioning"
-            " someone with whom you have some kind of mutual relationship."
+            " if done consecutively and to purposefully break this rule."
         )
         be_polite_title = "Be polite and use common sense."
         be_polite_desc = (
