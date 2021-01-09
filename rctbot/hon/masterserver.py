@@ -59,7 +59,7 @@ class Client:
     # Authentication servers.
     hostnames = {
         "ac": "masterserver.naeu.heroesofnewerth.com",
-        "rc": "masterserver.rct.naeu.heroesofnewerth.com",
+        "rc": "masterserver.test.hon.team",
         "tc": "masterserver.sbt.naeu.heroesofnewerth.com",
     }
     ua_versions = {

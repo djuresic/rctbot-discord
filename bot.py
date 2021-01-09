@@ -2,7 +2,7 @@
 
 """
 RCTBot A simple Discord bot with some Heroes of Newerth integration.
-Copyright (C) 2020  Danijel Jurešić
+Copyright (C) 2020–2021  Danijel Jurešić
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
@@ -141,7 +141,7 @@ if __name__ == "__main__":
         description = (
             "A simple Discord bot with some Heroes of Newerth integration. Primarily intended for"
             " use by Retail Canididate Testers, Heroes of Newerth volunteer community position."
-            "\n\nCopyright © 2020 Danijel Jurešić"
+            "\n\nCopyright © 2020–2021 Danijel Jurešić"
             "\n\nThis program is free software: you can redistribute it and/or modify"
             " it under the terms of the GNU Affero General Public License as published"
             " by the Free Software Foundation, either version 3 of the License, or"
