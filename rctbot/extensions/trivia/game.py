@@ -5,6 +5,7 @@ import random
 import asyncio
 import datetime
 
+
 import discord
 from discord.ext import commands
 import pymongo
@@ -17,20 +18,31 @@ from rctbot.extensions.trivia.config import TriviaConfig
 
 os.environ["PYTHONASYNCIODEBUG"] = "1"
 # pylint: disable=no-member
-podium = ["🥇", "🥈", "🥉"]
+podium = ["🏆", "🥈", "🥉"]
 ICONS = {
     "matches": "https://i.imgur.com/NYNZqKl.png",
     "most_kills": "https://i.imgur.com/J4lHd7N.png",
     "most_assists": "https://i.imgur.com/zjPs1Fd.png",
     "ladder": "https://i.imgur.com/e3Kenf0.png",
 }
+n2w = {
+    "1": "one",
+    "2": "two",
+    "3": "three",
+    "4": "four",
+    "5": "five",
+    "6": "six",
+    "7": "seven",
+    "8": "eight",
+    "9": "nine",
+}
 
 
 class TriviaGame(commands.Cog):
     """Trivia game class."""
 
-    db = DatabaseHandler.client["Trivia"]
-    QUESTIONS = [x for x in db["QUESTIONS"].find({"enabled": True})]
+    DATABASE = DatabaseHandler.client["Trivia"]
+    QUESTIONS = [q for q in DATABASE["QUESTIONS"].find({"enabled": True})]
 
     def __init__(self, bot):
         self.bot = bot
@@ -41,20 +53,28 @@ class TriviaGame(commands.Cog):
         self.has_answered = []
         self.bot_prefixes = []
         self.current_round = 0
-        self.rounds = 1
         self.loop = None
         self.scoreboard = {}
         self.game_fut = None
         self.round_fut = None
         self.stats = {}
-        self.length = 60
-        self.pause = 5
-        self.attempts = 2
         self.player_stats = {}
         self.game_stats = {"rounds": []}
-        self.channel = None
-        self.name = "Trivia"
-        self.delay = 60.0
+        self.winners = []
+        self.do_not_count_roles = []
+        self.options = {
+            "rounds": 1,
+            "length": 60,
+            "pause": 5,
+            "attempts": 2,
+            "channel": None,
+            "admin_channel": None,
+            "name": "Trivia",
+            "delay": 60.0,
+            "point_distribution": [3, 1, 1, 1, 1, 1, 1, 1],
+            "repost": False,
+            "mute_duration": 0.5,
+        }
 
     @commands.group(aliases=["tr"], invoke_without_command=True)
     async def trivia(self, ctx):
@@ -77,15 +97,16 @@ class TriviaGame(commands.Cog):
         time_to = new_date - datetime.datetime.now()
         await ctx.send(str(time_to))
 
-    @trivia.command()
+    @trivia.command(aliases=["q"])
     @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
-    async def quick(self, ctx):
+    async def quick(self, ctx, rounds: int = 5):
         self.game_reset()
         await self.get_prefixes(ctx)
-        self.channel = ctx.channel
-        self.delay = 5.0
-        self.length = 20
-        self.rounds = 5
+        self.options["admin_channel"] = ctx.channel
+        self.options["channel"] = ctx.channel
+        self.options["delay"] = 5.0
+        self.options["length"] = 20
+        self.options["rounds"] = rounds
         if await self.confirm_options(ctx):
 
             self.loop = asyncio.get_event_loop()
@@ -96,119 +117,132 @@ class TriviaGame(commands.Cog):
                 await self.record_stats()
             except asyncio.CancelledError:
                 pass  # pylint: disable=unnecessary-pass
-                """ try:
-                    await self.record_stats()
-                except:
-                    print("Failed to record stats for cancelled game")"""
+
         else:
             await ctx.send("Aborting..")
 
     @trivia.command(aliases=["s"])
     @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
     @commands.max_concurrency(1)
-    async def start(self, ctx, channel: discord.TextChannel = None, delay: float = 60.0):
+    async def start(self, ctx, *args):
         """Starts a game of trivia"""
-        self.delay = delay
         self.game_reset()
-        if isinstance(channel, discord.channel.TextChannel):
-            self.channel = channel
+        self.do_not_count_roles = [
+            discord.utils.get(ctx.guild.roles, name=name) for name in TriviaConfig.document["do_not_count_roles"]
+        ]
+        await self.bot.change_presence(
+            activity=discord.Activity(name="HoN Trivia", type=discord.ActivityType.playing),
+            status=discord.Status.online,
+            afk=False,
+        )
+        try:
+            self.options["rounds"] = (
+                int(args[args.index("--rounds") + 1]) if "--rounds" in args else self.options["rounds"]
+            )
+            self.options["length"] = (
+                int(args[args.index("--length") + 1]) if "--length" in args else self.options["length"]
+            )
+            self.options["pause"] = (
+                int(args[args.index("--pause") + 1]) if "--pause" in args else self.options["pause"]
+            )
+            self.options["attempts"] = (
+                int(args[args.index("--attempts") + 1]) if "--attempts" in args else self.options["attempts"]
+            )
+            self.options["channel"] = (
+                await commands.TextChannelConverter().convert(ctx, (args[args.index("--channel") + 1]))
+                if "--channel" in args
+                else ctx.channel
+            )
+            self.options["admin_channel"] = (
+                await commands.TextChannelConverter().convert(ctx, args[args.index("--admin_channel") + 1])
+                if "--admin_channel" in args
+                else ctx.channel
+            )
+            self.options["name"] = args[args.index("--name") + 1] if "--name" in args else self.options["name"]
+
+            self.options["repost"] = "--repost" in args
+            self.options["delay"] = (
+                int(args[args.index("--delay") + 1]) if "--delay" in args else self.options["delay"]
+            )
+            self.options["mute_duration"] = (
+                float(args[args.index("--mute") + 1]) if "--mute" in args else self.options["mute_duration"]
+            )
+        except Exception as e:
+            print(e)
+            await ctx.send("Invalid arguments!")
+            return
+        await self.get_prefixes(ctx)
+        if await self.confirm_options(ctx):
+
+            self.loop = asyncio.get_event_loop()
+            self.game_fut = asyncio.ensure_future(self.game())
+            try:
+                await self.game_fut
+                await self.record_stats()
+            except asyncio.CancelledError:
+                pass
         else:
-            self.channel = ctx.channel
-            await ctx.send(f"Channel selected is {self.channel.mention}")
+            await ctx.send("Aborting..")
+
+    @trivia.command(aliases=["oldstart"])
+    @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
+    @commands.max_concurrency(1)
+    async def old_start(self, ctx, channel: discord.TextChannel = None, delay: float = 60.0, *, args=""):
+        """Starts a game of trivia"""
+        self.options["repost"] = "--repost" in args
+        self.options["delay"] = delay
+        self.game_reset()
+        self.options["admin_channel"] = ctx.channel
+        await self.bot.change_presence(
+            activity=discord.Activity(name="HoN Trivia", type=discord.ActivityType.playing),
+            status=discord.Status.online,
+            afk=False,
+        )
+        if isinstance(channel, discord.channel.TextChannel):
+            self.options["channel"] = channel
+        else:
+            self.options["channel"] = ctx.channel
+            await ctx.send(f"Channel selected is {self.options['channel'].mention}")
+        await self.options["channel"].edit(topic="Trivia is live!")
         await ctx.send("Name of the Trivia (No answer within 1 min sets the name to `Trivia`)")
 
         def check(m):
             return m.author == ctx.author
 
         try:
-            self.name = (await self.bot.wait_for("message", timeout=60.0, check=check)).content
+            self.options["name"] = (await self.bot.wait_for("message", timeout=60.0, check=check)).content
         except asyncio.TimeoutError:
-            self.name = "Trivia"
+            self.options["name"] = "Trivia"
 
-        await ctx.send("Number of questions (max 50)")
-
-        def round_check(m):
-            try:
-                return (
-                    not m.author.bot
-                    and not m.content[0] in self.bot_prefixes
-                    and not m.content.startswith("//")
-                    and not m.content.startswith(self.bot.user.mention)
-                    and m.author.id == ctx.author.id
-                    and 1 <= int(m.content) <= 50
-                    and m.channel == ctx.channel
-                )
-            except:
-                return False
-
+        await ctx.send("Number of questions")
         try:
-            self.rounds = int((await self.bot.wait_for("message", timeout=30.0, check=round_check)).content)
+            self.options["rounds"] = int((await self.bot.wait_for("message", timeout=30.0, check=self.check)).content)
         except asyncio.TimeoutError:
-            self.rounds = 3
+            self.options["rounds"] = 3
         self.current_round = 0
         # check if there are enough questions left
-        if len(TriviaGame.QUESTIONS) < self.rounds:
+        if len(TriviaGame.QUESTIONS) < self.options["rounds"]:
             TriviaGame.QUESTIONS = await (self.db["QUESTIONS"].find({"enabled": True})).to_list(length=None)
-        await ctx.send("Time per round in seconds (5-360)")
-
-        def len_check(m):
-            try:
-                return (
-                    not m.author.bot
-                    and not m.content[0] in self.bot_prefixes
-                    and not m.content.startswith("//")
-                    and not m.content.startswith(self.bot.user.mention)
-                    and m.author.id == ctx.author.id
-                    and 5 <= int(m.content) <= 360
-                    and m.channel == ctx.channel
-                )
-            except:
-                return False
+        await ctx.send("Time per round in seconds")
 
         try:
-            self.length = int((await self.bot.wait_for("message", timeout=30.0, check=len_check)).content)
+            self.options["length"] = int((await self.bot.wait_for("message", timeout=30.0, check=self.check)).content)
         except asyncio.TimeoutError:
-            self.length = 60
-        await ctx.send("Time **between** rounds in seconds (1-120)")
-
-        def pause_check(m):
-            try:
-                return (
-                    not m.author.bot
-                    and not m.content[0] in self.bot_prefixes
-                    and not m.content.startswith("//")
-                    and not m.content.startswith(self.bot.user.mention)
-                    and m.author.id == ctx.author.id
-                    and 1 <= int(m.content) <= 120
-                    and m.channel == ctx.channel
-                )
-            except:
-                return False
+            self.options["length"] = 60
+        await ctx.send("Time **between** rounds in seconds")
 
         try:
-            self.pause = int((await self.bot.wait_for("message", timeout=30.0, check=pause_check)).content)
+            self.options["pause"] = int((await self.bot.wait_for("message", timeout=30.0, check=self.check)).content)
         except asyncio.TimeoutError:
-            self.pause = 3
-        await ctx.send("Number of attemps per round (1-10)")
-
-        def attempts_check(m):
-            try:
-                return (
-                    not m.author.bot
-                    and not m.content[0] in self.bot_prefixes
-                    and not m.content.startswith("//")
-                    and not m.content.startswith(self.bot.user.mention)
-                    and m.author.id == ctx.author.id
-                    and 1 <= int(m.content) <= 10
-                    and m.channel == ctx.channel
-                )
-            except:
-                return False
+            self.options["pause"] = 3
+        await ctx.send("Number of attemps per round")
 
         try:
-            self.attempts = int((await self.bot.wait_for("message", timeout=30.0, check=attempts_check)).content)
+            self.options["attempts"] = int(
+                (await self.bot.wait_for("message", timeout=30.0, check=self.check)).content
+            )
         except asyncio.TimeoutError:
-            self.attempts = 1
+            self.options["attempts"] = 1
         await self.get_prefixes(ctx)
         if await self.confirm_options(ctx):
 
@@ -230,28 +264,35 @@ class TriviaGame(commands.Cog):
     @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
     async def setattempts(self, ctx, attempts: int):
         """Change the number of attempts per question and player"""
-        self.attempts = int(attempts)
+        self.options["attempts"] = int(attempts)
         await ctx.message.add_reaction("👌")
 
     @trivia.command(aliases=["pausetime"])
     @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
     async def setpause(self, ctx, pause_time: int):
         """Adjust the pause time"""
-        self.pause = int(pause_time)
+        self.options["pause"] = int(pause_time)
         await ctx.message.add_reaction("👌")
 
     @trivia.command()
     @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
     async def stop(self, ctx):
         """Exits the current game"""
-        self.round_fut.cancel()
-        self.game_fut.cancel()
+        try:
+
+            self.round_fut.cancel()
+        except:
+            pass
+        try:
+            self.game_fut.cancel()
+        except:
+            pass
         self.game_reset()
         await ctx.message.add_reaction("🆗")
 
     @trivia.command(name="answer", aliases=["a"])
     @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
-    async def current_state(self, ctx):
+    async def show_answer(self, ctx):
         """Take a peak at the answer"""
         a = self.answers if self.answers else "None"
         await ctx.send(a)
@@ -264,9 +305,10 @@ class TriviaGame(commands.Cog):
         if (player_stats := await self.fetch_player_stats(member)) :  # pyint: disable=superfluous-parens
             embed = discord.Embed(title="Player Stats", timestamp=ctx.message.created_at)
             embed.add_field(name="Games", value=player_stats["total_games"])
-            embed.add_field(name="Points", value=player_stats["points"])
             embed.add_field(name="Rounds", value=player_stats["total_rounds"])
-            embed.add_field(name="Wrong Answers", value=player_stats["wrong"])
+            embed.add_field(name="Points", value=player_stats["points"])
+            embed.add_field(name="Correct Answers", value=player_stats["correct"])
+            embed.add_field(name="Incorrect Answers", value=player_stats["wrong"])
             embed.set_author(name=member.display_name, icon_url=member.avatar_url)
             await ctx.send(embed=embed)
         else:
@@ -338,123 +380,148 @@ class TriviaGame(commands.Cog):
         await session.run()
 
     async def game(self):
-        while self.current_round < self.rounds:
+        while self.current_round < self.options["rounds"]:
             scoreboard_msg = ""
-            next_round_msg = await self.channel.send(f"Next round starting in {self.pause}..")
+            time_str = str(self.options["pause"])
+            text = ""
+            for num in time_str:
+                text += f":{n2w[num]}:"
             await asyncio.sleep(1)
             i = 1
-            while i < self.pause:
-                await next_round_msg.edit(content=f"Next round starting in {self.pause-i}..")
+            while i < self.options["pause"]:
+                if self.options["pause"] - i == 10:
+                    await self.options["channel"].send(
+                        ":octagonal_sign: Prepare for the next question in :one::zero: seconds, mute in :five: seconds :octagonal_sign:"
+                    )
+                elif not (self.options["pause"] - i) % 10:
+                    time_str = str(self.options["pause"] - i)
+                    text = ""
+                    for num in time_str:
+                        text += f":{n2w[num]}:"
+                    await self.options["channel"].send(content=f"Next round starting in {text} seconds")
+                if self.options["pause"] - i == 6:
+                    await self.options["channel"].set_permissions(
+                        self.options["channel"].guild.default_role, send_messages=False
+                    )
+                elif (self.options["pause"] - i) <= 5:
+                    await self.options["channel"].send(f":{n2w[str(self.options['pause']-i)]}:")
                 await asyncio.sleep(1)
                 i += 1
-            await next_round_msg.delete()
-            self.round_fut = asyncio.ensure_future(asyncio.wait_for(self.round(self.length), timeout=self.length))
+            self.round_fut = asyncio.ensure_future(
+                asyncio.wait_for(self.round(self.options["length"]), timeout=self.options["length"])
+            )
             try:
                 await self.round_fut
             except asyncio.TimeoutError:
-                if isinstance(self.answers, list):
-                    correct_answer = ", ".join(self.answers)
-                    if len(self.answers) > 1:
-                        before_answer_str = "Answers were"
-                    else:
-                        before_answer_str = "The answer was"
-                elif isinstance(self.answers, str):
-                    correct_answer = self.answers
-                    before_answer_str = "The answer was"
-
-                await self.channel.send(f"**Time's up!** {before_answer_str}: **{correct_answer}**")
                 await self.save_round_stats()
+                if self.winners:
+                    winners_str = ""
+                    for winner in self.winners:
+                        winners_str += winner.mention + " "
+                    if isinstance(self.answers, list):
+                        correct_answer = ", ".join(self.answers)
+                        if len(self.answers) > 1:
+                            before_answer_str = "Answers were"
+                        else:
+                            before_answer_str = "The answer was"
+                    elif isinstance(self.answers, str):
+                        correct_answer = self.answers
+                        before_answer_str = "The answer was"
+
+                    await self.options["channel"].send(
+                        f"**Time's up!** {before_answer_str}: **{correct_answer}**\nGood job! {winners_str}"
+                    )
                 self.round_reset()
-            sorted_scoreboard = dict(sorted(self.scoreboard.items(), key=lambda x: x[1], reverse=True))
+            self.scoreboard = [(key, value["points"]) for (key, value) in self.player_stats.items()]
+            sorted_scoreboard = dict(sorted(self.scoreboard, key=lambda x: x[1], reverse=True))
             for index, (key, value) in enumerate(sorted_scoreboard.items()):
-                if index < 3 and self.current_round >= self.rounds:
-                    scoreboard_msg += f"{podium[index]}{key}: **{value}**\n"
-                elif index < 10:
-                    scoreboard_msg += f"{key}: **{value}**\n"
+                if index < 3 and self.current_round >= self.options["rounds"]:
+                    scoreboard_msg += f"{podium[index]}{key.mention}: **{value}**\n"
+                elif index < 25:
+                    if key in self.winners:
+                        scoreboard_msg += f"{key.mention}: **{value}** +{self.options['point_distribution'][self.winners.index(key)]}\n"
+                    else:
+                        scoreboard_msg += f"{key.mention}: **{value}**\n"
                 else:
                     break
             if not scoreboard_msg:
                 scoreboard_msg = "\u2063"
-            embed = discord.Embed(title="Scoreboard")
-            if not self.current_round > self.rounds:
+            embed = discord.Embed(title="Scoreboard", description=scoreboard_msg)
+            if not self.current_round > self.options["rounds"]:
                 pass
-            embed.add_field(name="\u2063", value=scoreboard_msg)
 
-            await self.channel.send(embed=embed)
+            await self.options["channel"].send(embed=embed)
+        await self.bot.change_presence(
+            activity=discord.Activity(name="Heroes of Newerth", type=discord.ActivityType.watching),
+            status=discord.Status.dnd,
+            afk=False,
+        )
 
     async def round(self, length):
-
         self.current_round += 1
+        self.winners = []
+        msg_count = 0
         await self.get_question()
-        await self.channel.send(
-            f"Round {self.current_round}/{self.rounds}: **{discord.utils.escape_markdown(self.question)}**"
+        await self.options["channel"].send(
+            f"Round {self.current_round}/{self.options['rounds']}: **{discord.utils.escape_markdown(self.question)}**"
         )
-        while True:
+        await asyncio.sleep(self.options["mute_duration"])
+        await self.options["channel"].set_permissions(self.options["channel"].guild.default_role, send_messages=True)
+        # await self.options["channel"].edit(topic=discord.utils.escape_markdown(self.question))
 
-            def check(m):
-                return (
-                    not m.author.bot
-                    and not m.content[0] in self.bot_prefixes
-                    and not m.content.startswith("//")
-                    and not m.content.startswith(self.bot.user.mention)
-                    and m.channel == self.channel
-                )
+        def check(m):
+            return (
+                not m.author.bot
+                and not len(m.content) == 0
+                and not m.content[0] in self.bot_prefixes
+                and not m.content.startswith("//")
+                and not m.content.startswith(self.bot.user.mention)
+                and m.channel == self.options["channel"]
+                and not any(role in m.author.roles for role in self.do_not_count_roles)
+            )
+
+        while True:
 
             try:
                 msg = await self.bot.wait_for("message", timeout=60.0, check=check)
-                if not self.has_answered.count(msg.author) >= self.attempts:
-                    if await self.do_guess(msg.content.lower()):
-                        if isinstance(self.answers, list):
-                            correct_answer = ", ".join(self.answers)
-                            if len(self.answers) > 1:
-                                before_answer_str = "Answers were"
-                            else:
-                                before_answer_str = "The answer was"
-                        elif isinstance(self.answers, str):
-                            correct_answer = self.answers
-                            before_answer_str = "The answer was"
+                msg_count += 1
+                if msg_count % 12 == 0 and self.options["repost"]:
+                    await self.options["channel"].send(
+                        f"Round {self.current_round}/{self.options['rounds']}: **{discord.utils.escape_markdown(self.question)}**"
+                    )
+                # print(msg.content)
+                # await msg.delete()
+                if (
+                    not self.has_answered.count(msg.author) >= self.options["attempts"]
+                    and not msg.author in self.winners
+                ):
 
-                        await self.channel.send(
-                            (
-                                f"**Correct**, {msg.author.mention}!"
-                                f" {before_answer_str}: **{discord.utils.escape_markdown(correct_answer)}**"
-                            )
-                        )
-                        self.has_answered.append(msg.author)
-                        # await msg.add_reaction("✅") Not really necessary imho
-                        if not msg.author.mention in self.scoreboard.keys():
-                            self.scoreboard[msg.author.mention] = 1
-                            self.player_stats[msg.author] = {"points": 1, "wrong": 0}
-                        else:
-                            self.player_stats[msg.author]["points"] += 1
-                            self.scoreboard[msg.author.mention] += 1
-                        if self.has_answered.count(msg.author) == 1:
-                            if "rounds_played" in self.player_stats[msg.author].keys():
-                                self.player_stats[msg.author]["rounds_played"] += 1
-                                print("Adding one from correct")
-                            else:
-                                self.player_stats[msg.author]["rounds_played"] = 1
-                                print("setting one from correct")
-                        await self.save_round_stats(msg.author)
-                        self.round_reset()
-                        break
+                    self.has_answered.append(msg.author)
+
+                    if await self.do_guess(msg.content.lower()):
+                        self.winners.append(msg.author)
+                        if len(self.winners) >= len(self.options["point_distribution"]):
+                            await self.save_round_stats()
+                            self.round_reset()
+                            break
                     else:
-                        self.has_answered.append(msg.author)
-                        if msg.author in self.player_stats.keys():
-                            self.player_stats[msg.author]["wrong"] += 1
-                        else:
-                            self.player_stats[msg.author] = {"points": 0, "wrong": 1}
-                        if self.has_answered.count(msg.author) == 1:
-                            if "rounds_played" in self.player_stats[msg.author].keys():
-                                self.player_stats[msg.author]["rounds_played"] += 1
-                                print("adding one from false")
-                            else:
-                                self.player_stats[msg.author]["rounds_played"] = 1
-                                print("setting one from false")
+                        pass
+
             except asyncio.TimeoutError:
                 await self.save_round_stats()
                 self.round_reset()
                 break
+
+    def check(self, m):
+        """General check method for awaiting messages"""
+        return (
+            not m.author.bot
+            and not len(m.content) == 0
+            and not m.content[0] in self.bot_prefixes
+            and not m.content.startswith("//")
+            and not m.content.startswith(self.bot.user.mention)
+            and m.channel == self.options["admin_channel"]
+        )
 
     async def fetch_player_stats(self, member: discord.Member):
         return await self.db["PLAYERSTATS"].find_one({"_id": member.id})
@@ -469,12 +536,6 @@ class TriviaGame(commands.Cog):
         game_stats_collection = self.db["GAMESTATS"]
         for key in self.player_stats:
             player = self.player_stats[key]
-            if not "points" in player.keys():
-                player["points"] = 0
-            if not "wrong" in player.keys():
-                player["wrong"] = 0
-            if not "rounds_played" in player.keys():
-                player["rounds_played"] = 0
             if await player_stats_collection.find_one({"_id": key.id}):
                 await player_stats_collection.update_one({"_id": key.id}, {"$set": {"active": True}})
                 await player_stats_collection.update_one(
@@ -482,10 +543,13 @@ class TriviaGame(commands.Cog):
                     {
                         "$inc": {
                             "points": player["points"],
+                            "correct": player["correct"],
                             "wrong": player["wrong"],
-                            "total_rounds": player["rounds_played"],
+                            "total_rounds": player["correct"] + player["wrong"],
                             "total_games": 1,
-                        }
+                            "tokens": player["points"],
+                        },
+                        "$set": {"active": True},
                     },
                 )
             else:
@@ -494,55 +558,70 @@ class TriviaGame(commands.Cog):
                         "_id": key.id,
                         "active": True,
                         "points": player["points"],
+                        "correct": player["correct"],
                         "wrong": player["wrong"],
-                        "total_rounds": player["rounds_played"],
+                        "total_rounds": player["correct"] + player["wrong"],
                         "total_games": 1,
+                        "tokens": player["points"],
                     }
                 )
         await game_stats_collection.insert_one(self.game_stats)
         await self.update_leaderboard()
 
-    async def save_round_stats(self, winner=None):
-        # for key in self.player_stats.keys():
-        # print(f"key: {key}")
-        # print("rounds Played: ", self.player_stats[key]["rounds_played"])
-        if winner:
-            self.game_stats["rounds"].append(
-                {
-                    "question": self.question,
-                    "answers": self.answers,
-                    "winner": {
-                        "name": f"{winner.name}#{winner.discriminator}",
-                        "display_name": winner.display_name,
-                        "id": winner.id,
-                    },
-                    "wrong": [
-                        {"name": f"{x.name}#{x.discriminator}", "display_name": x.display_name, "id": x.id}
-                        for x in self.has_answered
-                    ],
-                }
+    async def save_round_stats(self):
+
+        winners = []
+        losers = list(set(self.has_answered))
+        for i, winner in enumerate(self.winners):
+            winners.append(
+                {"name": f"{winner.name}#{winner.discriminator}", "display_name": winner.display_name, "id": winner.id}
             )
-        else:
-            self.game_stats["rounds"].append(
-                {
-                    "question": self.question,
-                    "answers": self.answers,
-                    "wrong": [
-                        {"name": f"{x.name}#{x.discriminator}", "display_name": x.display_name, "id": x.id}
-                        for x in self.has_answered
-                    ],
+            if player := self.player_stats.get(winner):
+                if "points" in player:
+                    self.player_stats[winner]["points"] += self.options["point_distribution"][i]
+                    self.player_stats[winner]["correct"] += 1
+                else:
+                    self.player_stats[winner]["points"] = self.options["point_distribution"][i]
+                    self.player_stats[winner]["correct"] = 1
+            else:
+                self.player_stats[winner] = {"points": self.options["point_distribution"][i], "correct": 1, "wrong": 0}
+        for i, loser in enumerate(losers):
+            if player := self.player_stats.get(loser):
+                if "wrong" in player:
+                    self.player_stats[loser]["wrong"] += self.has_answered.count(loser) - self.winners.count(loser)
+                else:
+                    self.player_stats[loser]["wrong"] = self.has_answered.count(loser) - self.winners.count(loser)
+            else:
+                self.player_stats[loser] = {
+                    "points": 0,
+                    "correct": 0,
+                    "wrong": self.has_answered.count(loser) - self.winners.count(loser),
                 }
-            )
+        self.game_stats["rounds"].append(
+            {
+                "question": self.question,
+                "answers": self.answers,
+                "winners": winners,
+                "wrong": [
+                    {"name": f"{x.name}#{x.discriminator}", "display_name": x.display_name, "id": x.id}
+                    for x in self.has_answered
+                ],
+            }
+        )
 
     async def prepare_stats(self):
         self.game_stats["settings"] = {
-            "rounds": self.rounds,
-            "round_length": self.length,
-            "pause_time": self.pause,
-            "attempts": self.attempts,
+            "name": self.options["name"],
+            "rounds": self.options["rounds"],
+            "round_length": self.options["length"],
+            "pause_time": self.options["pause"],
+            "attempts": self.options["attempts"],
+            "repost": self.options["repost"],
+            "point_distribution": self.options["point_distribution"],
+            "mute_duration": self.options["mute_duration"],
             "channel": {
-                "name": self.channel.name if self.channel else None,
-                "id": self.channel.id if self.channel else None,
+                "name": self.options["channel"].name if self.options["channel"] else None,
+                "id": self.options["channel"].id if self.options["channel"] else None,
             },
         }
         self.game_stats["_id"] = (
@@ -552,7 +631,7 @@ class TriviaGame(commands.Cog):
 
     async def update_leaderboard(self):
         if "leaderboard_msg_id" not in TriviaConfig.document:
-            ldb_channel = discord.utils.get(self.channel.guild.channels, name="hall-of-fame")
+            ldb_channel = discord.utils.get(self.options["channel"].guild.channels, name="hall-of-fame")
             lbd_msg_exists = False
         else:
             ldb_channel = self.bot.get_channel(TriviaConfig.document["leaderboard_channel_id"])
@@ -608,11 +687,12 @@ class TriviaGame(commands.Cog):
             name="OPTIONS",
             value=(
                 "\n"
-                f"**Number of rounds**          : **{self.rounds}**\n"
-                f"**Channel**                   : **{self.channel.mention}**\n"
-                f"**Time per round**            : **{self.length}**\n"
-                f"**Time between rounds**       : **{self.pause}**\n"
-                f"**Attempts per question**     : **{self.attempts}**\n"
+                f"**Number of rounds**          : **{self.options['rounds']}**\n"
+                f"**Channel**                   : **{self.options['channel'].mention}**\n"
+                f"**Time per round**            : **{self.options['length']}**\n"
+                f"**Time between rounds**       : **{self.options['pause']}**\n"
+                f"**Attempts per question**     : **{self.options['attempts']}**\n"
+                f"**Repost questions**            : **{self.options['repost']}**"
             ),
         )
 
@@ -633,24 +713,24 @@ class TriviaGame(commands.Cog):
 
     async def send_game_info(self, ctx):
         embed = discord.Embed(
-            title=self.name[0].upper() + self.name[1:],
-            description=f"The game is starting in {self.delay} seconds!",
+            title=self.options["name"][0].upper() + self.options["name"][1:],
+            description=f"The game is starting in {self.options['delay']} seconds!",
             timestamp=ctx.message.created_at,
         )
         embed.add_field(
             name="Game Options",
             value=(
                 "\n"
-                f"**Number of rounds**          : **{self.rounds}**\n"
-                f"**Channel**                   : **{self.channel.mention}**\n"
-                f"**Time per round**            : **{self.length}**\n"
-                f"**Time between rounds**       : **{self.pause}**\n"
-                f"**Attempts per question**     : **{self.attempts}**\n"
+                f"**Number of rounds**          : **{self.options['rounds']}**\n"
+                f"**Channel**                   : **{self.options['channel'].mention}**\n"
+                f"**Time per round**            : **{self.options['length']}**\n"
+                f"**Time between rounds**       : **{self.options['pause']}**\n"
+                f"**Attempts per question**     : **{self.options['attempts']}**\n"
             ),
         )
         embed.set_thumbnail(url="https://i.imgur.com/q8KmQtw.png")
-        await self.channel.send(embed=embed)
-        await asyncio.sleep(self.delay)
+        await self.options["channel"].send(embed=embed)
+        await asyncio.sleep(self.options["delay"])
 
     async def do_guess(self, guess):
         return (
@@ -684,7 +764,18 @@ class TriviaGame(commands.Cog):
         self.player_stats = {}
         self.round_reset()
         self.current_round = 0
-        self.rounds = 0
+        self.options = {
+            "rounds": 1,
+            "length": 60,
+            "pause": 5,
+            "attempts": 2,
+            "channel": None,
+            "admin_channel": None,
+            "name": "Trivia",
+            "delay": 60.0,
+            "point_distribution": [3, 1, 1, 1, 1, 1, 1, 1],
+            "repost": False,
+        }
         self.scoreboard = {}
         if self.game_fut:
             try:
@@ -696,11 +787,6 @@ class TriviaGame(commands.Cog):
     @commands.Cog.listener()
     async def on_member_remove(self, member):
         await self.db["PLAYERSTATS"].find_one_and_update({"_id": member.id}, {"$set": {"active": False}})
-
-    @trivia.command()
-    async def git(self, ctx):
-        """Sends the link to ziep's github repository, mainly used for dev purposes"""
-        await ctx.send("https://github.com/ziepziep/DiscordTrivia")
 
     def cog_unload(self):
         self.game_reset()
