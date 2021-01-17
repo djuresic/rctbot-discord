@@ -506,7 +506,7 @@ class HoNOfficial(commands.Cog):
         dict_ = {
             "🇺🇸": "North America",
             "🇪🇺": "Europe",
-            "🇧🇷": "Latin America",
+            "🇧🇷": "Brazil / Latin America",
             "🇷🇺": "Commonwealth of Independent States",
             "🇦🇺": "Australia",
         }
