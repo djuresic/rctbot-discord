@@ -179,9 +179,9 @@ async def auth_hon(request: Request):
             request.session["user"]["auth"] = {"alert": "success", "message": "HoN Account linked successfully!"}
             guild = API.bot.get_guild(rctbot.config.DISCORD_RCT_GUILD_ID)
             if member := guild.get_member(discord_id):
-                community = discord.utils.get(guild.roles, name="Community Member", reason="Linked Heroes of Newerth.")
+                community = discord.utils.get(guild.roles, name="Community Member")
                 if community not in member.roles:
-                    await member.add_roles(community)
+                    await member.add_roles(community, reason="Linked Heroes of Newerth.")
 
         else:
             request.session["user"]["auth"] = {
