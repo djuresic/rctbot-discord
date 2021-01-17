@@ -64,7 +64,7 @@ class Development(commands.Cog):
     @commands.is_owner()
     async def t1(self, ctx):  # pylint: disable=unused-argument
         async with MatchManipulator() as mp:
-            match_ids = [i for i in range(25063, 25165)]
+            match_ids = list(range(25063, 25165))
             for match_id in match_ids:
                 await mp.insert_match(match_id)
                 data = await mp.match_data(match_id)
