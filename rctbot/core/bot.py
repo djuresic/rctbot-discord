@@ -1,5 +1,5 @@
 """
-RCTBot A simple Discord bot with some Heroes of Newerth integration.
+RCTBot A Discord bot with Heroes of Newerth integration.
 Copyright (C) 2020–2021  Danijel Jurešić
 
 This program is free software: you can redistribute it and/or modify
@@ -19,6 +19,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import platform
 
+import dotenv
 import discord
 from discord.ext import commands
 
@@ -31,6 +32,11 @@ import rctbot.config
 # get_prefix(bot, message) example from docstring.
 
 
+# TODO: Extend functionality.
+def _load_dotenv():
+    dotenv.load_dotenv(".env")
+
+
 class RCTBot(commands.Bot):
     """The one and only RCTBot.
     
@@ -39,11 +45,13 @@ class RCTBot(commands.Bot):
     def __init__(self, *, version: str):
         self.version = version
         self.platform = platform.platform()
+        self.repository_url = "https://github.com/djuresic/rctbot-discord"
         super().__init__(
             command_prefix=commands.when_mentioned_or(*[".", "!"]),
             case_insensitive=True,
             intents=discord.Intents.all(),
         )
+        _load_dotenv()
         self._load_extensions()
         self._remove_help()
 

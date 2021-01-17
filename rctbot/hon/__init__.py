@@ -1,5 +1,5 @@
 """
-RCTBot A simple Discord bot with some Heroes of Newerth integration.
+RCTBot A Discord bot with Heroes of Newerth integration.
 Copyright (C) 2020–2021  Danijel Jurešić
 
 This program is free software: you can redistribute it and/or modify

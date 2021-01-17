@@ -4,6 +4,7 @@ import asyncio
 from hashlib import md5, sha256
 
 import srp
+import requests
 import utils.phpserialize as phpserialize
 
 import rctbot.config
@@ -41,6 +42,58 @@ HON_NAEU_RC_PASSWORD = os.getenv("HON_NAEU_RC_PASSWORD")
 
 HON_NAEU_TC_USERNAME = os.getenv("HON_NAEU_TC_USERNAME")
 HON_NAEU_TC_PASSWORD = os.getenv("HON_NAEU_TC_PASSWORD")
+
+# NOTE: Temporarily placing these sync functions here, they are used by the API. This module needs to be rewritten.
+def request(
+    query, path=None, deserialize=True,
+):
+    if path is None:
+        path = "client_requester.php"
+
+    headers = {
+        "User-Agent": "S2 Games/Heroes of Newerth/4.9.0.1/wac/x86_64",
+        "X-Forwarded-For": "unknown",
+    }
+
+    with requests.post(f"http://masterserver.naeu.heroesofnewerth.com/{path}", data=query, headers=headers) as r:
+        try:
+            data = r.text
+        except:
+            print("Something went wrong while querying masterserver.")
+            return None  # False
+        if deserialize:
+            return phpserialize.loads(data.encode())
+        return data
+
+
+def authenticate(login, password):
+    login = login.lower()
+    query = {"f": "pre_auth", "login": login}
+    srp.rfc5054_enable()
+    user = srp.User(
+        login.encode(), None, hash_alg=srp.SHA256, ng_type=srp.NG_CUSTOM, n_hex=S2_N.encode(), g_hex=S2_G.encode(),
+    )
+    _, A = user.start_authentication()
+    query["A"] = binascii.hexlify(A).decode()
+    result = request(query)
+    if b"B" not in result:
+        return result
+    s = binascii.unhexlify(result[b"salt"])
+    B = binascii.unhexlify(result[b"B"])
+    salt2 = result[b"salt2"]
+    user.password = (
+        sha256(
+            (md5((md5(password.encode()).hexdigest()).encode() + salt2 + S2_SRP_MAGIC1.encode()).hexdigest()).encode()
+            + S2_SRP_MAGIC2.encode()
+        ).hexdigest()
+    ).encode()
+    user.p = user.password
+    M = user.process_challenge(s, B)
+    del query["A"]
+    query["f"] = "srpAuth"
+    query["proof"] = binascii.hexlify(M).decode()
+    result = request(query)
+    return result
 
 
 class Client:
