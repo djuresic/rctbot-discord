@@ -27,15 +27,18 @@ import asyncio
 import discord
 from hypercorn.config import Config
 from hypercorn.asyncio import serve
+from dotenv import load_dotenv, find_dotenv
 
-import rctbot
-from rctbot.api.app import app, API
+load_dotenv(find_dotenv())  # FIXME
 
 bind_v4 = f'{os.getenv("HOST", "127.0.0.1")}:{os.getenv("PORT", "8000")}'  # Defaults are already Hypercorn defaults.
 config = Config()
 config.bind = [bind_v4]
 
 if __name__ == "__main__":
+    import rctbot
+    from rctbot.api.app import app, API
+
     bot = rctbot.get_bot()
 
     # TODO: Get this out of here.
@@ -50,11 +53,6 @@ if __name__ == "__main__":
         # streaming = discord.Streaming(platform="Twitch", name="Heroes of Newerth", game="Heroes of Newerth", url="https://www.twitch.tv/", twitch_name="")
         await bot.change_presence(activity=watching, status=discord.Status.dnd, afk=False)
         print("------")
-
-    # @bot.event
-    # async def on_message(message):
-    #    ctx = await bot.get_context(message)
-    #    await bot.process_commands(message)
 
     # Sigh...
     API.bot = bot
