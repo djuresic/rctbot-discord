@@ -148,7 +148,9 @@ async def auth_hon(request: Request):
     # TODO: not in
     if b"account_id" in data:
         discord_id = int(user["id"])
+        # TODO: Remove hardcoded database and collection names.
         collection = AsyncDatabaseHandler.client["rctbot"]["users"]
+        testers_collection = AsyncDatabaseHandler.client["rct"]["testers"]
         if await collection.find_one({"discord_id": discord_id}):
             # It can't go this wrong, can it?
             return RedirectResponse(url="/logout", status_code=status.HTTP_303_SEE_OTHER)
@@ -182,6 +184,10 @@ async def auth_hon(request: Request):
                 community = discord.utils.get(guild.roles, name="Community Member")
                 if community not in member.roles:
                     await member.add_roles(community, reason="Linked Heroes of Newerth.")
+                if await testers_collection.find_one({"enabled": True, "super_id": super_id}, {"_id": 0}):
+                    tester = discord.utils.get(guild.roles, name="Tester")
+                    if tester not in member.roles:
+                        await member.add_roles(tester, reason="Linked Heroes of Newerth as a Tester.")
 
         else:
             request.session["user"]["auth"] = {

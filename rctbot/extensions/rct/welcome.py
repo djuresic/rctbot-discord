@@ -78,9 +78,15 @@ class RCTWelcome(commands.Cog):
         embed.set_footer(
             text="And another one!", icon_url="https://i.imgur.com/q8KmQtw.png",
         )
+        # TODO: Remove hardcoded database and collection names.
         collection = AsyncDatabaseHandler.client["rctbot"]["users"]
-        if await collection.find_one({"discord_id": member.id}):
+        testers_collection = AsyncDatabaseHandler.client["rct"]["testers"]
+        if player := await collection.find_one({"discord_id": member.id}, {"_id": 0, "super_id": 1}):
             await member.add_roles(community, reason="HoN account already linked.")
+            if await testers_collection.find_one({"enabled": True, "super_id": player["super_id"]}, {"_id": 0}):
+                tester = discord.utils.get(guild.roles, name="Tester")
+                if tester not in member.roles:
+                    await member.add_roles(tester, reason="HoN account already linked and user is a Tester.")
         else:
             await member.send(embed=embed)
 
