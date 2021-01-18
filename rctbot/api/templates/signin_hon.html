@@ -1,0 +1,24 @@
+{% extends "base_signin.html" %}
+{% block title %}Connect Heroes of Newerth{% endblock %}
+{% block main %}
+{% if auth %}
+<div class="alert alert-{{ auth.alert }} alert-dismissible fade show" role="alert">
+  {{ auth.message }}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<form action="../auth/hon" method="post">
+  <img id="user-avatar" class="mb-4" src="{{ user.picture }}" alt="" width="128" height="128">
+  <h1 class="h3 mb-3 fw-normal">Hello, {{ user.username }}!</h1>
+  <h2 id="connect-account-heading" class="h3 mb-3 fw-normal">Let's connect your Heroes of Newerth account.</h2>
+  <label for="inputUsername" class="visually-hidden">Heroes of Newerth Username</label>
+  <input type="username" id="inputUsername" class="form-control" name="username" placeholder="Username" required
+    autofocus>
+  <label for="inputPassword" class="visually-hidden">Heroes of Newerth Password</label>
+  <input type="password" id="inputPassword" class="form-control" name="password" placeholder="Password" required>
+  <button class="w-100 btn btn-lg btn-primary" type="submit">Connect</button>
+  <p class="mt-5 mb-3 text-muted">What is this and why should I trust it? <a
+      href='https://github.com/djuresic/rctbot-api' target="_blank" rel="noopener noreferrer">Source code.</a></p>
+</form>
+{% endblock main %}

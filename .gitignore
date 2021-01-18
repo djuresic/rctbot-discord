@@ -7,7 +7,6 @@ rctbot/config/production*
 *.pyc
 __pycache__
 *.json
-*.html
 *.pem
 data.txt
 bulkadd.py
