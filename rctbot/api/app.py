@@ -179,12 +179,23 @@ async def auth_hon(request: Request):
         result = await collection.insert_one(account)
         if result.acknowledged:
             request.session["user"]["auth"] = {"alert": "success", "message": "HoN Account linked successfully!"}
+
+            tester_document = await testers_collection.find_one(
+                {"enabled": True, "super_id": super_id}, {"_id": 0, "discord_id": 1}
+            )
+            if tester_document and not tester_document["discord_id"]:
+                # Missing acknowledged check.
+                await testers_collection.update_one(
+                    {"super_id": super_id}, {"$set": {"discord_id": discord_id}},
+                )
+
             guild = API.bot.get_guild(rctbot.config.DISCORD_RCT_GUILD_ID)
             if member := guild.get_member(discord_id):
                 community = discord.utils.get(guild.roles, name="Community Member")
                 if community not in member.roles:
                     await member.add_roles(community, reason="Linked Heroes of Newerth.")
-                if await testers_collection.find_one({"enabled": True, "super_id": super_id}, {"_id": 0}):
+
+                if tester_document:
                     tester = discord.utils.get(guild.roles, name="Tester")
                     if tester not in member.roles:
                         await member.add_roles(tester, reason="Linked Heroes of Newerth as a Tester.")
