@@ -181,7 +181,7 @@ async def auth_hon(request: Request):
             request.session["user"]["auth"] = {"alert": "success", "message": "HoN Account linked successfully!"}
 
             tester_document = await testers_collection.find_one(
-                {"enabled": True, "super_id": super_id}, {"_id": 0, "discord_id": 1}
+                {"super_id": super_id}, {"_id": 0, "enabled": 1, "discord_id": 1}
             )
             if tester_document and not tester_document["discord_id"]:
                 # Missing acknowledged check.
@@ -195,7 +195,7 @@ async def auth_hon(request: Request):
                 if community not in member.roles:
                     await member.add_roles(community, reason="Linked Heroes of Newerth.")
 
-                if tester_document:
+                if tester_document and tester_document["enabled"]:
                     tester = discord.utils.get(guild.roles, name="Tester")
                     if tester not in member.roles:
                         await member.add_roles(tester, reason="Linked Heroes of Newerth as a Tester.")
