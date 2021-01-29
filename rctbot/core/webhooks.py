@@ -2,10 +2,6 @@ from datetime import datetime, timezone
 
 import aiohttp
 import discord
-from discord.ext import commands
-
-import rctbot.config
-from rctbot.core.checks import in_whitelist
 
 
 async def webhook_message(webhook_urls, message, username):
@@ -46,41 +42,3 @@ async def webhook_embed(
         for webhook_url in webhook_urls:
             webhook = discord.Webhook.from_url(webhook_url, adapter=discord.AsyncWebhookAdapter(session))
             await webhook.send(username=username, avatar_url=avatar, embed=embed)
-
-
-class WebhookTesting(commands.Cog):
-    def __init__(self, bot):
-        self.bot = bot
-
-    @commands.command()
-    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
-    async def wht(self, ctx, *, message: str):
-        await webhook_message(rctbot.config.DISCORD_LOG_WEBHOOKS, message, ctx.author.display_name)
-
-    @commands.command()
-    @in_whitelist(rctbot.config.DISCORD_WHITELIST_IDS)
-    async def whembed(self, ctx):
-        fields = [
-            {"name": "ft 1", "value": "fv 1", "inline": False},
-            {"name": "ft 2", "value": "fv 2", "inline": True},
-            {"name": "ft 3", "value": "fv 3", "inline": True},
-        ]
-        await webhook_embed(
-            rctbot.config.DISCORD_LOG_WEBHOOKS,
-            "some title",
-            "some desc",
-            fields,
-            ctx.author.display_name,
-            ctx.author.avatar_url,
-        )
-
-
-# pylint: disable=unused-argument
-def setup(bot):
-    bot.add_cog(WebhookTesting(bot))
-    rctbot.config.LOADED_EXTENSIONS.append(__loader__.name)
-
-
-# pylint: disable=unused-argument
-def teardown(bot):
-    rctbot.config.LOADED_EXTENSIONS.remove(__loader__.name)

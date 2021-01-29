@@ -1,12 +1,10 @@
 import aiohttp
-import discord
 from discord.ext import commands
 
 import rctbot.config
 
 from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.core.rct import MatchManipulator
-from rctbot.core.rct.migration import DatabaseManager
 
 # from rctbot.core.paginator import EmbedPaginatorSession
 # from rctbot.core.utils import chunks
@@ -73,35 +71,8 @@ class Development(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def i_am_absolutely_sure_i_want_to_migrate_from_google_sheets(self, ctx):
-        async with DatabaseManager() as dbm:
-            await ctx.send(await dbm.migrate_spreadsheet_data())
-            await dbm.set_testing_account_id()
-            await ctx.send("Done!")
-
-    @commands.command()
-    @commands.is_owner()
-    async def i_want_to_standardize_join_dates(self, ctx):
-        async with DatabaseManager() as dbm:
-            await ctx.send(await dbm.standardize_joined())
-
-    @commands.command()
-    @commands.is_owner()
-    async def i_want_to_set_super_ids(self, ctx):
-        async with DatabaseManager() as dbm:
-            await dbm.set_super_id()
-            await ctx.send("super ids set")
-
-    @commands.command()
-    @commands.is_owner()
     async def t5(self, ctx):  # pylint: disable=unused-argument
         print(rctbot.config.LIST_OF_LISTS)
-
-    @commands.command()
-    @commands.is_owner()
-    async def fixdid(self, ctx, member: discord.Member):  # pylint: disable=unused-argument
-        async with DatabaseManager() as dbm:
-            await dbm.fix_discord_id(member)
 
     @commands.command()
     @commands.is_owner()
