@@ -60,6 +60,54 @@ class HeroUsage(commands.Cog):
             await ctx.send("\n".join(chunk))
         await ctx.send(f"Times picked: **{len(players)}**\nTimes picked by a unique player: **{len(counter)}**")
 
+    @usage.command(name="avatars", aliases=["as", "alts"])
+    async def _usage_avatars(self, ctx, *name):
+        cli_name = cli_hero_name(" ".join(name))
+        pipeline = [
+            # {"$sort": {"participants.nickname": 1}},
+            {"$match": {"participants.hero": cli_name}},
+            {"$unwind": "$participants"},
+            {"$match": {"participants.hero": cli_name}},
+            {"$project": {"_id": 0, "participants.alt_avatar": 1}},
+        ]
+        documents = await (
+            self.testing_games.aggregate(pipeline=pipeline, collation={"locale": "en", "strength": 1})
+        ).to_list(length=None)
+        players = [document["participants"]["alt_avatar"] for document in documents]
+        counter = collections.Counter(players)
+        message = []
+        for player, times in counter.items():
+            message.append(f"{discord.utils.escape_markdown(player)}: **{times}**")
+        message = chunks(sorted(message), 50)
+        for chunk in message:
+            await ctx.send("\n".join(chunk))
+        await ctx.send(f"Times picked: **{len(players)}**\nDifferent Alt Avatars picked: **{len(counter)}**")
+
+    @usage.command(name="avatar", aliases=["a", "alt"])
+    async def _usage_avatar(self, ctx, *name):
+        avatar_notation = "".join(name)
+        # Ehh, required only for the default avatar. Not properly implemented, alt_avatar is an empty string for these.
+        cli_name = avatar_notation.split(".")[0]
+        pipeline = [
+            {"$sort": {"participants.nickname": 1}},
+            {"$match": {"participants.hero": cli_name}},
+            {"$unwind": "$participants"},
+            {"$match": {"participants.alt_avatar": avatar_notation}},
+            {"$project": {"_id": 0, "participants.nickname": 1}},
+        ]
+        documents = await (
+            self.testing_games.aggregate(pipeline=pipeline, collation={"locale": "en", "strength": 1})
+        ).to_list(length=None)
+        players = [document["participants"]["nickname"] for document in documents]
+        counter = collections.Counter(players)
+        message = []
+        for player, times in counter.items():
+            message.append(f"{discord.utils.escape_markdown(player)}: **{times}**")
+        message = chunks(sorted(message), 50)
+        for chunk in message:
+            await ctx.send("\n".join(chunk))
+        await ctx.send(f"Times picked: **{len(players)}**\nTimes picked by a unique player: **{len(counter)}**")
+
     @usage.command(name="player", aliases=["p"])
     async def _usage_player(self, ctx, nickname: str):
         nickname = nickname.replace("\\", "")
