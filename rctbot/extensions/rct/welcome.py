@@ -88,41 +88,52 @@ class RCTWelcome(commands.Cog):
                 if tester not in member.roles:
                     await member.add_roles(tester, reason="HoN account already linked and user is a Tester.")
         else:
+            # TODO: The entire embed and its methods should go here.
             await member.send(embed=embed)
 
     @commands.command()
     @is_senior()
     async def omj(self, ctx):
         guild = ctx.guild
+        welcome = guild.get_channel(rctbot.config.DISCORD_WELCOME_CHANNEL_ID)
+        testing = guild.get_channel(rctbot.config.DISCORD_TESTING_CHANNEL_ID)
         tester = discord.utils.get(guild.roles, name="Tester")
-        moderator = discord.utils.get(guild.roles, name="Community Moderator")
+        # moderator = discord.utils.get(guild.roles, name="Community Moderator")
         senior = discord.utils.get(guild.roles, name="Senior Tester")
-
-        code = "".join(secrets.choice(self.alphabet) for i in range(self.code_len))
-
-        # This is fucky due to guild, it's fine because only RCT will use it anyway.
-        log_channel = guild.get_channel(rctbot.config.DISCORD_BOT_LOG_CHANNEL_ID)
-        await log_channel.send(f"[Verification] {ctx.author.mention}\n**ID:** {ctx.author.id}\n**Code:** {code}")
+        staff = discord.utils.get(guild.roles, name="Frostburn Staff")
 
         embed = discord.Embed(
-            title=f"Welcome {discord.utils.escape_markdown(ctx.author.display_name)} to the official Retail Candidate Testers Discord Server!",
+            title=f"Welcome to the official Retail Candidate Testers Discord Server!",
             type="rich",
             description=(
-                f"Please tell us your HoN username so that we can set it as your Discord nickname. Be respectful to every player and use common sense. If you have any questions, ask here on {ctx.channel.mention} or talk to a {moderator.mention} in private."
-                f"If you have been accepted as a {tester.mention}, your verification code is `{code}` and your Discord ID is `{ctx.author.id}`. Please proceed as instructed in the forum PM and wait for a {senior.mention} to assign you the corresponding role so that you may access our private channels. In case you are not a tester but wish to become one, check the links below for more information."
+                f"In order to chat here and access the rest of the server, you are required to link your Heroes of"
+                f' Newerth and Discord accounts using [RCTBot]({os.getenv("DOMAIN")}/). Once connected,'
+                " you will be unable to manually diconnect your Heroes of Newerth account from your current Discord"
+                " account.\n\n"
+                " Even though your sub-accounts will automatically be included, it is recommended to connect your"
+                f" primary HoN account if you are not a {tester.mention}. Testers should use the account with RCT"
+                " access.\n\n"
+                f" For regular players, connected accounts will only be known to {staff.mention} & RCT management."
+                " Testers are able to view other testers' RCT statistics, including their HoN nickname, for the RCT"
+                " account only. Information about sub-accounts and other related HoN accounts is never shown"
+                " without your explicit permission.\n\n"
+                " Be respectful to every player and use common sense. Keep confidential information in private channel"
+                f" categories. If you have any questions, ask on {welcome.mention} or {testing.mention}, or talk to"
+                f" a {senior.mention} in private."
             ),
             color=0xFF6600,
             timestamp=datetime.now(timezone.utc),
         )
-        embed.set_author(
-            name=ctx.author.display_name, icon_url=ctx.author.avatar_url,
-        )
+        # embed.set_author(name=self.bot.user.display_name, icon_url=self.bot.user.avatar_url)
         embed.set_thumbnail(url="https://i.imgur.com/ys2UBNW.png")
+        embed.add_field(
+            name="Account Verification", value=f'{os.getenv("DOMAIN")}', inline=True,
+        )
         embed.add_field(
             name="Application Form", value="https://forums.heroesofnewerth.com/index.php?/application/", inline=True,
         )
         embed.add_field(
-            name="Clan Page", value="http://clans.heroesofnewerth.com/clan/RCT", inline=True,
+            name="Clan Page", value="https://clans.heroesofnewerth.com/clan/RCT", inline=True,
         )
 
         embed.set_footer(
