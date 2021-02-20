@@ -304,10 +304,11 @@ class TriviaGame(commands.Cog):
         if not member:
             member = ctx.author
         if (player_stats := await self.fetch_player_stats(member)) :  # pyint: disable=superfluous-parens
-            embed = discord.Embed(title="Player Stats", timestamp=ctx.message.created_at)
+            embed = discord.Embed(title="Trivia: Player Stats", timestamp=ctx.message.created_at)
             embed.add_field(name="Games", value=player_stats["total_games"])
             embed.add_field(name="Rounds", value=player_stats["total_rounds"])
             embed.add_field(name="Points", value=player_stats["points"])
+            embed.add_field(name="Available Tokens", value=player_stats["tokens"])
             embed.add_field(name="Correct Answers", value=player_stats["correct"])
             embed.add_field(name="Incorrect Answers", value=player_stats["wrong"])
             embed.set_author(name=member.display_name, icon_url=member.avatar_url)
