@@ -233,7 +233,7 @@ class EmbedCreator:
         ask_for_help = discord.utils.get(channels, name="help").mention
         contributions = discord.utils.get(channels, name="contributions").mention
         community_content = discord.utils.get(channels, name="community-content").mention
-        tournaments = discord.utils.get(channels, name="tournaments").mention
+        tournaments = discord.utils.get(channels, name="tournament-chat").mention
         alt_modes = discord.utils.get(channels, name="alternate-modes").mention
         off_topic = discord.utils.get(channels, name="off-topic").mention
         bot_playgrounds = discord.utils.get(channels, name="bot-playgrounds").mention
@@ -301,6 +301,8 @@ class EmbedCreator:
         contributor_mention = discord.utils.get(roles, name="Contributor").mention
         nitro_mention = discord.utils.get(roles, name="Sol's Disciple").mention
         be_mention = discord.utils.get(roles, name="Balance Enthusiast").mention
+        tc_mention = discord.utils.get(roles, name="Trivia Contestant").mention
+        tt_mention = discord.utils.get(roles, name="Trivia Team").mention
 
         group_1 = (
             f"{head_mod_mention}: Moderator of moderators, in charge of the HoN Discord moderation team. Should issues"
@@ -334,6 +336,8 @@ class EmbedCreator:
             " Frostburn Studios. Contrary to popular belief, they are rumored to share Kane's ideals."
             f"\n\n{reddit_mod_mention}: Moderators of the official Heroes of Newerth Reddit community,"
             " [r/HeroesofNewerth](https://www.reddit.com/r/HeroesofNewerth/ 'r/HeroesofNewerth')."
+            f"\n\n{tt_mention}: Sol's restless disciples, always on the lookout for another worthy and knowledgeable"
+            " challenger. These tireless elves make sure our beloved Trivia events run as smooth as possible."
             f"\n\n{streamer_mention}: The select few who may promote their streams on Discord. This is a privilege."
             "  Please refrain from posting, sharing or promoting your stream in Discord channels without this role!"
         )
@@ -347,6 +351,10 @@ class EmbedCreator:
             f"\n\n{be_mention}: Newerthians who stand out in the eyes of the almighty <@127605782840737793> regarding"
             " useful insight about balance and design. The last of Scout survivors."
         )
+        group_6 = (
+            f"{tc_mention}: All those who seek to challenge Sol's wisdom and wish to frequently participate in his"
+            " Feats of Knowledge. Obtainable in <#751443532828639352>."
+        )
 
         # All Hells, The Scar, True Evil, The Bruning Ember, The First/Second/Third Corruption
 
@@ -357,6 +365,7 @@ class EmbedCreator:
         embed.add_field(name="\u2063", value=group_3, inline=False)
         embed.add_field(name="\u2063", value=group_4, inline=False)
         embed.add_field(name="\u2063", value=group_5, inline=False)
+        embed.add_field(name="\u2063", value=group_6, inline=False)
         return embed
 
     async def reactions_regional_roles(self, region_emoji_names: dict) -> discord.Embed:
@@ -373,6 +382,18 @@ class EmbedCreator:
         )
 
         embed = discord.Embed(title="Regional Roles", type="rich", description=desc, color=0x3CC03C)
+        embed.set_footer(text=footer)
+        return embed
+
+    async def reactions_other_roles(self, other_emoji_names: dict) -> discord.Embed:
+        desc = "Note that some of these roles will be mentioned to provide notifications regarding upcoming events.\n"
+        roles = self.ctx.guild.roles
+        for emoji, role_name in other_emoji_names.items():
+            role_mention = discord.utils.get(roles, name=role_name).mention
+            desc += f"\n{emoji} - {role_mention}"
+        footer = "Pick a role, any role."
+
+        embed = discord.Embed(title="Self-assignable Roles", type="rich", description=desc, color=0x3CC03C)
         embed.set_footer(text=footer)
         return embed
 
@@ -437,10 +458,11 @@ class HoNOfficial(commands.Cog):
     @commands.Cog.listener("on_raw_reaction_add")
     async def _reaction_roles(self, payload):
         # NOTE: All message ID keys are strings!
+        # NOTE: payload.emoji.name -> str(payload.emoji) fixes custom emoji.
         if (
             payload.guild_id not in self.guild_id_dict
             or str(payload.message_id) not in self.guild_id_dict[payload.guild_id]
-            or payload.emoji.name not in self.guild_id_dict[payload.guild_id][str(payload.message_id)]
+            or str(payload.emoji) not in self.guild_id_dict[payload.guild_id][str(payload.message_id)]
         ):
             return
         guild = self.bot.get_guild(payload.guild_id)
@@ -448,7 +470,7 @@ class HoNOfficial(commands.Cog):
         channel = guild.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
         role = discord.utils.get(
-            guild.roles, name=(self.guild_id_dict[payload.guild_id][str(payload.message_id)][payload.emoji.name]),
+            guild.roles, name=(self.guild_id_dict[payload.guild_id][str(payload.message_id)][str(payload.emoji)]),
         )
         if role not in payload.member.roles:
             await payload.member.add_roles(role, reason="Reaction")
@@ -511,6 +533,33 @@ class HoNOfficial(commands.Cog):
             "🇦🇺": "Australia",
         }
         embed = await creator.reactions_regional_roles(dict_)
+
+        webhook = await self._get_webhook(ctx, "RCTBot Reaction Roles")
+        async with aiohttp.ClientSession() as session:
+            webhook = discord.Webhook.from_url(webhook.url, adapter=discord.AsyncWebhookAdapter(session))
+            await webhook.send(username=self.webhook_author, embed=embed)
+
+        # Webhook send does not return a message object, getting the most recent message from this channel in cache:
+        await asyncio.sleep(1.25)
+        message = ctx.channel.last_message
+        for emoji in dict_:
+            await message.add_reaction(emoji)
+
+        # {message_id: {emoji_str: role_name}} NOTE: All keys are strings!
+        message_reactions = {str(message.id): dict_}
+        reaction_roles = (await self.config_collection.find_one({}))["reaction_roles"]
+        reaction_roles = {**message_reactions, **reaction_roles}
+        await self.config_collection.update_one({}, {"$set": {"reaction_roles": reaction_roles}})
+        self.synchronize.restart()  # pylint: disable=no-member
+        await ctx.message.delete()
+
+    @embed.command(name="other")
+    async def _embed_other(self, ctx):
+        creator = EmbedCreator(ctx)
+        dict_ = {
+            "<:ticket:739960911384805598>": "Trivia Contestant",
+        }
+        embed = await creator.reactions_other_roles(dict_)
 
         webhook = await self._get_webhook(ctx, "RCTBot Reaction Roles")
         async with aiohttp.ClientSession() as session:
