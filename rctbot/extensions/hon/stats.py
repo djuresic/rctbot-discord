@@ -1,6 +1,11 @@
+from datetime import datetime, timezone
+
 import aiohttp
 import discord
 from discord.ext import commands
+from discord_slash import cog_ext, SlashContext
+from discord_slash.model import SlashCommandOptionType
+from discord_slash.utils.manage_commands import create_option
 
 import rctbot.config
 
@@ -19,12 +24,7 @@ class HoNStats(commands.Cog):
 
     # TODO: Match stats command.
 
-    @commands.command(aliases=["rstats", "retail"])
-    @commands.guild_only()
-    @commands.after_invoke(record_usage)
-    @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
-    @commands.max_concurrency(10, per=commands.BucketType.guild, wait=False)
-    async def stats(self, ctx, nickname: str):
+    async def _generate_stats_embed(self, ctx, nickname: str):
         "Retail player statistics."
         nickname = nickname.replace("\\", "")
         async with aiohttp.ClientSession() as session:
@@ -43,7 +43,7 @@ class HoNStats(commands.Cog):
             description="Player Statistics",
             url=f"http://www.heroesofnewerth.com/playerstats/ranked/{nickname}",
             color=(await get_name_color(simple)),
-            timestamp=ctx.message.created_at,
+            timestamp=datetime.now(timezone.utc),
         )
         embed.add_field(
             name="Level", value=campaign[b"level"].decode(), inline=True,
@@ -282,6 +282,33 @@ class HoNStats(commands.Cog):
                     value="Set it up using the `.signature` command to make Merrick even more jealous of you.",
                     inline=False,
                 )
+        return embed
+
+    @commands.command(aliases=["rstats", "retail"])
+    @commands.guild_only()
+    @commands.after_invoke(record_usage)
+    @commands.cooldown(rate=1, per=5, type=commands.BucketType.user)
+    @commands.max_concurrency(10, per=commands.BucketType.guild, wait=False)
+    async def stats(self, ctx, nickname: str):
+        embed = await self._generate_stats_embed(ctx, nickname)
+        await ctx.send(embed=embed)
+
+    @cog_ext.cog_slash(
+        guild_ids=[735493943025860658],
+        name="stats",
+        description="Champions of Newerth (Forests of Caldavar) statistics.",
+        options=[
+            create_option(
+                name="nickname",
+                description="Show player stats for this nickname.",
+                option_type=SlashCommandOptionType.STRING,
+                required=True,
+            )
+        ],
+    )
+    async def stats_slash(self, ctx: SlashContext, nickname: str):
+        await ctx.defer()
+        embed = await self._generate_stats_embed(ctx, nickname)
         await ctx.send(embed=embed)
 
     @stats.error
