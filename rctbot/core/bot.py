@@ -22,6 +22,7 @@ import platform
 import dotenv
 import discord
 from discord.ext import commands
+from discord_slash import SlashCommand
 
 import rctbot.config
 
@@ -52,6 +53,10 @@ class RCTBot(commands.Bot):
             intents=discord.Intents.all(),
         )
         _load_dotenv()
+        self._slash = SlashCommand(
+            self, override_type=True, sync_commands=True, delete_from_unused_guilds=True, sync_on_cog_reload=True
+        )
+        # NOTE: Init slash commands before extensions loader.
         self._load_extensions()
         self._remove_help()
 
