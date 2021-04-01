@@ -4,7 +4,7 @@ discord-py-slash-command>=1.1.0,<2.0.0
 # oauth2client
 srp>=1.0.16,<2.0.0
 aiohttp_socks
-Pillow>=8.1.2,<9.0.0
+Pillow==8.1.2
 beautifulsoup4>=4.9.1,<5.0.0
 lxml>=4.5.1,<5.0.0
 pymongo[srv]>=3.10.1,<4.0.0
