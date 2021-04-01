@@ -31,7 +31,7 @@ from dotenv import load_dotenv, find_dotenv
 
 load_dotenv(find_dotenv())  # FIXME
 
-bind_v4 = f'{os.getenv("HOST", "127.0.0.1")}:{os.getenv("PORT", "8000")}'  # Defaults are already Hypercorn defaults.
+bind_v4 = f'{os.getenv("ASGI_HOST", "127.0.0.1")}:{os.getenv("ASGI_PORT", "8000")}'  # Defaults are already Hypercorn defaults.
 config = Config()
 config.bind = [bind_v4]
 
