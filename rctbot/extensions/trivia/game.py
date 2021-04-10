@@ -368,7 +368,12 @@ class TriviaGame(commands.Cog):
             placements = "\n" + "\n".join(placements) + ""
             names = "\n" + "\n".join(names) + ""
             amounts = "\n" + "\n".join(amounts) + ""
-            embed = discord.Embed(title=title, type="rich", color=0xFF6600, timestamp=ctx.message.created_at,)
+            embed = discord.Embed(
+                title=title,
+                type="rich",
+                color=0xFF6600,
+                timestamp=ctx.message.created_at,
+            )
             embed.add_field(name="Rank", value=placements)
             embed.add_field(name="Player", value=names)
             embed.add_field(name=title.split(" ")[0], value=amounts)
@@ -415,25 +420,26 @@ class TriviaGame(commands.Cog):
             try:
                 await self.round_fut
             except asyncio.TimeoutError:
-                await self.save_round_stats()
-                if self.winners:
-                    winners_str = ""
-                    for winner in self.winners:
-                        winners_str += winner.mention + " "
-                    if isinstance(self.answers, list):
-                        correct_answer = ", ".join(self.answers)
-                        if len(self.answers) > 1:
-                            before_answer_str = "Answers were"
-                        else:
-                            before_answer_str = "The answer was"
-                    elif isinstance(self.answers, str):
-                        correct_answer = self.answers
+                pass
+            await self.save_round_stats()
+            if self.winners:
+                winners_str = ""
+                for winner in self.winners:
+                    winners_str += winner.mention + " "
+                if isinstance(self.answers, list):
+                    correct_answer = ", ".join(self.answers)
+                    if len(self.answers) > 1:
+                        before_answer_str = "Answers were"
+                    else:
                         before_answer_str = "The answer was"
+                elif isinstance(self.answers, str):
+                    correct_answer = self.answers
+                    before_answer_str = "The answer was"
 
-                    await self.options["channel"].send(
-                        f"**Time's up!** {before_answer_str}: **{correct_answer}**\nGood job! {winners_str}"
-                    )
-                self.round_reset()
+                await self.options["channel"].send(
+                    f"**Time's up!** {before_answer_str}: **{correct_answer}**\nGood job! {winners_str}"
+                )
+            self.round_reset()
             self.scoreboard = [(key, value["points"]) for (key, value) in self.player_stats.items()]
             sorted_scoreboard = dict(sorted(self.scoreboard, key=lambda x: x[1], reverse=True))
             for index, (key, value) in enumerate(sorted_scoreboard.items()):
