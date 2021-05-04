@@ -90,10 +90,11 @@ class CycleManager:
         )
         bugs = await (self.testing_bugs.find({})).to_list(length=None)
         extra = await (self.testing_extra.find({})).to_list(length=None)
-        if len(games) == 0 or len(testers) == 0:
+        if 0 in (len(games), len(testers)):
             # TODO: Result
             print("len games testers 0")
             return False
+
         start = datetime.fromtimestamp(games[0]["timestamp"])
         if not (last_cycle := await self.testing_cycles.find_one({}, {"_id": 1}, sort=list({"_id": -1}.items()))):
             id_ = 1
@@ -263,7 +264,7 @@ class CycleManager:
         )
         if result.acknowledged:
             return f"Found {result.matched_count} and updated {result.modified_count} members' perks status."
-        return f"Could not update perks status!"
+        return "Could not update perks status!"
 
     async def distribute_tokens(self):
         """

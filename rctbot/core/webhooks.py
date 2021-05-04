@@ -28,7 +28,7 @@ async def webhook_embed(
         title=title, type="rich", description=description, color=color, timestamp=datetime.now(timezone.utc),
     )
     embed.set_author(
-        name=author_name, url=f"https://www.heroesofnewerth.com/playerstats/ranked/", icon_url=author_icon,
+        name=author_name, url="https://www.heroesofnewerth.com/playerstats/ranked/", icon_url=author_icon,
     )
 
     for field in fields:

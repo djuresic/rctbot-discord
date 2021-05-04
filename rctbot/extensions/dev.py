@@ -37,7 +37,7 @@ class Development(commands.Cog):
         )
         if result.acknowledged:
             await ctx.send(f"Found {result.matched_count} and updated {result.modified_count} members' extra amount.")
-        await ctx.send(f"Could not update perks status!")
+        await ctx.send("Could not update perks status!")
 
     @commands.command()
     @commands.is_owner()
