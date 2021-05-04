@@ -468,7 +468,8 @@ def load(
             char = fp.read(1)
             if char == delim:
                 break
-            elif not char:
+
+            if not char:
                 raise ValueError("unexpected end of stream")
             buf.append(char)
         return b"".join(buf)
@@ -478,7 +479,7 @@ def load(
         _expect(b"{")
         result = []
         last_item = Ellipsis
-        for idx in xrange(items):
+        for _ in xrange(items):
             item = _unserialize()
             if last_item is Ellipsis:
                 last_item = item
