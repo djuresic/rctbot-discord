@@ -489,7 +489,6 @@ class TriviaGame(commands.Cog):
             )
 
         while True:
-
             try:
                 msg = await self.bot.wait_for("message", timeout=60.0, check=check)
                 msg_count += 1

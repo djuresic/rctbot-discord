@@ -263,7 +263,7 @@ class CycleManager:
         )
         if result.acknowledged:
             return f"Found {result.matched_count} and updated {result.modified_count} members' perks status."
-        return f"Could not update perks status!"
+        return "Could not update perks status!"
 
     async def distribute_tokens(self):
         """
