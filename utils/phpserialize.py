@@ -379,47 +379,47 @@ def dumps(data, charset="utf-8", errors=default_errors, object_hook=None):
             if obj is None:
                 return b's:0:"";'
             raise TypeError("can't serialize %r as key" % type(obj))
-        else:
-            if obj is None:
-                return b"N;"
-            if isinstance(obj, bool):
-                return ("b:%i;" % obj).encode("latin1")
-            if isinstance(obj, (int, long)):
-                return ("i:%s;" % obj).encode("latin1")
-            if isinstance(obj, float):
-                return ("d:%s;" % obj).encode("latin1")
-            if isinstance(obj, basestring):
-                encoded_obj = obj
-                if isinstance(obj, unicode):
-                    encoded_obj = obj.encode(charset, errors)
-                s = BytesIO()
-                s.write(b"s:")
-                s.write(str(len(encoded_obj)).encode("latin1"))
-                s.write(b':"')
-                s.write(encoded_obj)
-                s.write(b'";')
-                return s.getvalue()
-            if isinstance(obj, (list, tuple, dict)):
-                out = []
-                if isinstance(obj, dict):
-                    iterable = obj.items()
-                else:
-                    iterable = enumerate(obj)
-                for key, value in iterable:
-                    out.append(_serialize(key, True))
-                    out.append(_serialize(value, False))
-                return b"".join(
-                    [b"a:", str(len(obj)).encode("latin1"), b":{", b"".join(out), b"}"]
-                )
-            if isinstance(obj, phpobject):
-                return (
-                    b"O"
-                    + _serialize(obj.__name__, True)[1:-1]
-                    + _serialize(obj.__php_vars__, False)[1:]
-                )
-            if object_hook is not None:
-                return _serialize(object_hook(obj), False)
-            raise TypeError("can't serialize %r" % type(obj))
+
+        if obj is None:
+            return b"N;"
+        if isinstance(obj, bool):
+            return ("b:%i;" % obj).encode("latin1")
+        if isinstance(obj, (int, long)):
+            return ("i:%s;" % obj).encode("latin1")
+        if isinstance(obj, float):
+            return ("d:%s;" % obj).encode("latin1")
+        if isinstance(obj, basestring):
+            encoded_obj = obj
+            if isinstance(obj, unicode):
+                encoded_obj = obj.encode(charset, errors)
+            s = BytesIO()
+            s.write(b"s:")
+            s.write(str(len(encoded_obj)).encode("latin1"))
+            s.write(b':"')
+            s.write(encoded_obj)
+            s.write(b'";')
+            return s.getvalue()
+        if isinstance(obj, (list, tuple, dict)):
+            out = []
+            if isinstance(obj, dict):
+                iterable = obj.items()
+            else:
+                iterable = enumerate(obj)
+            for key, value in iterable:
+                out.append(_serialize(key, True))
+                out.append(_serialize(value, False))
+            return b"".join(
+                [b"a:", str(len(obj)).encode("latin1"), b":{", b"".join(out), b"}"]
+            )
+        if isinstance(obj, phpobject):
+            return (
+                b"O"
+                + _serialize(obj.__name__, True)[1:-1]
+                + _serialize(obj.__php_vars__, False)[1:]
+            )
+        if object_hook is not None:
+            return _serialize(object_hook(obj), False)
+        raise TypeError("can't serialize %r" % type(obj))
 
     return _serialize(data, False)
 
