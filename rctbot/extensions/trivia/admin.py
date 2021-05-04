@@ -212,7 +212,8 @@ class TriviaAdmin(commands.Cog):
                         await self.q_qol.find_one_and_replace(question_doc, prepare_doc)
                         await confirm.add_reaction("👌")
                         break
-                    elif confirm.content.lower() == "no":
+
+                    if confirm.content.lower() == "no":
                         await ctx.send("Aborting..")
                         break
                 except asyncio.TimeoutError:

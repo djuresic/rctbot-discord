@@ -19,8 +19,8 @@ class Extensions(commands.Cog):
             if item.endswith(f".{module}"):
                 extension = item
                 break
-            else:
-                extension = "youredoingitwrongagainsmh"
+            extension = "youredoingitwrongagainsmh"
+
         try:
             self.bot.load_extension(extension)
         except Exception as e:
@@ -36,8 +36,8 @@ class Extensions(commands.Cog):
             if item.endswith(f".{module}"):
                 extension = item
                 break
-            else:
-                extension = "youredoingitwrongagainsmh"
+            extension = "youredoingitwrongagainsmh"
+
         try:
             self.bot.unload_extension(extension)
         except Exception as e:
@@ -53,8 +53,8 @@ class Extensions(commands.Cog):
             if item.endswith(f".{module}"):
                 extension = item
                 break
-            else:
-                extension = "youredoingitwrongagainsmh"
+            extension = "youredoingitwrongagainsmh"
+
         try:
             self.bot.reload_extension(extension)
         except Exception as e:
