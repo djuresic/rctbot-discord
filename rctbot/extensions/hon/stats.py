@@ -146,8 +146,9 @@ class HoNStats(commands.Cog):
             2500,
         ]
         
-        # TODO: use MMR value in the future
-        # mmr = mmr_list[con_rank] + (mmr_list[con_rank + 1] - mmr_list[con_rank]) * (con_rank_percent / 100)
+        mmr = mmr_list[con_rank] + (mmr_list[con_rank + 1] - mmr_list[con_rank]) * (con_rank_percent / 100)
+        _ = mmr # TODO: use MMR value in the future
+        
         # embed.add_field(name="MMR", value=f"{mmr}", inline=True)
         embed.add_field(
             name="Rank", value=rank_data[con_rank]["name"], inline=True,
