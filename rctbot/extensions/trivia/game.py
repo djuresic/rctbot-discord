@@ -43,7 +43,7 @@ class TriviaGame(commands.Cog):
     """Trivia game class."""
 
     DATABASE = DatabaseHandler.client["Trivia"]
-    QUESTIONS = [q for q in DATABASE["QUESTIONS"].find({"enabled": True})]
+    QUESTIONS = list(DATABASE["QUESTIONS"].find({"enabled": True}))
 
     def __init__(self, bot):
         self.bot = bot
