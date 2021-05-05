@@ -240,9 +240,8 @@ def hero_name(cli_name):
 
 
 def cli_hero_name(name):
+    """Return cli name string"""
     name = name.lower()
-
-    # Return cli name
     CLI_HERO_NAMES = {v.lower(): k for k, v in HERO_NAMES.items()}
     if name in CLI_HERO_NAMES:
         return CLI_HERO_NAMES[name]
