@@ -103,7 +103,7 @@ class RCTWelcome(commands.Cog):
         staff = discord.utils.get(guild.roles, name="Frostburn Staff")
 
         embed = discord.Embed(
-            title=f"Welcome to the official Retail Candidate Testers Discord Server!",
+            title="Welcome to the official Retail Candidate Testers Discord Server!",
             type="rich",
             description=(
                 f"In order to chat here and access the rest of the server, you are required to link your Heroes of"
