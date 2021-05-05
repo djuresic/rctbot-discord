@@ -200,7 +200,7 @@ class CycleManager:
 
     async def update_ranks(self):
         # NOTE: fine
-        found = 0  # TODO
+        # found = 0  # TODO
         async for tester in self.testers.find(
             {"enabled": True}, {"account_id": 1, "rank_id": 1, "games": 1, "bugs": 1}
         ):
