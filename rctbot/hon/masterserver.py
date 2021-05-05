@@ -159,6 +159,12 @@ class Client:
         self.cookie = self.cookies[masterserver]  # instance var
         self.ip = self.ips[masterserver]
         self.auth_hash = self.auth_hashes[masterserver]
+        
+        # Initially empty attributes
+        self.chat_port =  None
+        self.chat_url = None
+        self.account_id = None
+        self.nickname = None
         # add more
 
     async def close_session(self):
