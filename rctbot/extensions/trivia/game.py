@@ -501,9 +501,8 @@ class TriviaGame(commands.Cog):
                 # await msg.delete()
                 if (
                     not self.has_answered.count(msg.author) >= self.options["attempts"]
-                    and not msg.author in self.winners
+                    and msg.author not in self.winners
                 ):
-
                     self.has_answered.append(msg.author)
 
                     if await self.do_guess(msg.content.lower()):
