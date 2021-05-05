@@ -452,11 +452,14 @@ class TriviaGame(commands.Cog):
                         scoreboard_msg += f"{key.mention}: **{value}**\n"
                 else:
                     break
+
             if not scoreboard_msg:
                 scoreboard_msg = "\u2063"
             embed = discord.Embed(title="Scoreboard", description=scoreboard_msg)
-            if not self.current_round > self.options["rounds"]:
-                pass
+
+            # TODO: add functionality
+            # if not self.current_round > self.options["rounds"]:
+            #    pass
 
             await self.options["channel"].send(embed=embed)
         await self.bot.change_presence(
