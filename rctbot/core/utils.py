@@ -32,12 +32,12 @@ def dhms(seconds: int) -> str:
     Returns:
         str: dd:hh:mm:ss, days and hours not included if those values are 0.
     """
-    dhms = ""
+    dhms_str = ""
     for scale in 86400, 3600, 60:
         result, seconds = divmod(seconds, scale)
-        if dhms != "" or result > 0:
-            dhms += "{0:02d}:".format(result)
-    dhms += "{0:02d}".format(seconds)
-    if dhms != "00":
-        return dhms
+        if dhms_str != "" or result > 0:
+            dhms_str += "{0:02d}:".format(result)
+    dhms_str += "{0:02d}".format(seconds)
+    if dhms_str != "00":
+        return dhms_str
     return "00:00"

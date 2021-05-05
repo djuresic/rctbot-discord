@@ -515,14 +515,14 @@ class RCTStats(commands.Cog):
 
         # This cycle. TODO: fucking yikes
         seconds = user["seconds"]
-        dhms = ""
+        dhms_str = ""
         for scale in 86400, 3600, 60:
             result, seconds = divmod(seconds, scale)
-            if dhms != "" or result > 0:
-                dhms += "{0:02d}:".format(result)
-        dhms += "{0:02d}".format(seconds)
+            if dhms_str != "" or result > 0:
+                dhms_str += "{0:02d}:".format(result)
+        dhms_str += "{0:02d}".format(seconds)
 
-        gametime = f"{dhms}"
+        gametime = f"{dhms_str}"
 
         # Total.
         seconds_total = user["total_seconds"]
