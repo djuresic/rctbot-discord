@@ -189,7 +189,8 @@ class RCTStats(commands.Cog):
         # print(user)
         if user is None:
             return await ctx.send(
-                f"{ctx.author.mention} That player is neither former nor past RCT member.", delete_after=10.0,
+                f"{ctx.author.mention} That player is neither former nor past RCT member.",
+                delete_after=10.0,
             )
 
         nick_with_clan_tag, _, name_color = await self._get_full_nickname(user["nickname"])
@@ -218,7 +219,7 @@ class RCTStats(commands.Cog):
         rank_id = user["rank_id"]
         # skipcq: PTC-W0048
         if ("absence" not in user or user["absence"] is None) or ("absence" in user and rank_id > ActivityRank.GOLD):
-            if ActivityRank.UNRANKED < rank_id < ActivityRank.LEGENDARY:
+            if ActivityRank.UNRANKED < rank_id < ActivityRank.LEGENDARY:  # skipcq: PTC-W0048
                 if (games + bugs) >= self.cycle_values.advance[rank_id]:
                     rank_id += 1
                 elif (games + bugs) < self.cycle_values.keep[rank_id]:
@@ -351,7 +352,9 @@ class RCTStats(commands.Cog):
                 inline=True,
             )
             embed.add_field(
-                name="Multiplier", value=f'{ranks[rank_id]["chest_emoji"]} {final_multiplier}x', inline=True,
+                name="Multiplier",
+                value=f'{ranks[rank_id]["chest_emoji"]} {final_multiplier}x',
+                inline=True,
             )
         embed.add_field(
             name="Join Date",
@@ -448,7 +451,8 @@ class RCTStats(commands.Cog):
         # print(user)
         if user is None:
             return await ctx.send(
-                f"{ctx.author.mention} That player is neither former nor past RCT member.", delete_after=10.0,
+                f"{ctx.author.mention} That player is neither former nor past RCT member.",
+                delete_after=10.0,
             )
 
         nick_with_clan_tag, clan_tag, name_color = await self._get_full_nickname(user["nickname"])
@@ -571,7 +575,9 @@ class RCTStats(commands.Cog):
             embed.add_field(name="Unconfirmed games", value=unconfirmed_games, inline=True)
             # embed.add_field(name=u"\u2063", value=u"\u2063", inline=True)
             embed.add_field(
-                name="Games", value=f'{user["games"]} ({ordinal(user["ladder"]["games"])})', inline=True,
+                name="Games",
+                value=f'{user["games"]} ({ordinal(user["ladder"]["games"])})',
+                inline=True,
             )
         if enabled:
             embed.add_field(
@@ -586,7 +592,9 @@ class RCTStats(commands.Cog):
         embed.add_field(name="Total game time", value=gametime_total, inline=True)
         if enabled:
             embed.add_field(
-                name="Bug reports", value=f'{user["bugs"]} ({ordinal(user["ladder"]["bugs"])})', inline=True,
+                name="Bug reports",
+                value=f'{user["bugs"]} ({ordinal(user["ladder"]["bugs"])})',
+                inline=True,
             )
         if enabled:
             embed.add_field(
@@ -596,11 +604,15 @@ class RCTStats(commands.Cog):
             )
         else:
             embed.add_field(
-                name="Total bug reports", value=user["total_bugs"], inline=True,
+                name="Total bug reports",
+                value=user["total_bugs"],
+                inline=True,
             )
         if enabled:
             embed.add_field(
-                name="Tokens earned", value=f'{user["tokens"]} ({ordinal(user["ladder"]["tokens"])})', inline=True,
+                name="Tokens earned",
+                value=f'{user["tokens"]} ({ordinal(user["ladder"]["tokens"])})',
+                inline=True,
             )
 
             if requester_name.lower() == user["nickname"].lower():
@@ -610,7 +622,9 @@ class RCTStats(commands.Cog):
                     f'Available when used by {discord.utils.escape_markdown(user["nickname"])} only!'
                 )
             embed.add_field(
-                name="Tokens owned", value=owned_tokens_message, inline=True,
+                name="Tokens owned",
+                value=owned_tokens_message,
+                inline=True,
             )
 
             embed.add_field(
@@ -621,7 +635,9 @@ class RCTStats(commands.Cog):
             # FIXME: Move Artificial Multiplier
             final_multiplier = self.cycle_values.multiplier[user["rank_id"]] + self.cycle_values.artificial
             embed.add_field(
-                name="Multiplier", value=f'{ranks[user["rank_id"]]["chest_emoji"]} {final_multiplier}x', inline=True,
+                name="Multiplier",
+                value=f'{ranks[user["rank_id"]]["chest_emoji"]} {final_multiplier}x',
+                inline=True,
             )
             embed.add_field(name="Bonuses", value=bonus, inline=True)
 
@@ -707,7 +723,9 @@ class RCTStats(commands.Cog):
 
         async def set_perks_status(status):
             return await self.testers.update_one(
-                {"nickname": user["nickname"]}, {"$set": {"perks": status}}, collation={"locale": "en", "strength": 1},
+                {"nickname": user["nickname"]},
+                {"$set": {"perks": status}},
+                collation={"locale": "en", "strength": 1},
             )
 
         try:
@@ -801,7 +819,8 @@ class RCTStats(commands.Cog):
         user = await self.testers.find_one({"discord_id": ctx.author.id})
         if not user:
             return await ctx.send(
-                f"{ctx.author.mention} Signature is only available to registered RCT volunteers.", delete_after=7.5,
+                f"{ctx.author.mention} Signature is only available to registered RCT volunteers.",
+                delete_after=7.5,
             )
 
         async def set_signature(url=None, purchase=False):
@@ -834,7 +853,8 @@ class RCTStats(commands.Cog):
             timestamp=ctx.message.created_at,
         )
         embed.set_author(
-            name=user["nickname"], icon_url=ctx.author.avatar_url,
+            name=user["nickname"],
+            icon_url=ctx.author.avatar_url,
         )
 
         if purchased:
@@ -883,12 +903,16 @@ class RCTStats(commands.Cog):
                     f"{ctx.author.mention} Are you **absolutely sure** you want to purchase **Discord Embedded Signature** for **{price} Volunteer Tokens**? This is irreversible and could leave you with negative tokens.\n\n Type `{confirmation}` to confirm this order, or anything else to cancel."
                 )
                 purchase_confirmation = await self.bot.wait_for(
-                    "message", check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id,
+                    "message",
+                    check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id,
                 )
                 await purchase_prompt.delete()
                 if purchase_confirmation.content != confirmation:
                     await purchase_confirmation.delete()
-                    return await ctx.send(f"{ctx.author.mention} Order cancelled.", delete_after=15.0,)
+                    return await ctx.send(
+                        f"{ctx.author.mention} Order cancelled.",
+                        delete_after=15.0,
+                    )
                 await purchase_confirmation.delete()
                 try:
                     async with VPClient() as portal:
@@ -900,7 +924,8 @@ class RCTStats(commands.Cog):
                     )
                 except:
                     return await ctx.send(
-                        f"{ctx.author.mention} Something went wrong, please try again.", delete_after=15.0,
+                        f"{ctx.author.mention} Something went wrong, please try again.",
+                        delete_after=15.0,
                     )
 
             if reaction.emoji == "⬆️" and purchased:
@@ -909,7 +934,8 @@ class RCTStats(commands.Cog):
                 )
                 # Needs timeout
                 signature_message = await self.bot.wait_for(
-                    "message", check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id,
+                    "message",
+                    check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id,
                 )
                 await do_it_now.delete()
                 if len(signature_message.attachments) == 0:
@@ -918,10 +944,9 @@ class RCTStats(commands.Cog):
                         delete_after=15.0,
                     )
                 attachment = signature_message.attachments[0]
-                # print(attachment)
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(attachment.url) as resp:
-                        image_b = await resp.read()
+                # print(attachment.url)
+                async with aiohttp.ClientSession() as session, session.get(attachment.url) as resp:
+                    image_b = await resp.read()
                 image_bio = BytesIO(image_b)
                 try:
                     with Image.open(image_bio) as image_pil:
@@ -941,7 +966,8 @@ class RCTStats(commands.Cog):
                 except:
                     await signature_message.delete()
                     return await ctx.send(
-                        f"{ctx.author.mention} Unsupported file type! Use `.signature` to retry.", delete_after=15.0,
+                        f"{ctx.author.mention} Unsupported file type! Use `.signature` to retry.",
+                        delete_after=15.0,
                     )
                 image_bio.seek(0)
                 sigantures_channel = self.bot.get_channel(718465776172138497)
@@ -954,7 +980,8 @@ class RCTStats(commands.Cog):
                 uploaded_signature_url = uploaded_signature_message.attachments[0].url
                 await set_signature(uploaded_signature_url)
                 await ctx.send(
-                    f"{ctx.author.mention} Signature set!", delete_after=15.0,
+                    f"{ctx.author.mention} Signature set!",
+                    delete_after=15.0,
                 )
 
         except:
