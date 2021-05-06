@@ -17,10 +17,12 @@ class Development(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
+        self.trivia_db = AsyncDatabaseHandler.client["Trivia"]
         self.testers = self.db[rctbot.config.MONGO_TESTING_PLAYERS_COLLECTION_NAME]
         self.testing_games = self.db[rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME]
         self.testing_bugs = self.db[rctbot.config.MONGO_TESTING_BUGS_COLLECTION_NAME]
         self.testing_cycles = self.db[rctbot.config.MONGO_TESTING_CYCLES_COLLECTION_NAME]
+        self.playerstats = self.trivia_db["PLAYERSTATS"]
 
     @commands.command()
     @commands.is_owner()
@@ -33,7 +35,11 @@ class Development(commands.Cog):
     @commands.is_owner()
     async def addextra(self, ctx, amount: int):
         result = await self.testers.update_many(
-            {"enabled": True, "$or": [{"games": {"$gte": 1}}, {"bugs": {"$gte": 1}}],}, {"$set": {"extra": amount}},
+            {
+                "enabled": True,
+                "$or": [{"games": {"$gte": 1}}, {"bugs": {"$gte": 1}}],
+            },
+            {"$set": {"extra": amount}},
         )
         if result.acknowledged:
             await ctx.send(f"Found {result.matched_count} and updated {result.modified_count} members' extra amount.")
