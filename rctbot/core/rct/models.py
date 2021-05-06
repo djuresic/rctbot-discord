@@ -132,7 +132,7 @@ class Tester(BaseModel):
     perks: str
     joined: TesterJoined
     signature: TesterSignature
-    awards: Optional[List[str]] = list()
+    awards: Optional[List[str]] = []
     discord_id: int
     account_id: int
     testing_account_id: int
