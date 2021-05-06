@@ -43,7 +43,7 @@ class TriviaGame(commands.Cog):
     """Trivia game class."""
 
     DATABASE = DatabaseHandler.client["Trivia"]
-    QUESTIONS = [q for q in DATABASE["QUESTIONS"].find({"enabled": True})]
+    QUESTIONS = list(DATABASE["QUESTIONS"].find({"enabled": True}))
 
     def __init__(self, bot):
         self.bot = bot
@@ -452,11 +452,14 @@ class TriviaGame(commands.Cog):
                         scoreboard_msg += f"{key.mention}: **{value}**\n"
                 else:
                     break
+
             if not scoreboard_msg:
                 scoreboard_msg = "\u2063"
             embed = discord.Embed(title="Scoreboard", description=scoreboard_msg)
-            if not self.current_round > self.options["rounds"]:
-                pass
+
+            # TODO: add functionality
+            # if not self.current_round > self.options["rounds"]:
+            #    pass
 
             await self.options["channel"].send(embed=embed)
         await self.bot.change_presence(
@@ -489,7 +492,6 @@ class TriviaGame(commands.Cog):
             )
 
         while True:
-
             try:
                 msg = await self.bot.wait_for("message", timeout=60.0, check=check)
                 msg_count += 1
@@ -501,9 +503,8 @@ class TriviaGame(commands.Cog):
                 # await msg.delete()
                 if (
                     not self.has_answered.count(msg.author) >= self.options["attempts"]
-                    and not msg.author in self.winners
+                    and msg.author not in self.winners
                 ):
-
                     self.has_answered.append(msg.author)
 
                     if await self.do_guess(msg.content.lower()):
