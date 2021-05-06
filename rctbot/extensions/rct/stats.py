@@ -216,6 +216,7 @@ class RCTStats(commands.Cog):
         current_bonus = math.floor((total_games / 50) - bonuses_given)
 
         rank_id = user["rank_id"]
+        # skipcq: PTC-W0048
         if ("absence" not in user or user["absence"] is None) or ("absence" in user and rank_id > ActivityRank.GOLD):
             if ActivityRank.UNRANKED < rank_id < ActivityRank.LEGENDARY:
                 if (games + bugs) >= self.cycle_values.advance[rank_id]:
