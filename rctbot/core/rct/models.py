@@ -2,15 +2,17 @@ from __future__ import annotations
 
 # Enum, IntEnum
 from enum import IntEnum
-
+from typing import Optional, List, Set
 from dataclasses import dataclass
+
+from pydantic import BaseModel, HttpUrl, ValidationError  # pylint: disable=no-name-in-module
 
 # TODO: Tester, Player dataclass.
 
 
 # TODO: namedtuple?
 @dataclass(init=False)
-class Tester:
+class TesterOld:
     def __init__(self, details: dict) -> None:
         self.details = details
         self.__set()
@@ -87,3 +89,53 @@ class CustomEmoji:
             self.__setattr__(emoji.name, emoji)
 
     # NOTE: Verify CustomEmoji([]).__dict__
+
+
+class TesterLadder(BaseModel):
+    games: int
+    bugs: int
+    total_games: int
+    total_bugs: int
+    tokens: int
+
+
+class TesterJoined(BaseModel):
+    first: str
+    last: Optional[str]
+
+
+class TesterSignature(BaseModel):
+    purchased: bool
+    url: Optional[str] = ""
+
+
+class TesterConsents(BaseModel):
+    sync_roles: bool
+
+
+# TODO: roles: List[int], primary_role: int
+class Tester(BaseModel):
+    _id: str
+    enabled: bool
+    role: str
+    nickname: str
+    games: int
+    seconds: int
+    bugs: int
+    total_games: int
+    total_seconds: int
+    total_bugs: int
+    ladder: TesterLadder
+    rank_id: int
+    bonuses_given: int
+    extra: int
+    perks: str
+    joined: TesterJoined
+    signature: TesterSignature
+    awards: Optional[List[str]] = list()
+    discord_id: int
+    account_id: int
+    testing_account_id: int
+    super_id: int
+    testing_super_id: int
+    consents: TesterConsents

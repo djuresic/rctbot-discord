@@ -36,6 +36,7 @@ from authlib.integrations.starlette_client import OAuth, OAuthError
 
 import rctbot.config
 from rctbot.core.driver import AsyncDatabaseHandler
+from rctbot.core.models import User  # , Offer
 from rctbot.hon.masterserver import authenticate
 
 # TODO
@@ -226,6 +227,6 @@ async def read_user_me(request: Request):
 
 
 # NOTE: /docs
-@app.get("/users/{user_id}")
-async def read_user(user_id: str):
-    return {"user_id": user_id}
+@app.get("/users/", response_model=User)
+async def read_user():
+    return
