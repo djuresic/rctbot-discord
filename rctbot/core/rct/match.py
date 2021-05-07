@@ -101,7 +101,7 @@ class MatchManipulator:
             rctbot.config.MONGO_TESTING_GAMES_COLLECTION_NAME
         ]
         match_id = int(match_id)
-        if (await collection.find_one({"match_id": match_id})) is None:
+        if (await collection.find_one({"match_id": match_id})) is not None:
             return f"Match ID {match_id} already inserted!"
         result = await collection.insert_one(
             {"retrieved": False, "counted": False, "watched": False, "match_id": match_id}
