@@ -165,8 +165,7 @@ class TriviaAdmin(commands.Cog):
             args = int(args)
         if not one:
             return self.q_qol.find({attr: args})
-        else:
-            return await (self.q_qol.find_one({attr: args}))
+        return await (self.q_qol.find_one({attr: args}))
 
     @triviaadmin.command(aliases=["mq", "modify"])
     async def modifyquestion(self, ctx, id: int, attr, *, args):

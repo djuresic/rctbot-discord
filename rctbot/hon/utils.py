@@ -206,13 +206,14 @@ async def get_avatar(account_id):
             async with session.get(url, params=query, allow_redirects=False) as resp:
                 location = resp.headers["Location"]
                 if not location.endswith(".cai"):
-                    return DEFAULT_AVATAR
+                    avatar = DEFAULT_AVATAR
                 elif "icons//" in location:
-                    return location.replace("icons//", "icons/")
+                    avatar = location.replace("icons//", "icons/")
                 else:
-                    return DEFAULT_AVATAR
+                    avatar = DEFAULT_AVATAR
         except:
-            return DEFAULT_AVATAR
+            avatar = DEFAULT_AVATAR
+    return avatar
 
 
 async def get_name_color(masterserver_response):

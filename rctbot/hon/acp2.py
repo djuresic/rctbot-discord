@@ -97,12 +97,10 @@ class ACPClient:
                         path, params, data, method, allow_redirects, chunked, read_until_eof, ssl, timeout,
                     )
                     return status, headers, text
-                else:
-                    print(f"ACP authentication attempt {attempt+1} failed")
+                print(f"ACP authentication attempt {attempt+1} failed")
                 await asyncio.sleep(attempt + 2)
             return status, headers, text
-        else:
-            return status, headers, text
+        return status, headers, text
 
     async def _do_request(
         self, path, params, data, method, allow_redirects, chunked, read_until_eof, ssl, timeout,
@@ -151,13 +149,9 @@ class ACPClient:
         search_data = {"search_by": search_by, "search_for": search_for}
         _, headers, _ = await self.request(search_path, data=search_data, allow_redirects=False, ssl=self.ssl)
         # Could use status here.
-        if "Location" in headers:
-            if "index." not in headers["Location"]:
-                return "/" + headers["Location"]
-            else:
-                return None
-        else:
+        if "Location" not in headers or "index." in headers["Location"]:
             return None
+        return "/" + headers["Location"]
 
     async def find_user_path(self, search_by, search_for):
         return await self._search(rctbot.config.HON_ACP_PROFILE_SEARCH, search_by, search_for)
@@ -176,18 +170,17 @@ class ACPClient:
     async def nickname_to_aid(self, nickname):
         """Return account_id from nickname. None if it doesn't exist."""
         path = await self.find_user_path("nickname", nickname)
-        if path:
-            return await self.user_path_to_aid(path)
-        else:
+        if not path:
             return None
+        return await self.user_path_to_aid(path)
 
     async def sid_to_aid(self, super_id):
         """Return account_id from super_id. None if it doesn't exist."""
         path = await self.find_user_path("super_id", super_id)
-        if path:
-            return await self.user_path_to_aid(path)
-        else:
+        if not path:
             return None
+        return await self.user_path_to_aid(path)
+            
 
     async def user_clan_data(self, clan_path, account_id):
         """Return tuple (tag, name, rank)."""
@@ -213,21 +206,20 @@ class ACPClient:
             {"name": "Fields", "value": "Sub-accounts", "inline": False},
         ]
         await self.log_action(account_id, "viewed", fields)
-        if status == 200:
-
-            def find_accounts(response_text):
-                soup = BeautifulSoup(response_text, "lxml")
-                dropdown = soup.find(attrs={"id": "subAccountsList"})
-                entries = dropdown.find_all("option")
-                accounts = []
-                for entry in entries:
-                    accounts.append((int(entry["value"]), entry.text))
-                return accounts
-
-            loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(None, find_accounts, text)
-        else:
+        if status not in (200,):
             return None
+
+        def find_accounts(response_text):
+            soup = BeautifulSoup(response_text, "lxml")
+            dropdown = soup.find(attrs={"id": "subAccountsList"})
+            entries = dropdown.find_all("option")
+            accounts = []
+            for entry in entries:
+                accounts.append((int(entry["value"]), entry.text))
+            return accounts
+
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, find_accounts, text)
 
     async def check_suspension(self, super_id):
         path = rctbot.config.HON_ACP_SUSPENSION
@@ -238,10 +230,9 @@ class ACPClient:
         ]
         # account_id = await self.sid_to_aid(super_id) FIXME: broken for some reason
         await self.log_action(f"s{str(super_id)}", "viewed", fields)
-        if status == 200:
-            return text
-        else:
+        if status not in (200,):
             return None
+        return text
 
     async def clan_invite(self, nickname, clan_tag=None):
         # TODO: Configurable clan tag.
@@ -278,10 +269,10 @@ class ACPClient:
         ]
         await self.log_action(account_id, "updated", fields)
         # This shouldn't be here...
-        if status == 200:
-            return f"Successfully added {nickname} ({account_id}) to {new_clan_name} ({new_clan_id})!"
-        else:
+        if status not in (200,):
             return None
+        return f"Successfully added {nickname} ({account_id}) to {new_clan_name} ({new_clan_id})!"
+            
 
     async def clan_remove(self, nickname):
         old_clan_path = await self.find_clan_path("nickname", nickname)
@@ -310,10 +301,9 @@ class ACPClient:
         ]
         await self.log_action(account_id, "updated", fields)
         # This shouldn't be here...
-        if status == 200:
-            return f"Successfully removed {nickname} ({account_id}) from {old_clan_name} ({old_clan_id})!"
-        else:
+        if status not in (200,):
             return None
+        return f"Successfully removed {nickname} ({account_id}) from {old_clan_name} ({old_clan_id})!"
 
     async def clan_promote(self, nickname):
         clan_path = await self.find_clan_path("nickname", nickname)
@@ -334,10 +324,9 @@ class ACPClient:
             {"name": "New Rank", "value": new_rank, "inline": True},
         ]
         await self.log_action(account_id, "updated", fields)
-        if status == 200 and new_rank == desired_rank:
-            return f"Successfully promoted {nickname} ({account_id}) to Clan {new_rank}!"
-        else:
+        if status not in (200,) or new_rank != desired_rank:
             return None
+        return f"Successfully promoted {nickname} ({account_id}) to Clan {new_rank}!"
 
     async def clan_demote(self, nickname):
         clan_path = await self.find_clan_path("nickname", nickname)
@@ -358,10 +347,9 @@ class ACPClient:
             {"name": "New Rank", "value": new_rank, "inline": True},
         ]
         await self.log_action(account_id, "updated", fields)
-        if status == 200 and new_rank == desired_rank:
-            return f"Successfully demoted {nickname} ({account_id}) to Clan {new_rank}!"
-        else:
+        if status not in (200,) or new_rank != desired_rank:
             return None
+        return f"Successfully demoted {nickname} ({account_id}) to Clan {new_rank}!"
 
     async def clan_crown(self, nickname):
         clan_path = await self.find_clan_path("nickname", nickname)
@@ -382,10 +370,9 @@ class ACPClient:
             {"name": "New Rank", "value": new_rank, "inline": True},
         ]
         await self.log_action(account_id, "updated", fields)
-        if status == 200 and new_rank == desired_rank:
-            return f"Successfully promoted {nickname} ({account_id}) to Clan {new_rank}!"
-        else:
+        if status not in (200,) or new_rank != desired_rank:
             return None
+        return f"Successfully promoted {nickname} ({account_id}) to Clan {new_rank}!"
 
     async def add_perks(self, account_id):
         """Add RCT chat symbol and chat color to account."""
@@ -399,10 +386,9 @@ class ACPClient:
             {"name": "Items", "value": "cs.RCT\ncc.mentorwings", "inline": True},
         ]
         await self.log_action(account_id, "modified", fields)
-        if status == 200:
-            return f"Successfully gave RCT perks to {account_id}!"
-        else:
+        if status not in (200,):
             return None
+        return f"Successfully gave RCT perks to {account_id}!"
 
     async def remove_perks(self, account_id):
         """Remove RCT chat symbol and chat color from account."""
@@ -411,46 +397,45 @@ class ACPClient:
         query = {"f": "modify", "aid": account_id}
         status, _, text = await self.request(path, params=query, method="GET", ssl=self.ssl)
         # This isn't good.
-        if status == 200:
-
-            def find_perks(response_text):
-                soup = BeautifulSoup(response_text, features="lxml")
-                chat_colors = soup.find_all("tr", attrs={"class": "Chat_Color_transdiv"})
-                chat_symbols = soup.find_all("tr", attrs={"class": "Chat_Symbol_transdiv"})
-
-                def find_values(table_tr, product_id):
-                    td_list = []
-                    product_id = str(product_id)
-                    for tr in table_tr:
-                        td = tr.find_all("td")
-                        if td[3].text == product_id and td[0].span is None:
-                            td_list.append((td[0].a["href"], td[1].text, td[2].text))
-                    return td_list
-
-                to_remove_cc = find_values(chat_colors, 918)
-                to_remove_cs = find_values(chat_symbols, 2107)
-                return to_remove_cc, to_remove_cs
-
-            loop = asyncio.get_running_loop()
-            cc_list, cs_list = await loop.run_in_executor(None, find_perks, text)
-            await asyncio.sleep(0.5)
-            all_upgrades = cc_list + cs_list
-            if len(all_upgrades) == 0:
-                return f"No RCT perks to remove for {account_id}."
-
-            for upgrade in all_upgrades:
-                # Refund URL index 0.
-                await self.request(f"/{upgrade[0]}", method="GET", ssl=self.ssl)
-
-            fields = [
-                {"name": "Change", "value": "Upgrades", "inline": False},
-                {"name": "Action", "value": "Removed", "inline": True},
-                {"name": "Items", "value": "cs.RCT\ncc.mentorwings", "inline": True},
-            ]
-            await self.log_action(account_id, "modified", fields)
-            return f"Removed a total of {len(all_upgrades)} RCT perk entries for {account_id}."
-        else:
+        if status not in (200,):
             return None
+
+        def find_perks(response_text):
+            soup = BeautifulSoup(response_text, features="lxml")
+            chat_colors = soup.find_all("tr", attrs={"class": "Chat_Color_transdiv"})
+            chat_symbols = soup.find_all("tr", attrs={"class": "Chat_Symbol_transdiv"})
+
+            def find_values(table_tr, product_id):
+                td_list = []
+                product_id = str(product_id)
+                for tr in table_tr:
+                    td = tr.find_all("td")
+                    if td[3].text == product_id and td[0].span is None:
+                        td_list.append((td[0].a["href"], td[1].text, td[2].text))
+                return td_list
+
+            to_remove_cc = find_values(chat_colors, 918)
+            to_remove_cs = find_values(chat_symbols, 2107)
+            return to_remove_cc, to_remove_cs
+
+        loop = asyncio.get_running_loop()
+        cc_list, cs_list = await loop.run_in_executor(None, find_perks, text)
+        await asyncio.sleep(0.5)
+        all_upgrades = cc_list + cs_list
+        if len(all_upgrades) == 0:
+            return f"No RCT perks to remove for {account_id}."
+
+        for upgrade in all_upgrades:
+            # Refund URL index 0.
+            await self.request(f"/{upgrade[0]}", method="GET", ssl=self.ssl)
+
+        fields = [
+            {"name": "Change", "value": "Upgrades", "inline": False},
+            {"name": "Action", "value": "Removed", "inline": True},
+            {"name": "Items", "value": "cs.RCT\ncc.mentorwings", "inline": True},
+        ]
+        await self.log_action(account_id, "modified", fields)
+        return f"Removed a total of {len(all_upgrades)} RCT perk entries for {account_id}."
 
     @staticmethod
     def _get_account_info(response_text):
@@ -513,6 +498,7 @@ class ACPClient:
         )
         # Status.
         _, headers, _ = await self.request(path, params=query, data=account_info, ssl=self.ssl, allow_redirects=False)
+        # TODO: Change the test here.
         if "Location" in headers:
             if "index." not in headers["Location"] and "error." not in headers["Location"]:
                 path = "/" + headers["Location"]
@@ -520,13 +506,12 @@ class ACPClient:
                 path = None
         else:
             path = None
-        if path:
-            # print(path)
-            account_id = await self.user_path_to_aid(path)
-            await self.log_action(account_id, "created", [])
-            return account_id, nickname, account_info["password"]
-        else:
+        if not path:
             return 3 * (None,)
+        # print(path)
+        account_id = await self.user_path_to_aid(path)
+        await self.log_action(account_id, "created", [])
+        return account_id, nickname, account_info["password"]       
 
     async def user_test_access(self, account_id):
         """Get test access field for account."""
@@ -546,10 +531,9 @@ class ACPClient:
         path = rctbot.config.HON_ACP_PROFILE
         query = {"f": "modify", "aid": account_id, "toggle": "test_access"}
         _, headers, _ = await self.request(path, params=query, ssl=self.ssl, allow_redirects=False)
-        if "Location" in headers:
-            return bool("index." not in headers["Location"] and "error." not in headers["Location"])
-        else:
+        if "Location" not in headers:
             return False
+        return bool("index." not in headers["Location"] and "error." not in headers["Location"])
 
 
 # pylint: disable=unused-argument

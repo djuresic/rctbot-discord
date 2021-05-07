@@ -102,14 +102,13 @@ class MatchManipulator:
         ]
         match_id = int(match_id)
         if (await collection.find_one({"match_id": match_id})) is None:
-            result = await collection.insert_one(
-                {"retrieved": False, "counted": False, "watched": False, "match_id": match_id}
-            )
-            if result.acknowledged:
-                return f"Inserted {match_id}."
-            return f"Could not insert {match_id}."
-        else:
             return f"Match ID {match_id} already inserted!"
+        result = await collection.insert_one(
+            {"retrieved": False, "counted": False, "watched": False, "match_id": match_id}
+        )
+        if not result.acknowledged:
+            return f"Could not insert {match_id}."
+        return f"Inserted {match_id}."
 
     @staticmethod
     async def update_match(match_id, match_data: dict):
@@ -125,8 +124,8 @@ class MatchManipulator:
         match = await collection.find_one({"match_id": match_id})
         if match is None:
             return f"{match_id} doesn't exist!"
-        else:
-            result = await collection.update_one({"match_id": match_id}, {"$set": match_data})
-            if result.acknowledged:
-                return f"Updated {match_id}."
-            return f"Failed to update {match_id}!"
+
+        result = await collection.update_one({"match_id": match_id}, {"$set": match_data})
+        if result.acknowledged:
+            return f"Updated {match_id}."
+        return f"Failed to update {match_id}!"

@@ -17,7 +17,7 @@ HON_VP_PASSWORD = os.getenv("HON_VP_PASSWORD", None)
 # FIXME: Not singleton pattern.
 class VPClient:
     """Class representing a HoN Volunteer Portal client.
-    
+
     Asynchronous context manager if `async with` statement is used.
     Creates a new session if one isn't provided."""
 
@@ -64,10 +64,16 @@ class VPClient:
         return bool(status == 200 and HON_VP_USER in text)
 
     async def request(
-        self, path, params=None, data=None, method="POST", chunked=None, read_until_eof=True,
+        self,
+        path,
+        params=None,
+        data=None,
+        method="POST",
+        chunked=None,
+        read_until_eof=True,
     ) -> Tuple[int, str]:
         """Coroutine. Ensure the client is authenticated and perform a HTTP request.
-        
+
         Return tuple (status, text) from HTTP response."""
 
         status, text = await self._do_request(path, params, data, method, chunked, read_until_eof)
@@ -77,12 +83,10 @@ class VPClient:
                 if authenticated:
                     status, text = await self._do_request(path, params, data, method, chunked, read_until_eof)
                     return status, text
-                else:
-                    print(f"Portal authentication attempt {attempt+1} failed")
+                print(f"Portal authentication attempt {attempt+1} failed")
                 await asyncio.sleep(attempt + 2)
             return status, text
-        else:
-            return status, text
+        return status, text
 
     async def _do_request(self, path, params, data, method, chunked, read_until_eof) -> Tuple[int, str]:
         async with self.session.request(

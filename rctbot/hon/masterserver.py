@@ -44,9 +44,7 @@ HON_NAEU_TC_USERNAME = os.getenv("HON_NAEU_TC_USERNAME")
 HON_NAEU_TC_PASSWORD = os.getenv("HON_NAEU_TC_PASSWORD")
 
 # NOTE: Temporarily placing these sync functions here, they are used by the API. This module needs to be rewritten.
-def request(
-    query, path=None, deserialize=True,
-):
+def request(query, path=None, deserialize=True):
     if path is None:
         path = "client_requester.php"
 
@@ -71,7 +69,12 @@ def authenticate(login, password):
     query = {"f": "pre_auth", "login": login}
     srp.rfc5054_enable()
     user = srp.User(
-        login.encode(), None, hash_alg=srp.SHA256, ng_type=srp.NG_CUSTOM, n_hex=S2_N.encode(), g_hex=S2_G.encode(),
+        login.encode(),
+        None,
+        hash_alg=srp.SHA256,
+        ng_type=srp.NG_CUSTOM,
+        n_hex=S2_N.encode(),
+        g_hex=S2_G.encode(),
     )
     _, A = user.start_authentication()
     query["A"] = binascii.hexlify(A).decode()
@@ -159,9 +162,9 @@ class Client:
         self.cookie = self.cookies[masterserver]  # instance var
         self.ip = self.ips[masterserver]
         self.auth_hash = self.auth_hashes[masterserver]
-        
+
         # Initially empty attributes
-        self.chat_port =  None
+        self.chat_port = None
         self.chat_url = None
         self.account_id = None
         self.nickname = None
@@ -206,15 +209,17 @@ class Client:
                 prepared = await self.prepare()
                 if prepared:
                     return await self.request(query, path=path, cookie=cookie, deserialize=deserialize)
-                else:
-                    print(f"Preparation attempt {attempt+1} failed")
+                print(f"Preparation attempt {attempt+1} failed")
                 await asyncio.sleep(attempt + 2)
             return response
-        else:
-            return response
+        return response
 
     async def request(
-        self, query, path=None, cookie=False, deserialize=True,
+        self,
+        query,
+        path=None,
+        cookie=False,
+        deserialize=True,
     ):  # default to RC masterserver instead
         # print(query)
 
@@ -251,7 +256,12 @@ class Client:
         query = {"f": "pre_auth", "login": login}
         srp.rfc5054_enable()
         user = srp.User(
-            login.encode(), None, hash_alg=srp.SHA256, ng_type=srp.NG_CUSTOM, n_hex=S2_N.encode(), g_hex=S2_G.encode(),
+            login.encode(),
+            None,
+            hash_alg=srp.SHA256,
+            ng_type=srp.NG_CUSTOM,
+            n_hex=S2_N.encode(),
+            g_hex=S2_G.encode(),
         )
         _, A = user.start_authentication()
         query["A"] = binascii.hexlify(A).decode()
@@ -282,7 +292,7 @@ class Client:
     async def latest_client_version(self, client_os="windows", include_zero=False):
         """Client OS must be either Windows, macOS or Linux.
         Case insensitive and only the first letter matters. (w, m, l)
-        
+
         include_zero displays the hotfix digit even if it is 0."""
 
         client_os = client_os[0].lower()
@@ -291,8 +301,7 @@ class Client:
         query = {"version": "0.0.0.0", "os": os_parameter, "arch": arch[client_os]}
         if include_zero:
             return (await self.request(query, "patcher/patcher.php"))[b"version"].decode()
-        else:
-            return (await self.request(query, "patcher/patcher.php"))[0][b"version"].decode()
+        return (await self.request(query, "patcher/patcher.php"))[0][b"version"].decode()
 
     async def nick2id(self, nickname):
         result = await self.request({"f": "nick2id", "nickname[]": nickname.lower()})
