@@ -45,6 +45,8 @@ class API:
     app = None
 
 
+# TODO: Rewrite branches to minimize indentation.
+
 config = Config(".env")
 
 app = FastAPI(title="RCTBot API", description="desc", version=__version__, debug=False)
@@ -103,7 +105,8 @@ async def login_hon(request: Request):
     if not user or "hon" in user:
         return RedirectResponse(url="/")
     return templates.TemplateResponse(
-        "signin_hon.html", {"request": request, "user": user, "auth": user.pop("auth", None)},
+        "signin_hon.html",
+        {"request": request, "user": user, "auth": user.pop("auth", None)},
     )
 
 
@@ -146,69 +149,82 @@ async def auth_hon(request: Request):
     loop = asyncio.get_running_loop()
     data = await loop.run_in_executor(None, authenticate, data["username"], data["password"])
     date = datetime.now(timezone.utc)
-    # TODO: not in
-    if b"account_id" in data:
-        discord_id = int(user["id"])
-        # TODO: Remove hardcoded database and collection names.
-        collection = AsyncDatabaseHandler.client["rctbot"]["users"]
-        testers_collection = AsyncDatabaseHandler.client["rct"]["testers"]
-        if await collection.find_one({"discord_id": discord_id}):
-            # It can't go this wrong, can it?
-            return RedirectResponse(url="/logout", status_code=status.HTTP_303_SEE_OTHER)
-        username = data[b"nickname"].decode()
-        account_id = int(data[b"account_id"].decode())
-        super_id = int(data[b"super_id"].decode())
-        if (existing := await collection.find_one({"super_id": super_id})) :
-            request.session["user"]["auth"] = {
-                "alert": "warning",
-                "message": (
-                    f"Unable to connect {username} ({account_id})!"
-                    f' Your account {existing["username"]} ({existing["account_id"]})'
-                    " is already linked to a Discord account."
-                ),
-            }
-            return RedirectResponse(url="/login/hon", status_code=status.HTTP_303_SEE_OTHER)
-        account = {
-            "username": username,
-            "account_id": account_id,
-            "super_id": super_id,
-        }
-        request.session["user"]["hon"] = json.loads(json.dumps(account))  # FIXME: What happened here?
-        account["discord_id"] = discord_id
-        account["date"] = date
-        account["application_ip"] = data[b"ip"].decode()
-        result = await collection.insert_one(account)
-        if result.acknowledged:
-            request.session["user"]["auth"] = {"alert": "success", "message": "HoN Account linked successfully!"}
-
-            tester_document = await testers_collection.find_one(
-                {"super_id": super_id}, {"_id": 0, "enabled": 1, "discord_id": 1}
-            )
-            if tester_document and not tester_document["discord_id"]:
-                # Missing acknowledged check.
-                await testers_collection.update_one(
-                    {"super_id": super_id}, {"$set": {"discord_id": discord_id}},
-                )
-
-            guild = API.bot.get_guild(rctbot.config.DISCORD_RCT_GUILD_ID)
-            if member := guild.get_member(discord_id):
-                community = discord.utils.get(guild.roles, name="Community Member")
-                if community not in member.roles:
-                    await member.add_roles(community, reason="Linked Heroes of Newerth.")
-
-                if tester_document and tester_document["enabled"]:
-                    tester = discord.utils.get(guild.roles, name="Tester")
-                    if tester not in member.roles:
-                        await member.add_roles(tester, reason="Linked Heroes of Newerth as a Tester.")
-
-        else:
-            request.session["user"]["auth"] = {
-                "alert": "danger",
-                "message": "Could not link HoN Account, please log out and try again.",
-            }
-
-    else:
+    if b"account_id" not in data:
         request.session["user"]["auth"] = {"alert": "danger", "message": data[b"auth"].decode()}
+        return RedirectResponse(url="/login/hon", status_code=status.HTTP_303_SEE_OTHER)
+
+    username = data[b"nickname"].decode()
+    account_id = int(data[b"account_id"].decode())
+    if standing := rctbot.config.HON_STANDING_MAP[data[b"standing"].decode()] in ("None", "Basic"):
+        request.session["user"]["auth"] = {
+            "alert": "warning",
+            "message": (
+                f"Account standing for {username} ({account_id}) is {standing}."
+                " It must be at least Verified to use this feature."
+            ),
+        }
+        return RedirectResponse(url="/login/hon", status_code=status.HTTP_303_SEE_OTHER)
+
+    discord_id = int(user["id"])
+    # TODO: Remove hardcoded database and collection names.
+    collection = AsyncDatabaseHandler.client["rctbot"]["users"]
+    testers_collection = AsyncDatabaseHandler.client["rct"]["testers"]
+    if await collection.find_one({"discord_id": discord_id}):
+        # It can't go this wrong, can it?
+        return RedirectResponse(url="/logout", status_code=status.HTTP_303_SEE_OTHER)
+
+    super_id = int(data[b"super_id"].decode())
+    if (existing := await collection.find_one({"super_id": super_id})) :
+        request.session["user"]["auth"] = {
+            "alert": "warning",
+            "message": (
+                f"Unable to connect {username} ({account_id})!"
+                f' Your account {existing["username"]} ({existing["account_id"]})'
+                " is already linked to a Discord account."
+            ),
+        }
+        return RedirectResponse(url="/login/hon", status_code=status.HTTP_303_SEE_OTHER)
+    account = {
+        "username": username,
+        "account_id": account_id,
+        "super_id": super_id,
+    }
+    request.session["user"]["hon"] = json.loads(json.dumps(account))  # FIXME: What happened here?
+    account["discord_id"] = discord_id
+    account["date"] = date
+    account["application_ip"] = data[b"ip"].decode()
+
+    result = await collection.insert_one(account)
+    if not result.acknowledged:
+        request.session["user"]["auth"] = {
+            "alert": "danger",
+            "message": "Could not link HoN Account, please log out and try again.",
+        }
+        return RedirectResponse(url="/login/hon", status_code=status.HTTP_303_SEE_OTHER)
+
+    request.session["user"]["auth"] = {"alert": "success", "message": "HoN Account linked successfully!"}
+
+    tester_document = await testers_collection.find_one(
+        {"super_id": super_id}, {"_id": 0, "enabled": 1, "discord_id": 1}
+    )
+    if tester_document and not tester_document["discord_id"]:
+        # Missing acknowledged check.
+        await testers_collection.update_one(
+            {"super_id": super_id},
+            {"$set": {"discord_id": discord_id}},
+        )
+
+    guild = API.bot.get_guild(rctbot.config.DISCORD_RCT_GUILD_ID)
+    if member := guild.get_member(discord_id):
+        community = discord.utils.get(guild.roles, name="Community Member")
+        if community not in member.roles:
+            await member.add_roles(community, reason="Linked Heroes of Newerth.")
+
+        if tester_document and tester_document["enabled"]:
+            tester = discord.utils.get(guild.roles, name="Tester")
+            if tester not in member.roles:
+                await member.add_roles(tester, reason="Linked Heroes of Newerth as a Tester.")
+
     return RedirectResponse(url="/login/hon", status_code=status.HTTP_303_SEE_OTHER)
 
 
