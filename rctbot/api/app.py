@@ -155,7 +155,7 @@ async def auth_hon(request: Request):
 
     username = data[b"nickname"].decode()
     account_id = int(data[b"account_id"].decode())
-    if standing := rctbot.config.HON_STANDING_MAP[data[b"standing"].decode()] in ("None", "Basic"):
+    if (standing := rctbot.config.HON_STANDING_MAP[data[b"standing"].decode()]) in ("None", "Basic"):
         request.session["user"]["auth"] = {
             "alert": "warning",
             "message": (
