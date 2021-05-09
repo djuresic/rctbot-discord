@@ -4,11 +4,11 @@ import rctbot.config
 import rctbot.core.errors
 from rctbot.core.driver import AsyncDatabaseHandler
 
-
+# TODO: Rename to in_allowlist
 def in_whitelist(whitelist):
     async def in_whitelist_check(ctx):
         if ctx.author.id not in whitelist:
-            raise rctbot.core.errors.NotInWhiteList("You're not on the whitelist!")
+            raise rctbot.core.errors.NotInWhiteList("You're not on the allowlist!")
         return True
 
     return commands.check(in_whitelist_check)
