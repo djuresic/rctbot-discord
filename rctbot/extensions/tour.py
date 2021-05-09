@@ -27,6 +27,7 @@ class TourAdmin(commands.Cog):
             nicknames = ("TourAdmin1", "TourAdmin2", "TourAdmin3")
         alphabet = string.ascii_letters + string.digits
         password = "".join(secrets.choice(alphabet) for i in range(16))
+        await ctx.send(f"Attempting to set password to: ```\n{password}```")
         async with ACPClient(admin=ctx.author, masterserver="ac") as acp:
             for nickname in nicknames:
                 await ctx.send(discord.utils.escape_markdown(await acp.change_password(nickname, password)))
