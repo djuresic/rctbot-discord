@@ -1,12 +1,11 @@
 env
+venv
 .env
 rctbot/config/development*
 rctbot/config/production*
 .vs
-.vscode
 *.pyc
 __pycache__
-*.json
 *.pem
 data.txt
 bulkadd.py

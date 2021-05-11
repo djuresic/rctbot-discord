@@ -1,0 +1,15 @@
+version: '3.4'
+
+services:
+  rctbot:
+    image: rctbot
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: rctbot
+    restart: unless-stopped
+
+networks:
+  default:
+    external:
+      name: rctbot
