@@ -2,6 +2,8 @@
 FROM python:3.9-slim-buster
 RUN apt-get update && apt-get install -y libjpeg-turbo-progs libjpeg62-turbo-dev liblcms2-dev libwebp-dev zlib1g-dev wget
 
+EXPOSE 8080
+
 # Keeps Python from generating .pyc files in the container
 ENV PYTHONDONTWRITEBYTECODE=1
 
