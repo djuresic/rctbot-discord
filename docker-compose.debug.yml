@@ -6,6 +6,10 @@ services:
     build:
       context: .
       dockerfile: ./Dockerfile
+    container_name: rctbot
+    env_file: .env
+    environment:
+      DEPLOYMENT: 0
     command: ["sh", "-c", "pip install debugpy -t /tmp && python /tmp/debugpy --wait-for-client --listen 0.0.0.0:5678 bot.py "]
     ports:
       - 8080:8080

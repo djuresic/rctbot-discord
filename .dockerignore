@@ -1,7 +1,7 @@
 **/__pycache__
 **/.classpath
 **/.dockerignore
-# **/.env
+**/.env
 **/env
 **/venv
 **/.git

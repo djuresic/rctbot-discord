@@ -2,6 +2,34 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
+			"label": "docker-compose up: debug",
+			"type": "docker-compose",
+			"dockerCompose": {
+				"up": {
+					"detached": true,
+					"build": true,
+					"services": [
+						"rctbot"
+					]
+				},
+				"files": [
+					"${workspaceFolder}/docker-compose.debug.yml"
+				]
+			},
+		},
+		{
+			"label": "docker-compose down: debug",
+			"type": "docker-compose",
+			"dockerCompose": {
+				"down": {
+					"removeImages": "local"
+				},
+				"files": [
+					"${workspaceFolder}/docker-compose.debug.yml"
+				]
+			}
+		},
+		{
 			"type": "docker-build",
 			"label": "docker-build",
 			"platform": "python",
@@ -18,6 +46,23 @@
 			"dependsOn": [
 				"docker-build"
 			],
+			"dockerRun": {
+				"containerName": "rctbot",
+				"envFiles": [
+					".env"
+				],
+				"env": {
+					"DEPLOYMENT": "0"
+				},
+				"ports": [
+					{
+						"containerPort": 8080,
+						"hostPort": 8080,
+						"protocol": "tcp"
+					}
+				],
+				"remove": true
+			},
 			"python": {
 				"file": "bot.py"
 			}
