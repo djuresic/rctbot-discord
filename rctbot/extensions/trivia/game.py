@@ -303,7 +303,7 @@ class TriviaGame(commands.Cog):
         """Stats for a player"""
         if not member:
             member = ctx.author
-        if (player_stats := await self.fetch_player_stats(member)) :  # pyint: disable=superfluous-parens
+        if player_stats := await self.fetch_player_stats(member):  # pyint: disable=superfluous-parens
             embed = discord.Embed(title="Trivia: Player Stats", timestamp=ctx.message.created_at)
             embed.add_field(name="Games", value=player_stats["total_games"])
             embed.add_field(name="Rounds", value=player_stats["total_rounds"])
@@ -439,6 +439,8 @@ class TriviaGame(commands.Cog):
                 await self.options["channel"].send(
                     f"**Time's up!** {before_answer_str}: **{correct_answer}**\nGood job! {winners_str}"
                 )
+            else:
+                await self.options["channel"].send("**Time's up!**")
             self.round_reset()
             self.scoreboard = [(key, value["points"]) for (key, value) in self.player_stats.items()]
             sorted_scoreboard = dict(sorted(self.scoreboard, key=lambda x: x[1], reverse=True))
@@ -510,15 +512,9 @@ class TriviaGame(commands.Cog):
                     if await self.do_guess(msg.content.lower()):
                         self.winners.append(msg.author)
                         if len(self.winners) >= len(self.options["point_distribution"]):
-                            await self.save_round_stats()
-                            self.round_reset()
                             break
-                    else:
-                        pass
 
             except asyncio.TimeoutError:
-                await self.save_round_stats()
-                self.round_reset()
                 break
 
     def check(self, m):

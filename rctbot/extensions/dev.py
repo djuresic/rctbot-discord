@@ -87,6 +87,17 @@ class Development(commands.Cog):
             gc = Client("ac", session=session)
             print(await gc.match_history_overview(nickname, table))
 
+    @commands.command()
+    @commands.is_owner()
+    async def showunusedquestions(self, ctx):  # pylint: disable=unused-argument
+        q_col = self.trivia_db["QUESTIONS"]
+        past_col = self.trivia_db["GAMESTATS"]
+        q_ids = []
+        async for document in q_col.find({}):
+            if "question" in document and not (await past_col.find_one({"rounds.question": document["question"]})):
+                q_ids.append(document["_id"])
+        print(q_ids)
+
 
 def setup(bot):
     bot.add_cog(Development(bot))
