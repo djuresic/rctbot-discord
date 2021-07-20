@@ -244,8 +244,7 @@ class EmbedCreator:
         title = "Channel Categories"
         category_1_name = "Gates of Newerth"
         category_1_desc = (
-            f"{picking_phase}: Claim roles by clicking on reactions! Some give you access to special channels such as"
-            " regional LFG (Looking for Group)."
+            f"{picking_phase}: Claim roles by clicking on reactions. Some give you access to special channels!"
         )
         category_2_name = "General Text Channels"
         category_2_desc = (
@@ -270,19 +269,16 @@ class EmbedCreator:
             " Discuss balance issues and talk about possible improvements."
             f"\n{mid_wars}: Discuss current issues with Mid Wars balance and design, suggest improvements."
         )
-        category_4_name = "NA/EU/LAT/CIS/AUS"
-        category_4_desc = (
-            f"These will unlock depending on the roles you pick in {picking_phase} and will include a LFG text channel"
-            " as well as a few voice channels for TMM groups."
-        )
+        category_4_name = "Looking for Group (LFG)"
+        category_4_desc = "Find people to play your favorite, or any other, map and game mode with."
         category_5_name = "Voice Channels"
         category_5_desc = "To be used for playing HoN. Please do not idle in these channels."
         embed = discord.Embed(title=title, type="rich", description="", color=0x3CC03C)
         embed.add_field(name=category_1_name, value=category_1_desc, inline=False)
         embed.add_field(name=category_2_name, value=category_2_desc, inline=False)
         embed.add_field(name=category_3_name, value=category_3_desc, inline=False)
-        embed.add_field(name=category_5_name, value=category_5_desc, inline=False)
         embed.add_field(name=category_4_name, value=category_4_desc, inline=False)
+        embed.add_field(name=category_5_name, value=category_5_desc, inline=False)
         return embed
 
     async def roles(self) -> discord.Embed:
@@ -321,8 +317,8 @@ class EmbedCreator:
             " given by Frostburn employees in <#735515144091598898> isn't official support and should be taken as-is."
         )
         group_3 = (
-            f"{guardian_mention}: Verified volunteers who moderate the Volunteer Corner channel category on Discord."
-            f"\n\n{gm_mention}: Verified Game Masters, Newerth's Lawmen. Together they saddle up and ride,"
+            # f"{guardian_mention}: Verified volunteers who moderate the Volunteer Corner channel category on Discord.\n\n" NOTE: New lines were in the row below.
+            f"{gm_mention}: Verified Game Masters, Newerth's Lawmen. Together they saddle up and ride,"
             " bringing justice, law, and order to all corners of Newerth. You may ask them general RAP questions."
             " However, case specific inquiries may not be discussed; please refer to the"
             " [RAP Portal](https://rap.heroesofnewerth.com/ 'rap.heroesofnewerth.com')."
@@ -370,7 +366,8 @@ class EmbedCreator:
 
     async def reactions_regional_roles(self, region_emoji_names: dict) -> discord.Embed:
         desc = (
-            "These give access to regional channel categories, including regional LFG (Looking for Group) channels.\n"
+            "Allow other players to find a new teammate from their region in LFG (Looking for Group) channels more"
+            " easily. You may pick more than one if you play on multiple servers.\n"
         )
         roles = self.ctx.guild.roles
         for emoji, role_name in region_emoji_names.items():
@@ -420,7 +417,9 @@ class EmbedCreator:
             inline=False,
         )
         embed.add_field(
-            name="Gambling", value="```css\n.roll [low] [high]```", inline=False,
+            name="Gambling",
+            value="```css\n.roll [low] [high]```",
+            inline=False,
         )
         embed.add_field(
             name="Miscellaneous",
@@ -470,7 +469,8 @@ class HoNOfficial(commands.Cog):
         channel = guild.get_channel(payload.channel_id)
         message = await channel.fetch_message(payload.message_id)
         role = discord.utils.get(
-            guild.roles, name=(self.guild_id_dict[payload.guild_id][str(payload.message_id)][str(payload.emoji)]),
+            guild.roles,
+            name=(self.guild_id_dict[payload.guild_id][str(payload.message_id)][str(payload.emoji)]),
         )
         if role not in payload.member.roles:
             await payload.member.add_roles(role, reason="Reaction")
