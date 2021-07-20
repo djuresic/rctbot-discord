@@ -287,7 +287,7 @@ class EmbedCreator:
         mod_mention = discord.utils.get(roles, name="Discord Moderator").mention
         garena_mention = discord.utils.get(roles, name="Garena Staff").mention
         forstburn_mention = discord.utils.get(roles, name="Frostburn Staff").mention
-        guardian_mention = discord.utils.get(roles, name="Guardian of Newerth").mention
+        # guardian_mention = discord.utils.get(roles, name="Guardian of Newerth").mention
         gm_mention = discord.utils.get(roles, name="Game Master").mention
         rct_mention = discord.utils.get(roles, name="Retail Candidate Tester").mention
         to_mention = discord.utils.get(roles, name="Tournament Organizer").mention
