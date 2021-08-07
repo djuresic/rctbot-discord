@@ -6,6 +6,8 @@ from typing import Optional, List
 from pydantic import BaseModel  # pylint: disable=no-name-in-module
 
 # Reference: https://fastapi.tiangolo.com/tutorial/body-nested-models/
+# TODO: Question.question, yikes. This has be changed in Mongo and other files first and then updated here to match.
+# Question.text is preferable.
 class Question(BaseModel):
     _id: int
     enabled: bool
