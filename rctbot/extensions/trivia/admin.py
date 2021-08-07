@@ -249,8 +249,8 @@ class TriviaAdmin(commands.Cog):
         await ctx.send_help("tt")
 
     # https://motor.readthedocs.io/en/stable/api-asyncio/asyncio_motor_collection.html#motor.motor_asyncio.AsyncIOMotorCollection.find_one_and_update
-    @triviatokens.command(aliases=["m"])
-    async def modify(self, ctx, discord_id: int, amount: int) -> discord.Message:
+    @triviatokens.command(name="modify", aliases=["m"])
+    async def _tokens_modify(self, ctx, discord_id: int, amount: int) -> discord.Message:
         """Modify trivia tokens for a user.
 
         Args:
@@ -272,8 +272,8 @@ class TriviaAdmin(commands.Cog):
             f' Current amount: **{document["tokens"]}**'
         )
 
-    @triviatokens.command(aliases=["s"])
-    async def set(self, ctx, discord_id: int, value: int) -> discord.Message:
+    @triviatokens.command(name="set", aliases=["s"])
+    async def _tokens_set(self, ctx, discord_id: int, value: int) -> discord.Message:
         """Set trivia tokens to this value for a user.
 
         Args:
