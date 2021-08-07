@@ -47,7 +47,7 @@ class GameChannel(BaseModel):
     name: Optional[str] = None
 
 
-class GameSettings:
+class GameSettings(BaseModel):
     name: Optional[str] = "Unnamed"
     rounds: int
     round_length: int
