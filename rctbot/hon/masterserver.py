@@ -340,6 +340,10 @@ class Client:
         }
         return await self.ensure_request(query, cookie=True)
 
+    async def get_products(self):
+        query = {"f": "get_products"}
+        return await self.ensure_request(query, cookie=True)
+
 
 # pylint: disable=unused-argument
 def setup(bot):
