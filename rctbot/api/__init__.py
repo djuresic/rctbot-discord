@@ -18,3 +18,5 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 # TODO
 # __version__ = "0.3.1"
+
+# Reference: https://fastapi.tiangolo.com/tutorial/bigger-applications/
