@@ -6,10 +6,12 @@ import asyncio
 import discord
 from discord.ext import commands
 from pymongo import ReturnDocument
+from pydantic import ValidationError
 
 from rctbot.core.driver import AsyncDatabaseHandler
 
 from rctbot.extensions.trivia.config import TriviaConfig
+from rctbot.extensions.trivia.models import Player
 
 os.environ["PYTHONASYNCIODEBUG"] = "1"
 
@@ -248,6 +250,7 @@ class TriviaAdmin(commands.Cog):
     async def triviatokens(self, ctx):
         await ctx.send_help("tt")
 
+    # By default find_one_and_update() returns the original version of the document before the update was applied.
     # https://motor.readthedocs.io/en/stable/api-asyncio/asyncio_motor_collection.html#motor.motor_asyncio.AsyncIOMotorCollection.find_one_and_update
     @triviatokens.command(name="modify", aliases=["m"])
     async def _tokens_modify(self, ctx, discord_id: int, amount: int) -> discord.Message:
@@ -278,7 +281,7 @@ class TriviaAdmin(commands.Cog):
 
         Args:
             discord_id (int): Discord User ID of the participant.
-            amount (int): Value to set trivia tokens to.
+            value (int): Value to set trivia tokens to.
         """
         document = await self.players.find_one_and_update(
             {"_id": discord_id}, {"$set": {"tokens": value}}, projection={"tokens": True, "_id": False}
@@ -288,3 +291,16 @@ class TriviaAdmin(commands.Cog):
         return await ctx.send(
             f'Set tokens to **{value}** for particiant **{discord_id}**. Previous amount: **{document["tokens"]}**'
         )
+
+    @triviatokens.command(name="fetch", aliases=["f"])
+    async def _tokens_fetch(self, ctx, discord_id: int) -> discord.Message:
+        """Fetch user's current trivia tokens.
+
+        Args:
+            discord_id (int): Discord User ID of the participant.
+        """
+        try:
+            player = Player.parse_obj(await self.players.find_one({"_id": discord_id}))
+        except ValidationError:
+            return await ctx.send(f"Couldn't find a participant with ID **{discord_id}**!")
+        return await ctx.send(f"Participant **{discord_id}** currently has **{player.tokens}** tokens.")
