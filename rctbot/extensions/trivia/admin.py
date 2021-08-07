@@ -5,6 +5,7 @@ import asyncio
 
 import discord
 from discord.ext import commands
+from pymongo import ReturnDocument
 
 from rctbot.core.driver import AsyncDatabaseHandler
 
@@ -19,6 +20,7 @@ class TriviaAdmin(commands.Cog):
         self.db_client = AsyncDatabaseHandler.client
         self.db = self.db_client["Trivia"]
         self.q_qol = self.db["QUESTIONS"]
+        self.players = self.db["PLAYERSTATS"]
 
     @commands.group(aliases=["tra"], invoke_without_command=True)
     @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
@@ -65,7 +67,7 @@ class TriviaAdmin(commands.Cog):
                     await ctx.send("No question entered")
         else:
             question["question"] = q
-        if (found := (await (self.q_qol.find({"question": question["question"]})).to_list(length=None))) :
+        if found := (await (self.q_qol.find({"question": question["question"]})).to_list(length=None)):
             await ctx.send(f"❗ That question already exists!\n{found}")
             go = False
         if go:
@@ -225,7 +227,7 @@ class TriviaAdmin(commands.Cog):
     @triviaadmin.command()
     async def disable(self, ctx, question_id: int):
         """<id> Disable a question"""
-        question_doc = self.q_qol.find_one_and_update({"_id": question_id}, {"$set": {"enabled": False}})
+        question_doc = await self.q_qol.find_one_and_update({"_id": question_id}, {"$set": {"enabled": False}})
         if question_doc:
             await ctx.message.add_reaction("👌")
         else:
@@ -234,8 +236,55 @@ class TriviaAdmin(commands.Cog):
     @triviaadmin.command()
     async def enable(self, ctx, question_id: int):
         """<id> Enable a question"""
-        question_doc = self.q_qol.find_one_and_update({"_id": question_id}, {"$set": {"enabled": True}})
+        question_doc = await self.q_qol.find_one_and_update({"_id": question_id}, {"$set": {"enabled": True}})
         if question_doc:
             await ctx.message.add_reaction("👌")
         else:
             await ctx.send(f"Couldn't find a question with ID: {question_id}")
+
+    # Trivia tokens:
+    @commands.group(aliases=["tt"], invoke_without_command=True)
+    @commands.has_any_role(*(TriviaConfig.document["admin_roles"]))
+    async def triviatokens(self, ctx):
+        await ctx.send_help("tt")
+
+    # https://motor.readthedocs.io/en/stable/api-asyncio/asyncio_motor_collection.html#motor.motor_asyncio.AsyncIOMotorCollection.find_one_and_update
+    @triviatokens.command(aliases=["m"])
+    async def modify(self, ctx, discord_id: int, amount: int) -> discord.Message:
+        """Modify trivia tokens for a user.
+
+        Args:
+            discord_id (int): Discord User ID of the participant.
+            amount (int): Amount of tokens to add. Use negative integers to subtract, e.g. -5
+        """
+        document = await self.players.find_one_and_update(
+            {"_id": discord_id},
+            {"$inc": {"tokens": amount}},
+            projection={"tokens": True, "_id": False},
+            return_document=ReturnDocument.AFTER,
+        )
+        if not document:
+            return await ctx.send(f"Couldn't find a participant with ID **{discord_id}**!")
+        return await ctx.send(
+            f'{"Removed" if amount < 0 else "Added"}'
+            f' **{abs(amount)}** token{"s" if abs(amount)/1 != 1 else ""}'
+            f' {"from" if amount < 0 else "to"} **{discord_id}**.'
+            f' Current amount: **{document["tokens"]}**'
+        )
+
+    @triviatokens.command(aliases=["s"])
+    async def set(self, ctx, discord_id: int, value: int) -> discord.Message:
+        """Set trivia tokens to this value for a user.
+
+        Args:
+            discord_id (int): Discord User ID of the participant.
+            amount (int): Value to set trivia tokens to.
+        """
+        document = await self.players.find_one_and_update(
+            {"_id": discord_id}, {"$set": {"tokens": value}}, projection={"tokens": True, "_id": False}
+        )
+        if not document:
+            return await ctx.send(f"Couldn't find a participant with ID **{discord_id}**!")
+        return await ctx.send(
+            f'Set tokens to **{value}** for particiant **{discord_id}**. Previous amount: **{document["tokens"]}**'
+        )
