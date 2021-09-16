@@ -35,7 +35,7 @@ class Playtesting(commands.Cog):
     async def version(self, ctx, masterserver: str = "rc"):
         """Checks all client versions and build date information for
         masterserver.
-        
+
         Defaults to RCT masterserver.
         """
 
@@ -44,6 +44,7 @@ class Playtesting(commands.Cog):
             async with aiohttp.ClientSession() as session:
                 ms = Client(masterserver, session=session)
                 w_version = await ms.latest_client_version("windows")
+                w_64_version = await ms.latest_client_version("windows", x86_64=True)
                 m_version = await ms.latest_client_version("mac")
                 l_version = await ms.latest_client_version("linux")
 
@@ -51,11 +52,16 @@ class Playtesting(commands.Cog):
                 # Reference: https://github.com/ElementUser/Heroes-of-Newerth/blob/master/scripts/get_all_hon_patch_modified_dates/modified_date_script.py
                 # Tested with 0.30.221, build date 10 August 2020, 08:07:02 AM +0800 UTC
 
-                async def get_zip_binary_response_content(client_os_letter: str, version: str) -> bytes:
-                    url = "http://dl.heroesofnewerth.com/{os}/{arch}/{version}/{file}.zip"
+                async def get_zip_binary_response_content(client_os_letter: str, version: str, x86_64=False) -> bytes:
                     os_ = f"{client_os_letter}{ms.client_os[masterserver]}"
-                    arch = {"w": "i686", "m": "universal", "l": "x86-biarch"}[client_os_letter]
-                    file_ = {"w": "hon.exe", "m": "manifest.xml", "l": "manifest.xml"}[client_os_letter]
+                    if not x86_64:
+                        url = "http://dl.heroesofnewerth.com/{os}/{arch}/{version}/{file}.zip"
+                        arch = {"w": "i686", "m": "universal", "l": "x86-biarch"}[client_os_letter]
+                        file_ = {"w": "hon.exe", "m": "manifest.xml", "l": "manifest.xml"}[client_os_letter]
+                    else:
+                        url = "http://cdn.hon.team/{os}/{arch}/{version}/{file}.zip"
+                        arch = "x86_64"
+                        file_ = "hon_x64.exe"
                     resp = await session.get(url.format(os=os_, arch=arch, version=version, file=file_))
                     return await resp.read()
 
@@ -70,6 +76,8 @@ class Playtesting(commands.Cog):
 
                 w_bytes = await get_zip_binary_response_content("w", w_version)
                 w_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, w_bytes)
+                w_64_bytes = await get_zip_binary_response_content("w", w_64_version, x86_64=True)
+                w_64_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, w_64_bytes)
                 m_bytes = await get_zip_binary_response_content("m", m_version)
                 m_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, m_bytes)
                 l_bytes = await get_zip_binary_response_content("l", l_version)
@@ -93,6 +101,15 @@ class Playtesting(commands.Cog):
                 inline=True,
             )
             embed.add_field(
+                name="Windows (64-bit)",
+                value=(
+                    f"Version: {w_64_version}"
+                    f'\nBuild date: {w_64_build_datetime.strftime("%d %b %Y")}'
+                    f'\nBuild time: {w_64_build_datetime.strftime("%I:%M:%S %p")}'
+                ),
+                inline=True,
+            )
+            embed.add_field(
                 name="macOS",
                 value=(
                     f"Version: {m_version}"
@@ -111,7 +128,8 @@ class Playtesting(commands.Cog):
                 inline=True,
             )
             embed.set_footer(
-                text="Yes honey. All build times are in UTC.", icon_url="https://i.imgur.com/q8KmQtw.png",
+                text="Yes honey. All build times are in UTC.",
+                icon_url="https://i.imgur.com/q8KmQtw.png",
             )
 
             await ctx.send(embed=embed)

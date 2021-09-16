@@ -289,7 +289,7 @@ class Client:
         # print(result)
         return result
 
-    async def latest_client_version(self, client_os="windows", include_zero=False):
+    async def latest_client_version(self, client_os="windows", include_zero=False, x86_64=False):
         """Client OS must be either Windows, macOS or Linux.
         Case insensitive and only the first letter matters. (w, m, l)
 
@@ -298,7 +298,7 @@ class Client:
         client_os = client_os[0].lower()
         os_parameter = f"{client_os}{self.client_os[self.masterserver]}"
         arch = {"w": "i686", "m": "universal", "l": "x86-biarch"}
-        query = {"version": "0.0.0.0", "os": os_parameter, "arch": arch[client_os]}
+        query = {"version": "0.0.0.0", "os": os_parameter, "arch": arch[client_os] if not x86_64 else "x86_64"}
         if include_zero:
             return (await self.request(query, "patcher/patcher.php"))[b"version"].decode()
         return (await self.request(query, "patcher/patcher.php"))[0][b"version"].decode()
