@@ -16,6 +16,7 @@ from rctbot.core.driver import AsyncDatabaseHandler
 from rctbot.hon.masterserver import Client
 from rctbot.hon.utils import get_avatar
 
+# TODO: Rewrite needed.
 # TODO: Rearrange methods.
 # TODO: Verify perks addition.
 
@@ -41,8 +42,9 @@ class ACPClient:
         self.masterserver = masterserver
         self.url = self.ACP_CONFIG[masterserver]["base_url"]
         self.ssl = bool(self.url.startswith("https://"))
-        if self.ssl and masterserver == "ac":
-            self.ssl = SSL_CONTEXT
+        # NOTE: SSL_CONTEXT is no longer in use but it is stil defined.
+        # if self.ssl and masterserver == "ac":
+        #     self.ssl = SSL_CONTEXT
         self.color = self.ACP_CONFIG[masterserver]["color"]
         self.admin = admin
         self.db = AsyncDatabaseHandler.client[rctbot.config.MONGO_DATABASE_NAME]
@@ -87,14 +89,30 @@ class ACPClient:
         if not timeout:
             timeout = self.timeout
         status, headers, text = await self._do_request(
-            path, params, data, method, allow_redirects, chunked, read_until_eof, ssl, timeout,
+            path,
+            params,
+            data,
+            method,
+            allow_redirects,
+            chunked,
+            read_until_eof,
+            ssl,
+            timeout,
         )
         if status in [401, 403, 500]:
             for attempt in range(5):
                 authenticated = await self.authenticate()
                 if authenticated:
                     status, headers, text = await self._do_request(
-                        path, params, data, method, allow_redirects, chunked, read_until_eof, ssl, timeout,
+                        path,
+                        params,
+                        data,
+                        method,
+                        allow_redirects,
+                        chunked,
+                        read_until_eof,
+                        ssl,
+                        timeout,
                     )
                     return status, headers, text
                 print(f"ACP authentication attempt {attempt+1} failed")
@@ -103,7 +121,16 @@ class ACPClient:
         return status, headers, text
 
     async def _do_request(
-        self, path, params, data, method, allow_redirects, chunked, read_until_eof, ssl, timeout,
+        self,
+        path,
+        params,
+        data,
+        method,
+        allow_redirects,
+        chunked,
+        read_until_eof,
+        ssl,
+        timeout,
     ):
         # print(self.url, path, params, data, method, chunked, read_until_eof, ssl)
         async with self.session.request(
@@ -180,7 +207,6 @@ class ACPClient:
         if not path:
             return None
         return await self.user_path_to_aid(path)
-            
 
     async def user_clan_data(self, clan_path, account_id):
         """Return tuple (tag, name, rank)."""
@@ -259,7 +285,11 @@ class ACPClient:
         new_clan_tag, new_clan_name, new_clan_rank = await self.user_clan_data(new_clan_path, account_id)
         # Set embedded fields.
         fields = [
-            {"name": "Change", "value": f"Clan ({old_clan_id} -> {new_clan_id})", "inline": False,},
+            {
+                "name": "Change",
+                "value": f"Clan ({old_clan_id} -> {new_clan_id})",
+                "inline": False,
+            },
             {"name": "Old Tag", "value": old_clan_tag, "inline": True},
             {"name": "Old Name", "value": old_clan_name, "inline": True},
             {"name": "Old Rank", "value": old_clan_rank, "inline": True},
@@ -272,7 +302,6 @@ class ACPClient:
         if status not in (200,):
             return None
         return f"Successfully added {nickname} ({account_id}) to {new_clan_name} ({new_clan_id})!"
-            
 
     async def clan_remove(self, nickname):
         old_clan_path = await self.find_clan_path("nickname", nickname)
@@ -291,7 +320,11 @@ class ACPClient:
             # In this case removal failed.
             return f"Failed to remove {nickname} ({account_id}) from {old_clan_name} ({old_clan_id})!"
         fields = [
-            {"name": "Change", "value": f"Clan ({old_clan_id} -> {None})", "inline": False,},
+            {
+                "name": "Change",
+                "value": f"Clan ({old_clan_id} -> {None})",
+                "inline": False,
+            },
             {"name": "Old Tag", "value": old_clan_tag, "inline": True},
             {"name": "Old Name", "value": old_clan_name, "inline": True},
             {"name": "Old Rank", "value": old_clan_rank, "inline": True},
@@ -494,7 +527,8 @@ class ACPClient:
         alphabet = string.ascii_letters + string.digits
         account_info["password"] = "".join(secrets.choice(alphabet) for i in range(8))
         account_info["email"] = "{}@{}.com".format(
-            "".join(secrets.choice(alphabet) for i in range(16)), "".join(secrets.choice(alphabet) for i in range(8)),
+            "".join(secrets.choice(alphabet) for i in range(16)),
+            "".join(secrets.choice(alphabet) for i in range(8)),
         )
         # Status.
         _, headers, _ = await self.request(path, params=query, data=account_info, ssl=self.ssl, allow_redirects=False)
@@ -511,7 +545,7 @@ class ACPClient:
         # print(path)
         account_id = await self.user_path_to_aid(path)
         await self.log_action(account_id, "created", [])
-        return account_id, nickname, account_info["password"]       
+        return account_id, nickname, account_info["password"]
 
     async def user_test_access(self, account_id):
         """Get test access field for account."""
