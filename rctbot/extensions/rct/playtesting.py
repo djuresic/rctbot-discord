@@ -44,24 +44,24 @@ class Playtesting(commands.Cog):
             async with aiohttp.ClientSession() as session:
                 ms = Client(masterserver, session=session)
                 w_version = await ms.latest_client_version("windows")
-                w_64_version = await ms.latest_client_version("windows", x86_64=True)
-                m_version = await ms.latest_client_version("mac")
+                w_64_version = await ms.latest_client_version("windows", bit_64=True)
+                m_version = await ms.latest_client_version("mac", bit_64=True)
                 l_version = await ms.latest_client_version("linux")
 
                 # Get Windows client build date from hon.exe modified date.
                 # Reference: https://github.com/ElementUser/Heroes-of-Newerth/blob/master/scripts/get_all_hon_patch_modified_dates/modified_date_script.py
                 # Tested with 0.30.221, build date 10 August 2020, 08:07:02 AM +0800 UTC
 
-                async def get_zip_binary_response_content(client_os_letter: str, version: str, x86_64=False) -> bytes:
+                async def get_zip_binary_response_content(client_os_letter: str, version: str, bit_64=False) -> bytes:
                     os_ = f"{client_os_letter}{ms.client_os[masterserver]}"
-                    if not x86_64:
+                    if not bit_64 or (bit_64 and client_os_letter == "l"):
                         url = "http://dl.heroesofnewerth.com/{os}/{arch}/{version}/{file}.zip"
                         arch = {"w": "i686", "m": "universal", "l": "x86-biarch"}[client_os_letter]
                         file_ = {"w": "hon.exe", "m": "manifest.xml", "l": "manifest.xml"}[client_os_letter]
                     else:
-                        url = "http://cdn.hon.team/{os}/{arch}/{version}/{file}.zip"
-                        arch = "x86_64"
-                        file_ = "hon_x64.exe"
+                        url = "http://cdn.naeu.patch.heroesofnewerth.com/{os}/{arch}/{version}/{file}.zip"
+                        arch = {"w": "x86_64", "m": "universal-64"}[client_os_letter]
+                        file_ = {"w": "hon_x64.exe", "m": "manifest.xml"}[client_os_letter]
                     resp = await session.get(url.format(os=os_, arch=arch, version=version, file=file_))
                     return await resp.read()
 
@@ -76,9 +76,9 @@ class Playtesting(commands.Cog):
 
                 w_bytes = await get_zip_binary_response_content("w", w_version)
                 w_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, w_bytes)
-                w_64_bytes = await get_zip_binary_response_content("w", w_64_version, x86_64=True)
+                w_64_bytes = await get_zip_binary_response_content("w", w_64_version, bit_64=True)
                 w_64_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, w_64_bytes)
-                m_bytes = await get_zip_binary_response_content("m", m_version)
+                m_bytes = await get_zip_binary_response_content("m", m_version, bit_64=True)
                 m_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, m_bytes)
                 l_bytes = await get_zip_binary_response_content("l", l_version)
                 l_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, l_bytes)
