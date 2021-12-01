@@ -42,11 +42,19 @@ class Playtesting(commands.Cog):
         async with ctx.message.channel.typing():
 
             async with aiohttp.ClientSession() as session:
+                clients_dict = {
+                    "w_32": {"name": "Windows", "os": "w", "bit_64": False},
+                    "w_64": {"name": "Windows (64-bit)", "os": "w", "bit_64": True},
+                    "m": {"name": "macOS", "os": "m", "bit_64": True},
+                    "l": {"name": "Linux", "os": "l", "bit_64": False},
+                }
+
                 ms = Client(masterserver, session=session)
-                w_version = await ms.latest_client_version("windows")
-                w_64_version = await ms.latest_client_version("windows", bit_64=True)
-                m_version = await ms.latest_client_version("mac", bit_64=True)
-                l_version = await ms.latest_client_version("linux")
+                for k, v in clients_dict.items():
+                    try:
+                        clients_dict[k]["version"] = await ms.latest_client_version(v["os"], bit_64=v["bit_64"])
+                    except KeyError:
+                        continue
 
                 # Get Windows client build date from hon.exe modified date.
                 # Reference: https://github.com/ElementUser/Heroes-of-Newerth/blob/master/scripts/get_all_hon_patch_modified_dates/modified_date_script.py
@@ -74,14 +82,13 @@ class Playtesting(commands.Cog):
 
                 loop = asyncio.get_running_loop()
 
-                w_bytes = await get_zip_binary_response_content("w", w_version)
-                w_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, w_bytes)
-                w_64_bytes = await get_zip_binary_response_content("w", w_64_version, bit_64=True)
-                w_64_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, w_64_bytes)
-                m_bytes = await get_zip_binary_response_content("m", m_version, bit_64=True)
-                m_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, m_bytes)
-                l_bytes = await get_zip_binary_response_content("l", l_version)
-                l_build_datetime = await loop.run_in_executor(None, get_build_datetime_from_zip, l_bytes)
+                for k, v in clients_dict.items():
+                    if "version" not in v:
+                        continue
+                    zip_bytes = await get_zip_binary_response_content(v["os"], v["version"], bit_64=v["bit_64"])
+                    clients_dict[k]["datetime"] = await loop.run_in_executor(
+                        None, get_build_datetime_from_zip, zip_bytes
+                    )
 
             embed = discord.Embed(
                 title=ms.client_name,
@@ -91,42 +98,18 @@ class Playtesting(commands.Cog):
                 timestamp=ctx.message.created_at,
             )
             embed.set_author(name=ctx.author.display_name, icon_url=ctx.author.avatar_url)
-            embed.add_field(
-                name="Windows",
-                value=(
-                    f"Version: {w_version}"
-                    f'\nBuild date: {w_build_datetime.strftime("%d %b %Y")}'
-                    f'\nBuild time: {w_build_datetime.strftime("%I:%M:%S %p")}'
-                ),
-                inline=True,
-            )
-            embed.add_field(
-                name="Windows (64-bit)",
-                value=(
-                    f"Version: {w_64_version}"
-                    f'\nBuild date: {w_64_build_datetime.strftime("%d %b %Y")}'
-                    f'\nBuild time: {w_64_build_datetime.strftime("%I:%M:%S %p")}'
-                ),
-                inline=True,
-            )
-            embed.add_field(
-                name="macOS",
-                value=(
-                    f"Version: {m_version}"
-                    f'\nBuild date: {m_build_datetime.strftime("%d %b %Y")}'
-                    f'\nBuild time: {m_build_datetime.strftime("%I:%M:%S %p")}'
-                ),
-                inline=True,
-            )
-            embed.add_field(
-                name="Linux",
-                value=(
-                    f"Version: {l_version}"
-                    f'\nBuild date: {l_build_datetime.strftime("%d %b %Y")}'
-                    f'\nBuild time: {l_build_datetime.strftime("%I:%M:%S %p")}'
-                ),
-                inline=True,
-            )
+            for item in clients_dict.values():
+                if "version" not in item:
+                    continue
+                embed.add_field(
+                    name=item["name"],
+                    value=(
+                        f'Version: {item["version"]}'
+                        f'\nBuild date: {item["datetime"].strftime("%d %b %Y")}'
+                        f'\nBuild time: {item["datetime"].strftime("%I:%M:%S %p")}'
+                    ),
+                    inline=True,
+                )
             embed.set_footer(
                 text="Yes honey. All build times are in UTC.",
                 icon_url="https://i.imgur.com/q8KmQtw.png",
