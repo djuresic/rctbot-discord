@@ -72,7 +72,7 @@ class TriviaGame(commands.Cog):
             "admin_channel": None,
             "name": "Trivia",
             "delay": 60.0,
-            "point_distribution": [3, 1, 1, 1, 1, 1, 1, 1],
+            "point_distribution": [5, 3, 3] + 47 * [1],
             "repost": False,
             "mute_duration": 0.5,
         }
@@ -778,7 +778,7 @@ class TriviaGame(commands.Cog):
             "admin_channel": None,
             "name": "Trivia",
             "delay": 60.0,
-            "point_distribution": [3, 1, 1, 1, 1, 1, 1, 1],
+            "point_distribution": [5, 3, 3] + 47 * [1],
             "repost": False,
         }
         self.scoreboard = {}
