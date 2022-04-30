@@ -63,6 +63,7 @@ class TriviaGame(commands.Cog):
         self.game_stats = {"rounds": []}
         self.winners = []
         self.do_not_count_roles = []
+        # Prior to the last event: "point_distribution": [5, 3, 3] + 47 * [1]
         self.options = {
             "rounds": 1,
             "length": 60,
@@ -72,7 +73,7 @@ class TriviaGame(commands.Cog):
             "admin_channel": None,
             "name": "Trivia",
             "delay": 60.0,
-            "point_distribution": [5, 3, 3] + 47 * [1],
+            "point_distribution": 10000 * [1],
             "repost": False,
             "mute_duration": 0.5,
         }
@@ -552,7 +553,8 @@ class TriviaGame(commands.Cog):
                             "wrong": player["wrong"],
                             "total_rounds": player["correct"] + player["wrong"],
                             "total_games": 1,
-                            "tokens": player["points"],
+                            # Prior to the last event: "tokens": player["points"]
+                            "tokens": max(0, player["points"] - player["wrong"]),
                         },
                         "$set": {"active": True},
                     },
@@ -567,7 +569,8 @@ class TriviaGame(commands.Cog):
                         "wrong": player["wrong"],
                         "total_rounds": player["correct"] + player["wrong"],
                         "total_games": 1,
-                        "tokens": player["points"],
+                        # Prior to the last event: "tokens": player["points"]
+                        "tokens": max(0, player["points"] - player["wrong"]),
                     }
                 )
         await game_stats_collection.insert_one(self.game_stats)
