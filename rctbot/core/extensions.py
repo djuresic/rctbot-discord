@@ -103,7 +103,7 @@ class Extensions(commands.Cog):
         description = (
             "A Discord bot with Heroes of Newerth integration. Primarily intended for"
             " use by Retail Canididate Testers, Heroes of Newerth volunteer community position."
-            "\n\nCopyright © 2020–2021 Danijel Jurešić"
+            "\n\nCopyright © 2020–2022 Danijel Jurešić"
             "\n\nThis program is free software: you can redistribute it and/or modify"
             " it under the terms of the GNU Affero General Public License as published"
             " by the Free Software Foundation, either version 3 of the License, or"

@@ -1,6 +1,6 @@
 """
 RCTBot A Discord bot with Heroes of Newerth integration.
-Copyright (C) 2020–2021  Danijel Jurešić
+Copyright (C) 2020–2022  Danijel Jurešić
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as published
