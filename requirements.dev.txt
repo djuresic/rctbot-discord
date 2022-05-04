@@ -11,7 +11,7 @@ pymongo[srv]>=3.12.0,<4.0.0
 motor>=2.5.1,<3.0.0
 python-dotenv==0.19.*
 fastapi==0.66.*
-Jinja2>=3.0.1,<4.0.0
+Jinja2==3.0.*
 aiofiles>=0.6.0
 # pyyaml
 itsdangerous>=2.0.1,<3.0.0
